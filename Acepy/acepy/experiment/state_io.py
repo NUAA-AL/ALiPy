@@ -220,16 +220,16 @@ class StateIO:
 
         Returns
         -------
-        train_idx: array-like
+        train_idx: list
             Index of training set, shape like [n_training_samples]
 
-        test_idx: array-like
+        test_idx: list
             Index of testing set, shape like [n_testing_samples]
 
-        label_idx: array-like
+        label_idx: list
             Index of labeling set, shape like [n_labeling_samples]
 
-        unlabel_idx: array-like
+        unlabel_idx: list
             Index of unlabeling set, shape like [n_unlabeling_samples]
         """
         if iteration is None:
@@ -256,16 +256,16 @@ class StateIO:
 
         Returns
         -------
-        train_idx: array-like
+        train_idx: list
             Index of training set, shape like [n_training_samples]
 
-        test_idx: array-like
+        test_idx: list
             Index of testing set, shape like [n_testing_samples]
 
-        label_idx: array-like
+        label_idx: list
             Index of labeling set, shape like [n_labeling_samples]
 
-        unlabel_idx: array-like
+        unlabel_idx: list
             Index of unlabeling set, shape like [n_unlabeling_samples]
         """
         if iteration is None:

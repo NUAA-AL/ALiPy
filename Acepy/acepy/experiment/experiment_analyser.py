@@ -29,7 +29,7 @@ def ExperimentAnalyser(x_axis='num_of_queries'):
         - StateIO object.
         - A list contains n performances for n queries.
         - A list contains n tuples with 2 elements, in which, the first
-          element is the x_axis (e.g., iteration, cost),
+          element is the x_axis (e.g., iteration, accumulative_cost),
           and the second element is the y_axis (e.g., the performance)
 
     Functions include:
@@ -177,6 +177,9 @@ class StateIOContainer:
 
         return extracted_matrix
 
+    def to_list(self):
+        return copy.deepcopy(self.__results)
+
     def __len__(self):
         return len(self.__results)
 
@@ -263,13 +266,13 @@ class _ContentSummary:
             self.mean = np.mean(method_results)
             self.std = np.std(method_results)
         else:
-            perf_mat = [[tup[1] for tup in line] for line in method_results]
+            perf_mat = [[np.sum(tup[1]) for tup in line] for line in method_results]
             cost_mat = [[tup[0] for tup in line] for line in method_results]
-            mean_perf_for_each_fold = np.mean(perf_mat, axis=1)
+            mean_perf_for_each_fold = [np.mean(perf) for perf in perf_mat]
             self.mean = np.mean(mean_perf_for_each_fold)
             self.std = np.std(mean_perf_for_each_fold)
             # Only for Cost
-            self.cost_inall = np.sum(cost_mat, axis=1)
+            self.cost_inall = [np.sum(cost_one_fold) for cost_one_fold in cost_mat]
 
 
 class _NumOfQueryAnalyser(BaseAnalyser):
@@ -282,6 +285,33 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         super(_NumOfQueryAnalyser, self).__init__()
 
     def add_method(self, method_name, method_results):
+        """
+        Add results of a method.
+
+        Parameters
+        ----------
+        method_results: {list, np.ndarray, StateIOContainer}
+            experiment results of a method. contains k stateIO object or
+            a list contains n tuples with 2 elements, in which, the first
+            element is the x_axis (e.g., iteration, accumulative_cost),
+            and the second element is the y_axis (e.g., the performance)
+
+        method_name: str
+            Name of the given method.
+        """
+        if isinstance(method_results, (list, np.ndarray)):
+            self.__add_list_result(method_name, method_results)
+        elif isinstance(method_results, StateIOContainer):
+            self.__add_stateio_container(method_name, method_results)
+        else:
+            raise TypeError('method_results must be one of {list, numpy.ndarray, StateIOContainer}.')
+
+    def __add_stateio_container(self, method_name, method_results):
+        self._is_all_stateio = True
+        self._data_extracted[method_name] = method_results.extract_matrix()
+        self._data_summary[method_name] = _ContentSummary(method_results=method_results.to_list(), method_type=0)
+
+    def __add_list_result(self, method_name, method_results):
         """
         Add results of a method.
 
@@ -359,7 +389,7 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     return False
         return True
 
-    def plot_line_chart(self, x_shift=None, start_point=None, title=None, std_bar=False, std_alpha=0.3, saving_path='.'):
+    def plot_line_chart(self, x_shift=None, start_point=None, title=None, std_area=False, std_alpha=0.3, saving_path='.'):
         """plotting the performance curves.
 
         Parameters
@@ -376,7 +406,7 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         title: str, optioanl (default=None)
             The tile of the figure.
 
-        std_bar: bool, optional (default=False)
+        std_area: bool, optional (default=False)
             Whether to show the std values of the performance after each query.
 
         std_alpha: float, optional (default=0.3)
@@ -399,7 +429,7 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         # plotting
         for i in self._data_extracted.keys():
             points = np.mean(self._data_extracted[i], axis=0)
-            if std_bar:
+            if std_area:
                 std_points = np.std(self._data_extracted[i], axis=0)
             if x_shift is None:
                 if not self._is_all_stateio or self._data_summary[i].ip is None:
@@ -407,13 +437,14 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                 else:
                     x_shift = 0
             if start_point is not None:
-                plt.plot(np.arange(len(points)+1) + x_shift, [start_point] + points, label=i)
-                if std_bar:
+                x_shift = 0
+                plt.plot(np.arange(len(points)+1) + x_shift, [start_point] + list(points), label=i)
+                if std_area:
                     plt.fill_between(np.arange(len(points)) + x_shift + 1, points - std_points, points + std_points,
                                      interpolate=True, alpha=std_alpha)
             else:
                 plt.plot(np.arange(len(points)) + x_shift, points, label=i)
-                if std_bar:
+                if std_area:
                     plt.fill_between(np.arange(len(points)) + x_shift, points - std_points, points + std_points,
                                      interpolate=True, alpha=std_alpha)
 
@@ -464,7 +495,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
 
         Parameters
         ----------
-        method_results: {list, np.ndarray}
+        method_results: {list, np.ndarray, StateIOContainer}
             experiment results of a method. contains k stateIO object or
             a list contains n tuples with 2 elements, in which, the first
             element is the x_axis (e.g., iteration, cost),
@@ -473,9 +504,19 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         method_name: str
             Name of the given method.
         """
-        assert (isinstance(method_results, (list, np.ndarray)))
-        # StateIO object
-        # The type must be one of [0,1,2], otherwise, it will raise in that function.
+        if isinstance(method_results, (list, np.ndarray)):
+            self.__add_list_result(method_name, method_results)
+        elif isinstance(method_results, StateIOContainer):
+            self.__add_stateio_container(method_name, method_results)
+        else:
+            raise TypeError('method_results must be one of {list, numpy.ndarray, StateIOContainer}.')
+
+    def __add_stateio_container(self, method_name, method_results):
+        self._is_all_stateio = True
+        self._data_extracted[method_name] = method_results.extract_matrix(extract_keys=['cost', 'performance'])
+        self._data_summary[method_name] = _ContentSummary(method_results=method_results.to_list(), method_type=0)
+
+    def __add_list_result(self, method_name, method_results):
         self._is_all_stateio = True
         result_type = self._type_of_data(method_results)
         if result_type == 0:
@@ -515,7 +556,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         """
         # return value initialize
         effective_cost = set()
-        method_cost = dict
+        method_cost = dict()
 
         # gathering information
         for method_name in self._data_extracted.keys():
@@ -532,7 +573,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         return same, min(effective_cost), method_cost
 
     def plot_line_chart(self, x_shift=0, start_point=None, interpolate_interval=None,
-                        title=None, std_bar=False, std_alpha=0.3, saving_path='.'):
+                        title=None, std_area=False, std_alpha=0.3, saving_path='.'):
         """plotting the performance curves.
 
         Parameters
@@ -555,7 +596,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         title: str, optioanl (default=None)
             The tile of the figure.
 
-        std_bar: bool, optional (default=False)
+        std_area: bool, optional (default=False)
             Whether to show the std values of the performance after each query.
 
         std_alpha: float, optional (default=0.3)
@@ -571,16 +612,21 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         plt: object
             The matplot object.
         """
-        same, effective_cost, method_cost = self._check_and_get_total_cost
+        same, effective_cost, method_cost = self._check_and_get_total_cost()
         interplt_interval = interpolate_interval if interpolate_interval is not None else effective_cost/100
 
         # plotting
         for i in self._data_extracted.keys():
             # get un-aligned row data
             data_mat = self._data_extracted[i]
-            x_axis = [[tup[0] for tup in line] for line in data_mat]
+            x_axis = [[np.sum(tup[0]) for tup in line] for line in data_mat]
+            # calc accumulative cost in x_axis
+            for fold_num in range(len(x_axis)):
+                ori_data = x_axis[fold_num]
+                acc_data = [np.sum(ori_data[0:list_ind+1]) for list_ind in range(len(ori_data))]
+                x_axis[fold_num] = acc_data
+
             y_axis = [[tup[1] for tup in line] for line in data_mat]
-            new_x_axis = np.arange(0 + interplt_interval, effective_cost, interplt_interval)
 
             if start_point is None:
                 # attempt to infer the start point
@@ -600,18 +646,19 @@ class _CostSensitiveAnalyser(BaseAnalyser):
             intplt_arr = []
             for fold_num in range(len(x_axis)):  # len(x_axis) == len(y_axis)
                 intplt_arr.append(
-                    interpolate.interp1d(x=x_axis[fold_num], y=y_axis[fold_num], fill_value='extrapolated'))
+                    interpolate.interp1d(x=x_axis[fold_num], y=y_axis[fold_num], bounds_error=False, fill_value=0.1))
 
+            new_x_axis = np.arange(max([x[0] for x in x_axis]), effective_cost, interplt_interval)
             new_y_axis = []
             for fold_num in range(len(y_axis)):
                 new_y_axis.append(intplt_arr[fold_num](new_x_axis))
 
             # plot data
             points = np.mean(new_y_axis, axis=0)
-            if std_bar:
+            if std_area:
                 std_points = np.std(new_y_axis, axis=0)
             plt.plot(new_x_axis + x_shift, points, label=i)
-            if std_bar:
+            if std_area:
                 plt.fill_between(new_x_axis, points - std_points, points + std_points,
                                  interpolate=True, alpha=std_alpha)
 
@@ -634,7 +681,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
 
     def __repr__(self):
         """summary of current methods."""
-        same, effective_cost, method_cost = self._check_and_get_total_cost
+        same, effective_cost, method_cost = self._check_and_get_total_cost()
         tb = pt.PrettyTable()
         tb.field_names = ['Methods', 'number_of_different_split', 'performance', 'cost_budget']
         for i in self._data_extracted.keys():

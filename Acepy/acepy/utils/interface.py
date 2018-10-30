@@ -328,7 +328,7 @@ class BaseAnalyser(metaclass=ABCMeta):
 
         Examples
         -------
-        >>> from analyser.experiment_analyser import ExperimentAnalyser
+        >>> from acepy.experiment.experiment_analyser import ExperimentAnalyser
         >>> a = [1.2, 2, 3]
         >>> b = [1.6, 2.5, 1.1]
         >>> print(ExperimentAnalyser.paired_ttest(a, b))

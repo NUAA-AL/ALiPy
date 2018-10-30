@@ -70,16 +70,16 @@ class AlExperiment:
         batch size of AL
 
     train_idx: array-like, optional (default=None)
-        index of training set, shape like [n_split_count, n_training_indexex]
+        index of training set, shape like [n_split_count, n_training_indexes]
 
     test_idx: array-like, optional (default=None)
-        index of testing set, shape like [n_split_count, n_testing_indexex]
+        index of testing set, shape like [n_split_count, n_testing_indexes]
 
     label_idx: array-like, optional (default=None)
-        index of labeling set, shape like [n_split_count, n_labeling_indexex]
+        index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
     unlabel_idx: array-like, optional (default=None)
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
 
     def __init__(self, X, y, model=SVC(), performance_metric='accuracy',
@@ -142,16 +142,16 @@ class AlExperiment:
         Parameters
         ----------
         train_idx: array-like, optional (default=None)
-            index of training set, shape like [n_split_count, n_training_indexex]
+            index of training set, shape like [n_split_count, n_training_indexes]
 
         test_idx: array-like, optional (default=None)
-            index of testing set, shape like [n_split_count, n_testing_indexex]
+            index of testing set, shape like [n_split_count, n_testing_indexes]
 
         label_idx: array-like, optional (default=None)
-            index of labeling set, shape like [n_split_count, n_labeling_indexex]
+            index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
         unlabel_idx: array-like, optional (default=None)
-            index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+            index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
 
         Returns
         -------
@@ -189,17 +189,17 @@ class AlExperiment:
 
         Returns
         -------
-        train_idx: array-like
-            index of training set, shape like [n_split_count, n_training_indexex]
+        train_idx: list
+            index of training set, shape like [n_split_count, n_training_indexes]
 
-        test_idx: array-like
-            index of testing set, shape like [n_split_count, n_testing_indexex]
+        test_idx: list
+            index of testing set, shape like [n_split_count, n_testing_indexes]
 
-        label_idx: array-like
-            index of labeling set, shape like [n_split_count, n_labeling_indexex]
+        label_idx: list
+            index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
-        unlabel_idx: array-like
-            index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+        unlabel_idx: list
+            index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
 
         """
         self._split_count = split_count

@@ -63,17 +63,17 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
 
     Returns
     -------
-    train_idx: array-like
-        index of training set, shape like [n_split_count, n_training_indexex]
+    train_idx: list
+        index of training set, shape like [n_split_count, n_training_indexes]
 
-    test_idx: array-like
-        index of testing set, shape like [n_split_count, n_testing_indexex]
+    test_idx: list
+        index of testing set, shape like [n_split_count, n_testing_indexes]
 
-    label_idx: array-like
-        index of labeling set, shape like [n_split_count, n_labeling_indexex]
+    label_idx: list
+        index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
-    unlabel_idx: array-like
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+    unlabel_idx: list
+        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
     # check parameters
     if X is None and y is None and instance_indexes is None:
@@ -193,17 +193,17 @@ def __split_data_matrix(data_matrix=None, matrix_shape=None, test_ratio=0.3, ini
 
     Returns
     -------
-    train_idx: array-like
-        index of training set, shape like [n_split_count, n_training_indexex]
+    train_idx: list
+        index of training set, shape like [n_split_count, n_training_indexes]
 
-    test_idx: array-like
-        index of testing set, shape like [n_split_count, n_testing_indexex]
+    test_idx: list
+        index of testing set, shape like [n_split_count, n_testing_indexes]
 
-    label_idx: array-like
-        index of labeling set, shape like [n_split_count, n_labeling_indexex]
+    label_idx: list
+        index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
-    unlabel_idx: array-like
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+    unlabel_idx: list
+        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
 
     """
 
@@ -325,17 +325,17 @@ def split_features(feature_matrix=None, feature_matrix_shape=None, test_ratio=0.
 
     Returns
     -------
-    train_idx: array-like
-        index of training set, shape like [n_split_count, n_training_indexex]
+    train_idx: list
+        index of training set, shape like [n_split_count, n_training_indexes]
 
-    test_idx: array-like
-        index of testing set, shape like [n_split_count, n_testing_indexex]
+    test_idx: list
+        index of testing set, shape like [n_split_count, n_testing_indexes]
 
-    label_idx: array-like
-        index of labeling set, shape like [n_split_count, n_labeling_indexex]
+    label_idx: list
+        index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
-    unlabel_idx: array-like
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+    unlabel_idx: list
+        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
 
     """
     return __split_data_matrix(data_matrix=feature_matrix, matrix_shape=feature_matrix_shape, test_ratio=test_ratio,
@@ -377,17 +377,17 @@ def split_multi_label(y=None, label_shape=None, test_ratio=0.3, initial_label_ra
 
     Returns
     -------
-    train_idx: array-like
-        index of training set, shape like [n_split_count, n_training_indexex]
+    train_idx: list
+        index of training set, shape like [n_split_count, n_training_indexes]
 
-    test_idx: array-like
-        index of testing set, shape like [n_split_count, n_testing_indexex]
+    test_idx: list
+        index of testing set, shape like [n_split_count, n_testing_indexes]
 
-    label_idx: array-like
-        index of labeling set, shape like [n_split_count, n_labeling_indexex]
+    label_idx: list
+        index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
-    unlabel_idx: array-like
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexex]
+    unlabel_idx: list
+        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
 
     """
     return __split_data_matrix(data_matrix=y, matrix_shape=label_shape, test_ratio=test_ratio,
@@ -406,16 +406,16 @@ def split_load(path):
 
     Returns
     -------
-    train_idx: array-like
+    train_idx: list
         index of training set, shape like [n_split_count, n_training_samples]
 
-    test_idx: array-like
+    test_idx: list
         index of testing set, shape like [n_split_count, n_testing_samples]
 
-    label_idx: array-like
+    label_idx: list
         index of labeling set, shape like [n_split_count, n_labeling_samples]
 
-    unlabel_idx: array-like
+    unlabel_idx: list
         index of unlabeling set, shape like [n_split_count, n_unlabeling_samples]
     """
     if not isinstance(path, str):
