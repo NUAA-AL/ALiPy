@@ -28,6 +28,8 @@ from acepy.query_strategy.query_type import check_query_type
 from acepy.experiment.stopping_criteria import StoppingCriteria
 from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.utils.multi_thread import aceThreading
+import acepy.query_strategy.query_strategy
+import acepy.query_strategy.third_party_methods
 
 
 class AlExperiment:
@@ -82,7 +84,7 @@ class AlExperiment:
         index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
 
-    def __init__(self, X, y, model=SVC(), performance_metric='accuracy',
+    def __init__(self, X, y, model=LogisticRegression(), performance_metric='accuracy_score',
                  stopping_criteria=None, stopping_value=None, batch_size=1, **kwargs):
         self.__custom_strategy_flag = False
         self._split = False
@@ -109,7 +111,7 @@ class AlExperiment:
             self._split_count = len(train_idx)
 
         self._stopping_criterion = StoppingCriteria(stopping_criteria, stopping_value)
-        self._batch_size = 1
+        self._batch_size = batch_size
 
     def set_query_strategy(self, strategy="Uncertainty", **kwargs):
         """
@@ -131,9 +133,23 @@ class AlExperiment:
             self._query_function = strategy
             self.__custom_func_arg = kwargs
             return
-        if strategy not in []:
+        
+        if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QureyExpectedErrorReduction', 
+                            'QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceLALRand', 'QueryInstanceQUIRE']:
             raise NotImplementedError('Strategy %s is not implemented. Specify a valid '
                                       'method name or privide a callable object.', str(strategy))
+        else:
+            
+        if strategy in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QureyExpectedErrorReduction']:
+            self._query_function = getattr(acepy.query_strategy.query_strategy, strategy)
+        elif strategy in ['QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceLALRand', 'QueryInstanceQUIRE']:
+            self._query_function = getattr(acepy.query_strategy.third_party_methods, strategy)
+            
+        pass
+
+    def set_performance_metric(self, performance_metric='accuracy_score'):
+        '''
+        '''
         pass
 
     def set_data_split(self, train_idx, test_idx, label_idx, unlabel_idx):
@@ -234,7 +250,7 @@ class AlExperiment:
         accuracy = sum(pred == self._y[test_id]) / len(test_id)
 
         saver.set_initial_point(accuracy)
-        while not self._stopping_criterion:
+        while not self._stopping_criterion.is_stop():
             if not self.__custom_strategy_flag:
                 if 'model' in inspect.getfullargspec(self._query_function.select)[0]:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
@@ -257,3 +273,5 @@ class AlExperiment:
             st = State(select_index=select_ind, performance=accuracy)
             saver.add_state(st)
             saver.save()
+            # update stopping_criteria
+            self._stopping_criterion.update_information(saver)
