@@ -1,6 +1,9 @@
 """
-Pre-defined query strategy. Implement classical
-methods for various situation
+Pre-defined classical query strategy.
+
+References:
+[1] Settles, B. 2009. Active learning literature survey. Technical
+    report, University of Wisconsin-Madison.
 """
 # Authors: Ying-Peng Tang
 # License: BSD 3 clause
@@ -13,82 +16,78 @@ import warnings
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-# from sklearn.svm import SVC
 
 from acepy.index.index_collections import IndexCollection
 import acepy.utils.interface
-from acepy.utils.misc import nsmallestarg, nsmallestarg, randperm, nlargestarg
+from acepy.utils.misc import nsmallestarg, randperm, nlargestarg
 
 
-class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
+class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
+    """Uncertainty query strategy.
+    The implement of uncertainty measure includes:
+    1. margin sampling
+    2. least confident
+    3. entropy
+
+    The above measures need the probabilistic output of the model.
+    There are two ways to select instances in the data set.
+    1. use select(label_index, unlabel_index, model=None, batch_size=1) if you are using sklearn model.
+    2. use select_by_prediction_mat by providing the probabilistic prediction matrix, shape [n_samples, n_classes].
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    measure: string, optional (default='entropy')
+        measurement to calculate uncertainty, should be one of
+        ['least_confident', 'margin', 'entropy', 'distance_to_boundary']
+        --'least_confident' x* = argmax 1-P(y_hat|x) ,where y_hat = argmax P(yi|x)
+        --'margin' x* = argmax P(y_hat1|x) - P(y_hat2|x), where y_hat1 and y_hat2 are the first and second
+            most probable class labels under the model, respectively.
+        --'entropy' x* = argmax -sum(P(yi|x)logP(yi|x))
+        --'distance_to_boundary' Only available in binary classification, x* = argmin |f(x)|,
+            your model should have 'decision_function' method which will return a 1d array.
+
     """
-    Uncertainty query strategy in instance query
-    Implement binary, multiclass / margin-based, entropy-based etc
 
-    should set the parameters and global const in __init__
-    implement query function with data matrix
-    should return element in _unlabel_index set
-    """
-
-    def __init__(self, X=None, y=None, measure='entropy', scenario='pool'):
-        """initializing
-
-        Parameters
-        ----------
-        X: 2D array
-            data matrix
-
-        y: array-like
-            label matrix
-
-        measure: string, optional (default='entropy')
-            measurement to calculate uncertainty, should be one of
-            ['least_confident', 'margin', 'entropy', 'distance_to_boundary']
-            --'least_confident' x* = argmax 1-P(y_hat|x) ,where y_hat = argmax P(yi|x)
-            --'margin' x* = argmax P(y_hat1|x) - P(y_hat2|x), where y_hat1 and y_hat2 are the first and second
-                most probable class _labels under the model, respectively.
-            --'entropy' x* = argmax -sum(P(yi|x)logP(yi|x))
-            --'distance_to_boundary' Only available in binary classification, x* = argmin |f(x)|
-
-        scenario: string, optional (default='pool')
-            should be one of ['pool', 'stream', 'membership']
-
-            note that, the 'least_confident', 'margin', 'entropy' needs the probability output of the model.
-            For the 'distance_to_margin',should provide the value of f(x)
-        """
+    def __init__(self, X=None, y=None, measure='entropy'):
         if measure not in ['least_confident', 'margin', 'entropy', 'distance_to_boundary']:
-            raise ValueError("measure must in ['least_confident', 'margin', 'entropy', 'distance_to_boundary']")
+            raise ValueError("measure must be one of ['least_confident', 'margin', 'entropy', 'distance_to_boundary']")
         self.measure = measure
-        if scenario not in ['pool', 'stream', 'membership']:
-            raise ValueError("scenario must in ['pool', 'stream', 'membership']")
-        self.scenario = scenario
         super(QueryInstanceUncertainty, self).__init__(X, y)
 
     def select(self, label_index, unlabel_index, model=None, batch_size=1):
-        """Select index in _unlabel_index to query
+        """Select indexes from the unlabel_index for querying.
 
         Parameters
         ----------
-        unlabel_index: array or set like
-            index of unlabel set
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
 
-        model : object, optional (default=SVM)
-            current classification model, if not provided, svm with default 
-            parameters will be used.
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
 
-        batch_size: int
-            batch size of AL
+        model: object, optional (default=None)
+            Current classification model, should have the 'predict_proba' method for probabilistic output.
+            If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
 
         Returns
         -------
-        selected_idx: array-like
-            queried keys, keys are in _unlabel_index
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
         """
-        # assert (batch_size > 0)
-        assert (isinstance(unlabel_index, (list, np.ndarray, IndexCollection)))
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
         if len(unlabel_index) <= batch_size:
-            return np.array([i for i in unlabel_index])
-        # assert(isinstance(_label_index,collections.Iterable))
+            return unlabel_index
         if model is None:
             model = LogisticRegression()
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
@@ -97,11 +96,8 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
         # get unlabel_x
         if self.X is None:
             raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
-        if not isinstance(unlabel_index, np.ndarray):
-            unlabel_index = np.array([i for i in unlabel_index])
         unlabel_x = self.X[unlabel_index, :]
         ##################################
-
         if self.measure == 'distance_to_boundary':
             if not hasattr(model, 'decision_function'):
                 raise TypeError('model object must implement decision_function methods in distance_to_boundary measure.')
@@ -112,7 +108,7 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
                 if spv[1] != 1:
                     raise Exception('1d or 2d with 1 column array is expected, but received: \n%s' % str(pv))
                 else:
-                    pv = np.array(pv).flatten()
+                    pv = np.absolute(np.array(pv).flatten())
             return unlabel_index[nsmallestarg(pv, batch_size)]
 
         pv, _ = self.__get_proba_pred(unlabel_x, model)
@@ -120,37 +116,36 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
                                              batch_size=batch_size)
 
     def select_by_prediction_mat(self, unlabel_index, predict, batch_size=1):
-        """Select index in _unlabel_index to query
+        """Select indexes from the unlabel_index for querying.
 
         Parameters
         ----------
-        unlabel_index: array-like
-            index of unlabel set
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. Should be one-to-one
+            correspondence to the prediction matrix.
 
-        predict : array-like
-            prediction matrix, shape like [n_samples, n_classes] if probability prediction is needed
-            or [n_samples] only if distance_to_margin
+        predict: 2d array, shape [n_samples, n_classes]
+            The probabilistic prediction matrix for the unlabeled set.
 
-        batch_size: int
-            batch size of AL
+        batch_size: int, optional (default=1)
+            Selection batch size.
 
         Returns
         -------
-        selected_idx: array-like
-            queried keys, keys are in _unlabel_index
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
         """
-        # if not isinstance(_unlabel_index, (BaseCollection,set,list,np.ndarray)) :
-        #     raise TypeError('_unlabel_index should be a DataCollection, Set, List Type')
-        # if not isinstance(_label_index,(BaseCollection,set,list,np.ndarray)) :
-        #     raise TypeError('_unlabel_index should be a DataCollection, Set, List Type')
-        assert (isinstance(unlabel_index, collections.Iterable))
         assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
         if len(unlabel_index) <= batch_size:
-            return np.array([i for i in unlabel_index])
+            return unlabel_index
 
-        pv = predict    #predict value
-        spv = np.shape(pv)  #shape of predict value
-        # validity check here
+        pv = np.asarray(predict)    #predict value
+        spv = np.shape(pv)          #shape of predict value
+        if len(spv) != 2 or spv[1] == 1:
+            raise Exception('2d array with the shape [n_samples, n_classes]'
+                            ' is expected, but received shape: \n%s' % str(spv))
 
         if self.measure == 'distance_to_boundary':
             assert (len(spv) in [1, 2])
@@ -163,7 +158,7 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
 
         if self.measure == 'entropy':
             # calc entropy
-            pv[pv <= 0] = 1e-06
+            pv[pv <= 0] = 1e-06     # avoid zero division
             entro = [-np.sum(vec * np.log(vec)) for vec in pv]
             assert (len(np.shape(entro)) == 1)
             return unlabel_index[nlargestarg(entro, batch_size)]
@@ -181,30 +176,28 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
             return unlabel_index[nlargestarg(pat, batch_size)]
 
     def __get_proba_pred(self, unlabel_x, model):
-        """
-        check the model object and get prediction
+        """Get the probabilistic prediction results of the unlabeled set.
 
         Parameters
         ----------
-        unlabel_x: array
-            data matrix
+        unlabel_x: 2d array
+            Feature matrix of the unlabeled set.
 
         model: object
-            Model object which has the attribute predict_proba
+            Model object which has the method predict_proba.
 
         Returns
         -------
         pv: np.ndarray
-            probability predictions matrix
+            Probability predictions matrix with shape [n_samples, n_classes].
 
         spv: tuple
-            shape of pv
+            Shape of pv.
         """
         if not hasattr(model, 'predict_proba'):
             raise Exception('model object must implement predict_proba methods in %s measure.' % self.measure)
         pv = model.predict_proba(unlabel_x)
-        if not isinstance(pv, np.ndarray):
-            pv = np.asarray(pv)
+        pv = np.asarray(pv)
         spv = np.shape(pv)
         if len(spv) != 2 or spv[1] == 1:
             raise Exception('2d array with [n_samples, n_class] is expected, but received: \n%s' % str(pv))
@@ -212,59 +205,46 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseQueryStrategy):
 
     @classmethod
     def calc_entropy(cls, predict_proba):
-        """
-        Calc the entropy for each instance.
+        """Calc the entropy for each instance.
 
         Parameters
         ----------
-        predict_proba: array-like, [n_samples, n_class]
-            probability prediction for each instance
+        predict_proba: array-like, shape [n_samples, n_class]
+            Probability prediction for each instance.
 
         Returns
         -------
         entropy: list
-            1d array, entropy for each instance
+            1d array, entropy for each instance.
         """
-        if not isinstance(predict_proba, np.ndarray):
-            pv = np.asarray(predict_proba)
+        pv = np.asarray(predict_proba)
         spv = np.shape(pv)
         if len(spv) != 2 or spv[1] == 1:
-            raise Exception('2d array with the shape of [n_samples, n_class]'
-                            ' is expected, but received: \n%s' % str(pv))
+            raise Exception('2d array with the shape [n_samples, n_classes]'
+                            ' is expected, but received shape: \n%s' % str(spv))
         # calc entropy
         entropy = [-np.sum(vec * np.log(vec)) for vec in pv]
         return entropy
 
 
 class QueryRandom(acepy.utils.interface.BaseQueryStrategy):
-    """
-    Randomly sample a batch of _indexes.
-    """
+    """Randomly sample a batch of indexes from the unlabel indexes."""
 
-    def __init__(self, scenario='pool'):
-        """
+    def select(self, unlabel_index, batch_size=1):
+        """Select indexes randomly.
 
         Parameters
         ----------
-        scenario: string, optional (default='pool')
-            should be one of ['pool', 'stream', 'membership']
-        """
-        if scenario not in ['pool', 'stream', 'membership']:
-            raise ValueError("scenario must in ['pool', 'stream', 'membership']")
-        self.scenario = scenario
+        unlabel_index: collections.Iterable
+            The indexes of unlabeled set.
 
-    def select(self, label_index, unlabel_index, batch_size=1):
-        """
-
-        Parameters
-        ----------
-        unlabel_index: array-like
-            the container should be an array-like data structure. If
-            other types are given, a transform is attempted.
+        batch_size: int, optional (default=1)
+            Selection batch size.
 
         Returns
         -------
-
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
         """
         if len(unlabel_index) <= batch_size:
             return np.array([i for i in unlabel_index])
@@ -273,45 +253,57 @@ class QueryRandom(acepy.utils.interface.BaseQueryStrategy):
         return [tpl[i] for i in perm]
 
 
-class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
-    """
-    query-by-committee (QBC) algorithm (Seung et al., 1992) is minimizing
-    the version space, which is the set of hypotheses that are consistent
+class QueryInstanceQBC(acepy.utils.interface.BaseIndexQuery):
+    """The Query-By-Committee (QBC) algorithm.
+
+    QBC minimizes the version space, which is the set of hypotheses that are consistent
     with the current labeled training data.
+
+    This class implement the query-by-bagging method. Which uses the bagging in sklearn to
+    construct the committee. So your model should be a sklearn model.
+    If not, you may using the default logistic regression model by passing None model.
+
+    There are two ways to select instances in the data set.
+    1. use select if you are using sklearn model.
+    2. use select_by_prediction_mat by providing the prediction matrix for each committee.
+       Each committee predict matrix should have the shape [n_samples, n_classes] for probabilistic output
+       or [n_samples] for class output.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    method: str, optional (default=query_by_bagging)
+        Method name. This class only implement query_by_bagging for now.
+
+    disagreement: str
+        method to calculate disagreement of committees. should be one of ['vote_entropy', 'KL_divergence']
+
+    References
+    ----------
+    [1] H.S. Seung, M. Opper, and H. Sompolinsky. Query by committee.
+        In Proceedings of the ACM Workshop on Computational Learning Theory,
+        pages 287–294, 1992.
+
+    [2] N. Abe and H. Mamitsuka. Query learning strategies using boosting and bagging.
+        In Proceedings of the International Conference on Machine Learning (ICML),
+        pages 1–9. Morgan Kaufmann, 1998.
     """
 
-    def __init__(self, X=None, y=None, method='query_by_bagging', disagreement='vote_entropy', scenario='pool'):
-        """
-
-        Parameters
-        ----------
-        X: 2D array
-            data matrix
-
-        y: array-like
-            label matrix
-
-        method: str
-            method name.
-
-        disagreement: str
-            method to calculate disagreement. should be one of ['vote_entropy', 'KL_divergence']
-
-        scenario: string, optional (default='pool')
-            should be one of ['pool', 'stream', 'membership']
-        """
-        self.method = method
-        if scenario not in ['pool', 'stream', 'membership']:
-            raise ValueError("scenario must in ['pool', 'stream', 'membership']")
-        self.scenario = scenario
+    def __init__(self, X=None, y=None, method='query_by_bagging', disagreement='vote_entropy'):
+        self._method = method
         super(QueryInstanceQBC, self).__init__(X, y)
         if disagreement in ['vote_entropy', 'KL_divergence']:
-            self.disagreement = disagreement
+            self._disagreement = disagreement
         else:
             raise ValueError("disagreement must be one of ['vote_entropy', 'KL_divergence']")
 
     def select(self, label_index, unlabel_index, model=None, batch_size=1, n_jobs=None):
-        """Select index in _unlabel_index to query
+        """Select index in _unlabel_index to query.
 
         Parameters
         ----------
@@ -335,9 +327,11 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
         selected_idx: array-like
             queried keys, keys are in _unlabel_index
         """
-        assert (isinstance(unlabel_index, (list, np.ndarray, IndexCollection)))
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
         if len(unlabel_index) <= batch_size:
-            return np.array([i for i in unlabel_index])
+            return unlabel_index
         if model is None:
             model = LogisticRegression()
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
@@ -345,7 +339,7 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
 
         # get unlabel_x
         if self.X is None or self.y is None:
-            raise Exception('Data matrix is not provided, use calc_vote_entropy() instead.')
+            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
         if not isinstance(unlabel_index, np.ndarray):
             unlabel_index = np.array([i for i in unlabel_index])
         if not isinstance(label_index, np.ndarray):
@@ -370,11 +364,33 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
         est_arr = bagging.estimators_
 
         # calc score
-        if self.disagreement == 'vote_entropy' and self.scenario == 'pool':
+        if self._disagreement == 'vote_entropy' and self.scenario == 'pool':
             score = self.calc_vote_entropy([estimator.predict(unlabel_x) for estimator in est_arr])
         else:
             score = self.calc_avg_KL_divergence([estimator.predict_proba(unlabel_x) for estimator in est_arr])
         return unlabel_index[nlargestarg(score, batch_size)]
+
+    def select_by_prediction_mat(self, unlabel_index, predict, batch_size=1):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. Should be one-to-one
+            correspondence to the prediction matrix.
+
+        predict: list
+            should have n elements with n predict matrix: arys1, arys2, ... aryn: 2D-array
+            The shape of each predicted label matrix is like [n_samples, n_class] or [n_samples]
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
 
     def _check_committee_results(self, predict_matrixes):
         """check the validity of given committee predictions.
@@ -398,9 +414,11 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
         input_shape = uniques[0]
         return input_shape, committee_size
 
+
+
     @classmethod
     def calc_vote_entropy(cls, predict_matrixes):
-        """calculate the vote entropy for measuring the level of disagreement in QBC.
+        """calculate the vote entropy for measuring the level of _disagreement in QBC.
 
         Parameters
         ----------
@@ -414,10 +432,10 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
             score for each instance. Shape like [n_samples]
 
         References
-        -------
-        I. Dagan and S. Engelson. Committee-based sampling for training probabilistic
-        classifiers. In Proceedings of the International Conference on Machine
-        Learning (ICML), pages 150–157. Morgan Kaufmann, 1995.
+        ----------
+        [1] I. Dagan and S. Engelson. Committee-based sampling for training probabilistic
+            classifiers. In Proceedings of the International Conference on Machine
+            Learning (ICML), pages 150–157. Morgan Kaufmann, 1995.
         """
         score = []
         input_shape, committee_size = cls()._check_committee_results(predict_matrixes)
@@ -450,7 +468,7 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
     @classmethod
     def calc_avg_KL_divergence(cls, predict_matrixes):
         """calculate the average Kullback-Leibler (KL) divergence for measuring the
-        level of disagreement in QBC.
+        level of _disagreement in QBC.
 
         Parameters
         ----------
@@ -464,10 +482,10 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
             score for each instance. Shape like [n_samples]
 
         References
-        -------
-        A. McCallum and K. Nigam. Employing EM in pool-based active learning for
-        text classification. In Proceedings of the International Conference on Machine
-        Learning (ICML), pages 359–367. Morgan Kaufmann, 1998.
+        ----------
+        [1] A. McCallum and K. Nigam. Employing EM in pool-based active learning for
+            text classification. In Proceedings of the International Conference on Machine
+            Learning (ICML), pages 359–367. Morgan Kaufmann, 1998.
         """
         score = []
         input_shape, committee_size = cls()._check_committee_results(predict_matrixes)
@@ -489,7 +507,7 @@ class QueryInstanceQBC(acepy.utils.interface.BaseQueryStrategy):
         return score
 
 
-class QureyExpectedErrorReduction(acepy.utils.interface.BaseQueryStrategy):
+class QureyExpectedErrorReduction(acepy.utils.interface.BaseIndexQuery):
     '''
         The idea it to estimate the expected future error of a model trained using L ∪ hx, yi on
         the remaining unlabeled instances in U (which is assumed to be representative of

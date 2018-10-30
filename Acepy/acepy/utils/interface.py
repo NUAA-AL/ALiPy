@@ -44,22 +44,8 @@ class BaseQueryStrategy(metaclass=ABCMeta):
             self.y = y
 
     @abstractmethod
-    def select(self, label_index, unlabel_index, **kwargs):
-        """Select instances to query.
-
-        Parameters
-        ----------
-        label_index: {list, np.ndarray, IndexCollection}
-            The indexes of labeled instances.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled instances.
-
-        Returns
-        -------
-        selected_index: list
-            The elements of selected_index should be in unlabel_index.
-        """
+    def select(self, *args, **kwargs):
+        """Select instances to query."""
         pass
 
     def select_by_prediction_mat(self, unlabel_index, predict, **kwargs):
@@ -80,6 +66,13 @@ class BaseQueryStrategy(metaclass=ABCMeta):
             The elements of selected_index should be in unlabel_index.
         """
         pass
+
+
+class BaseIndexQuery(BaseQueryStrategy):
+    """The base class for the selection method which imposes a constraint on the parameters of select()"""
+    @abstractmethod
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        """Select instances to query."""
 
 
 class BaseVirtualOracle(metaclass=ABCMeta):

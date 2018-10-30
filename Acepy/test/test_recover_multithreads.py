@@ -21,7 +21,7 @@
 # Train_idx, Test_idx, L_pool, U_pool = split(X=X, y=y, test_ratio=0.3, initial_label_rate=0.2, split_count=10)
 # ea = ExperimentAnalyser()
 # reg = linear_model.LogisticRegression()
-# qs = QueryInstanceQBC(X,y,disagreement='vote_entropy')
+# qs = QueryInstanceQBC(X,y,_disagreement='vote_entropy')
 # ae = AlExperiment(method_name='QBC_ve')
 #
 #

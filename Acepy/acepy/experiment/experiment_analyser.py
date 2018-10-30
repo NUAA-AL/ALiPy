@@ -46,7 +46,7 @@ def ExperimentAnalyser(x_axis='num_of_queries'):
 
     Returns
     -------
-    analyser: object
+    analyser: BaseAnalyser
         The experiment analyser object
 
     """
@@ -695,5 +695,5 @@ class _CostSensitiveAnalyser(BaseAnalyser):
 if __name__ == "__main__":
     a = [1.2, 2, 3]
     b = [1.6, 2.5, 1.1]
-    print(ExperimentAnalyser.paired_ttest(a, b))
-    print(ExperimentAnalyser.paired_ttest(a, a))
+    print(ExperimentAnalyser().paired_ttest(a, b))
+    print(ExperimentAnalyser().paired_ttest(a, a))
