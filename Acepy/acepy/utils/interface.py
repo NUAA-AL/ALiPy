@@ -6,15 +6,13 @@ ABC for acepy
 # License: BSD 3 clause
 
 from abc import ABCMeta, abstractmethod
-import collections.abc
-import copy
-import scipy.stats
-import scipy.io as scio
+
 import numpy as np
+import scipy.io as scio
+import scipy.stats
 from sklearn.utils.validation import check_X_y
 
 from acepy.utils.ace_warnings import *
-import acepy.experiment
 
 
 class BaseQueryStrategy(metaclass=ABCMeta):
@@ -44,22 +42,8 @@ class BaseQueryStrategy(metaclass=ABCMeta):
             self.y = y
 
     @abstractmethod
-    def select(self, label_index, unlabel_index, **kwargs):
-        """Select instances to query.
-
-        Parameters
-        ----------
-        label_index: {list, np.ndarray, IndexCollection}
-            The indexes of labeled instances.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled instances.
-
-        Returns
-        -------
-        selected_index: list
-            The elements of selected_index should be in unlabel_index.
-        """
+    def select(self, *args, **kwargs):
+        """Select instances to query."""
         pass
 
     def select_by_prediction_mat(self, unlabel_index, predict, **kwargs):
@@ -80,6 +64,13 @@ class BaseQueryStrategy(metaclass=ABCMeta):
             The elements of selected_index should be in unlabel_index.
         """
         pass
+
+
+class BaseIndexQuery(BaseQueryStrategy):
+    """The base class for the selection method which imposes a constraint on the parameters of select()"""
+    @abstractmethod
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        """Select instances to query."""
 
 
 class BaseVirtualOracle(metaclass=ABCMeta):
@@ -250,35 +241,6 @@ class BaseAnalyser(metaclass=ABCMeta):
         # 4. cost
         self._data_summary = dict()
 
-    def _type_of_data(self, result):
-        """Judge type of data is given by the user.
-
-        Returns
-        -------
-        type: int
-            0 - StateIO object.
-            1 - A list contains n performances for n queries.
-            2 - A list contains n tuples with 2 elements, in which, the first
-                element is the x_axis (e.g., iteration, cost),
-                and the second element is the y_axis (e.g., the performance)
-        """
-        if isinstance(result[0], acepy.experiment.state_io.StateIO):
-            return 0
-        elif isinstance(result[0], list):
-            if isinstance(result[0][0], collections.Iterable):
-                if len(result[0][0]) > 1:
-                    return 2
-            return 1
-        else:
-            raise ValueError("Illegal result data is given.\n"
-                             "Legal result object includes:\n"
-                             "\t- StateIO object.\n"
-                             "\t- A list contains n performances for n queries.\n"
-                             "\t- A list contains n tuples with 2 elements, in which, "
-                             "the first element is the x_axis (e.g., iteration, cost),"
-                             "and the second element is the y_axis (e.g., the performance)")
-
-
     def get_methods_names(self):
         return self.__data_raw.keys()
 
@@ -365,7 +327,7 @@ class BaseAnalyser(metaclass=ABCMeta):
         Returns
         -------
         data: dict
-            dictionary with variable names as keys, and loaded matrixes as
+            dictionary with variable names as keys, and loaded matrices as
             values.
         """
         return scio.loadmat(file_name)

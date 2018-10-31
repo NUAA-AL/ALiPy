@@ -3,7 +3,7 @@ Pre-defined Performance
 Implement classical methods
 """
 
-# Authors: Ying-Peng Tang
+# Authors: Guo-Xiang Li
 # License: BSD 3 clause
 
 from __future__ import division

@@ -1,7 +1,7 @@
-/.vscode
-/.idea
-/paper
-/dataset
+.vscode
+.idea
+paper
+dataset
 __pycache__
 AL_result
 abandoned_code.py

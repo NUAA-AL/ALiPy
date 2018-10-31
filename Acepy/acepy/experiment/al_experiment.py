@@ -29,9 +29,7 @@ from acepy.experiment.stopping_criteria import StoppingCriteria
 from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.utils.multi_thread import aceThreading
 import acepy.query_strategy.query_strategy
-import acepy.query_strategy.third_party_methods
-import acepy.metrics.performance
-from acepy.metrics.performance import accuracy_score
+import acepy.query_strategy.sota_strategy
 
 
 class AlExperiment:
@@ -141,8 +139,8 @@ class AlExperiment:
             return
         
         # a pre-defined strategy in Acepy
-        if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QureyExpectedErrorReduction', 
-                            'QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
+        if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 
+                        'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
             raise NotImplementedError('Strategy %s is not implemented. Specify a valid '
                                       'method name or privide a callable object.', str(strategy))
         elif strategy == 'QueryInstanceQBC':
@@ -160,18 +158,16 @@ class AlExperiment:
         elif strategy == 'QureyExpectedErrorReduction':
             scenario = kwargs.pop('scenario', None)
             self._query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X, self._y, scenario)
-        elif strategy == 'QueryInstanceBMDR':
-            kernel = kwargs.pop('kernel', None)
-            scenario = kwargs.pop('scenario', None)
-            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceBMDR(self._X, self._y, kernel, kwargs)
         elif strategy == 'QueryInstanceGraphDensity':
             if self._train_idx is None:
                 raise ValueError('train_idx is None.Please split data firstly.You can call set_data_split or split_AL to split data.')
             metric = kwargs.pop('metric', None)
             scenario = kwargs.pop('scenario', None)
-            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceGraphDensity(self._X, self._y, self._train_idx, metric)
+            self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, self._train_idx, metric)
         elif strategy == 'QueryInstanceQUIRE':
-            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceQUIRE(self._X, self._y, kwargs)
+            if self._train_idx is None:
+                raise ValueError('train_idx is None.Please split data firstly.You can call set_data_split or split_AL to split data.')
+            self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, self._train_idx, kwargs)
 
     def set_performance_metric(self, performance_metric='accuracy_score'):
         """

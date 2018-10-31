@@ -2,7 +2,7 @@ import numpy as np
 from acepy.metrics.performance import accuracy_score
 from acepy.query_strategy.query_strategy import QueryInstanceUncertainty
 from acepy.query_strategy.lal_model import LALmodel
-from acepy.query_strategy.third_party_methods import QueryInstanceQUIRE
+from acepy.query_strategy.sota_strategy import QueryInstanceQUIRE
 from acepy.utils.ace_warnings import RepeatElementWarning
 from acepy.utils.al_collections import IndexCollection
 from acepy.utils.base import BaseCollection
