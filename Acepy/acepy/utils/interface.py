@@ -358,7 +358,7 @@ class BaseAnalyser(metaclass=ABCMeta):
         Returns
         -------
         data: dict
-            dictionary with variable names as keys, and loaded matrixes as
+            dictionary with variable names as keys, and loaded matrices as
             values.
         """
         return scio.loadmat(file_name)

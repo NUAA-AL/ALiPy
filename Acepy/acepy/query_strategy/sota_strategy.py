@@ -1,35 +1,5 @@
 """
-Pre-defined query strategy from third party toolbox.
-Included some selected state-of-the-art methods
-
-Implement:
--- libact --
-
-Active Learning by QUerying Informative and Representative Examples (QUIRE)
--- S.-J. Huang, R. Jin, and Z.-H. Zhou. Active learning by querying
-   informative and representative examples.
-
--- active learning --
-
-Graph Density
--- https://www.mpi-inf.mpg.de/fileadmin/inf/d2/Research_projects_files/EbertCVPR2012.pdf
-
-
--- Implement --
-BMDR
--- KKD'13
-
-LAL
--- NIPS'17
-
-
-Planning:
-
-Hierarchical Sampling for Active Learning (HS)
--- Sanjoy Dasgupta and Daniel Hsu. "Hierarchical sampling for active
-   learning." ICML 2008.
-
-
+Implement several selected state-of-the-art methods.
 """
 
 from __future__ import absolute_import
@@ -52,19 +22,24 @@ import acepy.utils.interface
 import acepy.utils.misc
 
 
-class QueryInstanceQUIRE(acepy.utils.interface.BaseQueryStrategy):
+class QueryInstanceQUIRE(acepy.utils.interface.BaseIndexQuery):
     """Querying Informative and Representative Examples (QUIRE)
 
-    Query the most informative and representative _examples where the metrics
+    Query the most informative and representative examples where the metrics
     measuring and combining are done using min-max approach.
+
+    The implementation refers to the project: https://github.com/ntucllab/libact
 
     Parameters
     ----------
-    X: 2D array
-        data matrix
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
 
-    y: array-like
-        label matrix
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    train_idx: array-like
+        the index of training data.
 
     lambda: float, optional (default=1.0)
         A regularization parameter used in the regularization learning
@@ -98,14 +73,24 @@ class QueryInstanceQUIRE(acepy.utils.interface.BaseQueryStrategy):
 
     References
     ----------
-    [1] Huang S J, Jin R, Zhou Z H. Active learning by querying informative and
-        representative _examples[C]// International Conference on Neural Information
-        Processing Systems. Curran Associates Inc. 2010:892-900.
+    [1] Yang, Y.-Y.; Lee, S.-C.; Chung, Y.-A.; Wu, T.-E.; Chen, S.-
+        A.; and Lin, H.-T. 2017. libact: Pool-based active learning
+        in python. Technical report, National Taiwan University.
+        available as arXiv preprint https://arxiv.org/abs/
+        1710.00379.
+
+    [2] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
+        querying informative and representative examples. IEEE
+        Transactions on Pattern Analysis and Machine Intelligence
+        36(10):1936–1949
     """
 
-    def __init__(self, X, y, **kwargs):
+    def __init__(self, X, y, train_idx, **kwargs):
         # K: kernel matrix
         #
+        X = np.asarray(X)[train_idx]
+        y = np.asarray(y)[train_idx]
+        self._train_idx = train_idx
 
         self.y = np.array(y)
         self.lmbda = kwargs.pop('lambda', 1.)
@@ -133,24 +118,37 @@ class QueryInstanceQUIRE(acepy.utils.interface.BaseQueryStrategy):
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
     def select(self, label_index, unlabel_index, batch_size=1):
-        """select unlabeled instance by QUIRE.
+        """Select indexes from the unlabel_index for querying.
 
         Parameters
         ----------
-        label_index: array-like
-            index of label set
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
 
-        unlabel_index: array-like
-            index of unlabel set
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
 
         Returns
         -------
-        selected_index: list
-            the index of instance. It is an element in _unlabel_index.
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
         """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
+        # build map from value to index
+        label_index_in_train = [np.where(self._train_idx == i)[0][0] for i in label_index]
+        unlabel_index_in_train = [np.where(self._train_idx == i)[0][0] for i in unlabel_index]
+        # end
+
         L = self.L
-        Lindex = list(label_index)
-        Uindex = list(unlabel_index)
+        Lindex = list(label_index_in_train)
+        Uindex = list(unlabel_index_in_train)
         query_index = -1
         min_eva = np.inf
         # y_labeled = np.array([label for label in self.y if label is not None])
@@ -191,23 +189,25 @@ class QueryInstanceQUIRE(acepy.utils.interface.BaseQueryStrategy):
             if eva < min_eva:
                 query_index = each_index
                 min_eva = eva
-        return [query_index]
+        return [self._train_idx[query_index]]
 
 
-class QueryInstanceGraphDensity(acepy.utils.interface.BaseQueryStrategy):
+class QueryInstanceGraphDensity(acepy.utils.interface.BaseIndexQuery):
     """Diversity promoting sampling method that uses graph density to determine
     most representative points.
 
+    The implementation refers to the https://github.com/google/active-learning
+
     Parameters
     ----------
-    X: 2D array
-        data matrix
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
 
-    y: array-like
-        label matrix
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
 
     train_idx: array-like
-        the index of training data
+        the index of training data.
 
     metric: str, optional (default='manhattan')
         the distance metric.
@@ -220,7 +220,11 @@ class QueryInstanceGraphDensity(acepy.utils.interface.BaseQueryStrategy):
 
     References
     ----------
-    [1] RALF: A reinforced active learning formulation for object class recognition
+    [1] Ebert, S.; Fritz, M.; and Schiele, B. 2012. RALF: A reinforced
+        active learning formulation for object class recognition.
+        In 2012 IEEE Conference on Computer Vision and  Pattern Recognition,
+        Providence, RI, USA, June 16-21, 2012,
+        3626–3633.
     """
 
     def __init__(self, X, y, train_idx, metric='manhattan'):
@@ -232,9 +236,9 @@ class QueryInstanceGraphDensity(acepy.utils.interface.BaseQueryStrategy):
         self.train_idx = train_idx
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.compute_graph_density()
+            self._compute_graph_density()
 
-    def compute_graph_density(self, n_neighbor=10):
+    def _compute_graph_density(self, n_neighbor=10):
         # kneighbors graph is constructed using k=10
         connect = kneighbors_graph(self.flat_X, n_neighbor, p=1)
         # Make connectivity matrix symmetric, if a point is a k nearest neighbor of
@@ -262,6 +266,24 @@ class QueryInstanceGraphDensity(acepy.utils.interface.BaseQueryStrategy):
         self.starting_density = copy.deepcopy(self.graph_density)
 
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
         # If a neighbor has already been sampled, reduce the graph density
         # for its direct neighbors to promote diversity.
         batch = set()
@@ -293,86 +315,3 @@ class QueryInstanceGraphDensity(acepy.utils.interface.BaseQueryStrategy):
         output['graph_density'] = self.starting_density
         return output
 
-# 缺少QP工具包
-class QueryInstanceBMDR(acepy.utils.interface.BaseQueryStrategy):
-    """Select a batch of representative and informative instances by optimizing
-    the ERM bound of active learning.
-
-    Parameters
-    ----------
-    X: 2D array
-        data matrix
-
-    y: array-like
-        label matrix
-
-    kernel : {'linear', 'poly', 'rbf', callable}, optional (default='rbf')
-        Specifies the kernel type to be used in the algorithm.
-        It must be one of 'linear', 'poly', 'rbf', or a callable.
-        If a callable is given it is used to pre-compute the kernel matrix
-        from data matrices; that matrix should be an array of shape
-        ``(n_samples, n_samples)``.
-
-    degree : int, optional (default=3)
-        Degree of the polynomial kernel function ('poly').
-        Ignored by all other kernels.
-
-    gamma : float, optional (default=1.)
-        Kernel coefficient for 'rbf', 'poly'.
-
-    coef0 : float, optional (default=1.)
-        Independent term in kernel function.
-        It is only significant in 'poly'.
-    """
-    def __init__(self,X, y, kernel='linear', **kwargs):
-        super(QueryInstanceBMDR, self).__init__(X, y)
-        self.kernel = kwargs.pop('kernel', 'rbf')
-        if self.kernel == 'rbf':
-            self.K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma', 1.))
-        elif self.kernel == 'poly':
-            self.K = polynomial_kernel(X=X,
-                                       Y=X,
-                                       coef0=kwargs.pop('coef0', 1),
-                                       degree=kwargs.pop('degree', 3),
-                                       gamma=kwargs.pop('gamma', 1.))
-        elif self.kernel == 'linear':
-            self.K = linear_kernel(X=X, Y=X)
-        elif hasattr(self.kernel, '__call__'):
-            self.K = self.kernel(X=np.array(X), Y=np.array(X))
-        else:
-            raise NotImplementedError
-
-        if not isinstance(self.K, np.ndarray):
-            raise TypeError('K should be an ndarray')
-        if self.K.shape != (len(X), len(X)):
-            raise ValueError(
-                'kernel should have size (%d, %d)' % (len(X), len(X)))
-
-
-class QueryInstanceLALRand(acepy.utils.interface.BaseQueryStrategy):
-    """"""
-    def __init__(self, X, y):
-        super(QueryInstanceLAL, self).__init__(X, y)
-        with open('model1', 'rb') as f:
-            LAL_model1 = pickle.load(f)
-        self.model = RandomForestClassifier(self.nEstimators, oob_score=True, n_jobs=8)
-
-
-
-if __name__ == "__main__":
-    from sklearn.datasets import load_iris
-    from data_process.al_split import split
-
-    X, y = load_iris(return_X_y=True)
-    Train_idx, Test_idx, U_pool, L_pool = split(X=X, y=y, test_ratio=0.3, initial_label_rate=0.2, split_count=5)
-
-    # test quire
-    qs = QueryInstanceQUIRE(X, y)
-    select_index = qs.select(label_index=L_pool[0], unlabel_index=U_pool[0])
-    print(U_pool[0])
-    print(select_index)
-
-    # test graph density
-    qs = QueryInstanceGraphDensity(X, y, Train_idx[0])
-    select_index = qs.select(label_index=L_pool[0], unlabel_index=U_pool[0])
-    print(select_index)

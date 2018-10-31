@@ -8,7 +8,7 @@ from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
                                            QueryInstanceUncertainty,
                                            QueryRandom,
                                            QureyExpectedErrorReduction)
-from acepy.query_strategy.third_party_methods import QueryInstanceQUIRE, QueryInstanceGraphDensity
+from acepy.query_strategy.sota_strategy import QueryInstanceQUIRE, QueryInstanceGraphDensity
 from acepy.index.index_collections import IndexCollection
 
 

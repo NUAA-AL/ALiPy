@@ -29,7 +29,7 @@ from acepy.experiment.stopping_criteria import StoppingCriteria
 from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.utils.multi_thread import aceThreading
 import acepy.query_strategy.query_strategy
-import acepy.query_strategy.third_party_methods
+import acepy.query_strategy.sota_strategy
 
 
 class AlExperiment:
