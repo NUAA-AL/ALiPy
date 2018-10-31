@@ -4,12 +4,7 @@ from sklearn.datasets import load_iris, make_classification
 from acepy.experiment.state import State
 from acepy.utils.toolbox import ToolBox
 
-from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
-                                           QueryInstanceUncertainty,
-                                           QueryRandom,
-                                           QureyExpectedErrorReduction)
-from acepy.query_strategy.sota_strategy import QueryInstanceQUIRE, QueryInstanceGraphDensity
-from acepy.index.index_collections import IndexCollection
+from acepy.query_strategy.query_strategy import QueryInstanceUncertainty
 
 
 X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redundant=2, 
