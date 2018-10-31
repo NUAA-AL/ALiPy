@@ -6,15 +6,13 @@ ABC for acepy
 # License: BSD 3 clause
 
 from abc import ABCMeta, abstractmethod
-import collections.abc
-import copy
-import scipy.stats
-import scipy.io as scio
+
 import numpy as np
+import scipy.io as scio
+import scipy.stats
 from sklearn.utils.validation import check_X_y
 
 from acepy.utils.ace_warnings import *
-import acepy.experiment
 
 
 class BaseQueryStrategy(metaclass=ABCMeta):
@@ -242,35 +240,6 @@ class BaseAnalyser(metaclass=ABCMeta):
         # 3. performance mean and std
         # 4. cost
         self._data_summary = dict()
-
-    def _type_of_data(self, result):
-        """Judge type of data is given by the user.
-
-        Returns
-        -------
-        type: int
-            0 - StateIO object.
-            1 - A list contains n performances for n queries.
-            2 - A list contains n tuples with 2 elements, in which, the first
-                element is the x_axis (e.g., iteration, cost),
-                and the second element is the y_axis (e.g., the performance)
-        """
-        if isinstance(result[0], acepy.experiment.state_io.StateIO):
-            return 0
-        elif isinstance(result[0], list):
-            if isinstance(result[0][0], collections.Iterable):
-                if len(result[0][0]) > 1:
-                    return 2
-            return 1
-        else:
-            raise ValueError("Illegal result data is given.\n"
-                             "Legal result object includes:\n"
-                             "\t- StateIO object.\n"
-                             "\t- A list contains n performances for n queries.\n"
-                             "\t- A list contains n tuples with 2 elements, in which, "
-                             "the first element is the x_axis (e.g., iteration, cost),"
-                             "and the second element is the y_axis (e.g., the performance)")
-
 
     def get_methods_names(self):
         return self.__data_raw.keys()

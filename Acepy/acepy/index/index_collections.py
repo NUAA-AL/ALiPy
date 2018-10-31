@@ -9,14 +9,13 @@ from __future__ import division
 
 import collections
 import copy
+
 import numpy as np
-from sklearn.utils.validation import check_array
 
 import acepy.utils.misc
+from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
 from acepy.utils.ace_warnings import *
 from acepy.utils.interface import BaseCollection
-from acepy.utils.misc import _is_arraylike
-from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
 
 
 class IndexCollection(BaseCollection):

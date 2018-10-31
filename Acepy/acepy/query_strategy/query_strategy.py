@@ -10,13 +10,13 @@ References:
 
 from __future__ import division
 
-import copy
 import collections
+import copy
 import warnings
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import LogisticRegression
 
 import acepy.utils.interface
 from acepy.utils.misc import nsmallestarg, randperm, nlargestarg
@@ -134,7 +134,7 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
             if not hasattr(model, 'decision_function'):
                 raise TypeError(
                     'model object must implement decision_function methods in distance_to_boundary measure.')
-            pv = model.decision_function(unlabel_x)
+            pv = np.absolute(model.decision_function(unlabel_x))
             spv = np.shape(pv)
             assert (len(spv) in [1, 2])
             if len(spv) == 2:
@@ -157,7 +157,7 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
             The indexes of unlabeled samples. Should be one-to-one
             correspondence to the prediction matrix.
 
-        predict: 2d array, shape [n_samples, n_classes]
+        predict: 2d array, shape [n_samples, n_classes] or [n_samples]
             The probabilistic prediction matrix for the unlabeled set.
 
         batch_size: int, optional (default=1)
@@ -176,9 +176,6 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
 
         pv = np.asarray(predict)  # predict value
         spv = np.shape(pv)  # shape of predict value
-        if len(spv) != 2 or spv[1] == 1:
-            raise Exception('2d array with the shape [n_samples, n_classes]'
-                            ' is expected, but received shape: \n%s' % str(spv))
 
         if self.measure == 'distance_to_boundary':
             assert (len(spv) in [1, 2])
@@ -186,8 +183,14 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
                 if spv[1] != 1:
                     raise Exception('1d or 2d with 1 column array is expected, but received: \n%s' % str(pv))
                 else:
-                    pv = np.array(pv).flatten()
-            return unlabel_index[nsmallestarg(np.abs(pv), batch_size)]
+                    pv = np.absolute(np.array(pv).flatten())
+            else:
+                pv = np.absolute(pv)
+            return unlabel_index[nsmallestarg(pv, batch_size)]
+
+        if len(spv) != 2 or spv[1] == 1:
+            raise Exception('2d array with the shape [n_samples, n_classes]'
+                            ' is expected, but received shape: \n%s' % str(spv))
 
         if self.measure == 'entropy':
             # calc entropy

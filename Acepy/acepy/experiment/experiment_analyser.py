@@ -4,20 +4,20 @@ Class to gathering, process and visualize active learning experiment results.
 # Authors: Ying-Peng Tang
 # License: BSD 3 clause
 from __future__ import division
+
+import collections
 import copy
 import os
 import pickle
+
 import matplotlib.pyplot as plt
-import prettytable as pt
 import numpy as np
-import scipy.stats
-import scipy.io as scio
-import collections
+import prettytable as pt
 from scipy import interpolate
 
-import acepy.experiment
-from acepy.utils.interface import BaseAnalyser
 from acepy.utils.ace_warnings import *
+from acepy.utils.interface import BaseAnalyser
+from .state_io import StateIO
 
 
 def ExperimentAnalyser(x_axis='num_of_queries'):
@@ -58,6 +58,35 @@ def ExperimentAnalyser(x_axis='num_of_queries'):
         return _CostSensitiveAnalyser()
 
 
+def _type_of_data(result):
+    """Judge type of data is given by the user.
+
+    Returns
+    -------
+    type: int
+        0 - StateIO object.
+        1 - A list contains n performances for n queries.
+        2 - A list contains n tuples with 2 elements, in which, the first
+            element is the x_axis (e.g., iteration, cost),
+            and the second element is the y_axis (e.g., the performance)
+    """
+    if isinstance(result[0], StateIO):
+        return 0
+    elif isinstance(result[0], list):
+        if isinstance(result[0][0], collections.Iterable):
+            if len(result[0][0]) > 1:
+                return 2
+        return 1
+    else:
+        raise ValueError("Illegal result data is given.\n"
+                         "Legal result object includes:\n"
+                         "\t- StateIO object.\n"
+                         "\t- A list contains n performances for n queries.\n"
+                         "\t- A list contains n tuples with 2 elements, in which, "
+                         "the first element is the x_axis (e.g., iteration, cost),"
+                         "and the second element is the y_axis (e.g., the performance)")
+
+
 class StateIOContainer:
     """Class to process StateIO object.
 
@@ -79,7 +108,7 @@ class StateIOContainer:
         src: object or str
             StateIO object or path to the intermediate results file.
         """
-        if isinstance(src, acepy.experiment.state_io.StateIO):
+        if isinstance(src, StateIO):
             self.__add_fold_by_object(src)
         elif isinstance(src, str):
             self.__add_fold_from_file(src)
@@ -121,7 +150,7 @@ class StateIOContainer:
         f = open(os.path.abspath(path), 'rb')
         result = pickle.load(f)
         f.close()
-        assert (isinstance(result, acepy.experiment.state_io.StateIO))
+        assert (isinstance(result, StateIO))
         if not result.check_batch_size():
             warnings.warn('Checking validity fails, different batch size is found.',
                           category=ValidityWarning)
@@ -327,7 +356,7 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         # StateIO object
         # The type must be one of [0,1,2], otherwise, it will raise in that function.
         self._is_all_stateio = True
-        result_type = self._type_of_data(method_results)
+        result_type = _type_of_data(method_results)
         if result_type == 0:
             method_container = StateIOContainer(method_name=method_name, method_results=method_results)
             self._data_extracted[method_name] = method_container.extract_matrix()
@@ -518,7 +547,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
 
     def __add_list_result(self, method_name, method_results):
         self._is_all_stateio = True
-        result_type = self._type_of_data(method_results)
+        result_type = _type_of_data(method_results)
         if result_type == 0:
             method_container = StateIOContainer(method_name=method_name, method_results=method_results)
             self._data_extracted[method_name] = method_container.extract_matrix(extract_keys=['cost', 'performance'])
