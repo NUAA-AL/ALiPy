@@ -28,9 +28,9 @@ model = acebox.default_model()
 stopping_criterion = acebox.stopping_criterion('num_of_queries', 50)
 
 # use pre-defined strategy, The data matrix is a reference which will not use additional memory
-QBCStrategy = QueryInstanceQBC(X, y)
+uncertainStrategy = QueryInstanceUncertainty(X, y)
 
-QBC_result = []
+uncertainty_result = []
 for round in range(split_count):
     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
     # saver = acebox.StateIO(round)
@@ -43,7 +43,7 @@ for round in range(split_count):
 
     saver.set_initial_point(accuracy)
     while not stopping_criterion.is_stop():
-        select_ind = QBCStrategy.select(Lind, Uind, model=model)
+        select_ind = uncertainStrategy.select(Lind, Uind, model=model)
         Lind.update(select_ind)
         Uind.difference_update(select_ind)
 
@@ -60,11 +60,10 @@ for round in range(split_count):
         # update stopping_criteria
         stopping_criterion.update_information(saver)
     stopping_criterion.reset()
-    QBC_result.append(copy.deepcopy(saver))
-
+    uncertainty_result.append(copy.deepcopy(saver))
 
 analyser = acebox.experiment_analyser()
-print('type of QBC_result:', type(QBC_result))
-analyser.add_method('QBC', QBC_result)
+analyser.add_method('uncertainty', uncertainty_result)
+
 print(analyser)
 analyser.plot_line_chart(title='make_classification')

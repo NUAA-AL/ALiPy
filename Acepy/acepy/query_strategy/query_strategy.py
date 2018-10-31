@@ -496,7 +496,7 @@ class QureyExpectedErrorReduction(acepy.utils.interface.BaseQueryStrategy):
         the test distribution, and used as a sort of validation set), and query the instance
         with minimal expected future error (sometimes called risk)
     '''
-    def __init__(self, X=None, y=None, method='log_loss', scenario='pool'):
+    def __init__(self, X=None, y=None, scenario='pool'):
         """initializing
 
         Parameters
@@ -514,34 +514,10 @@ class QureyExpectedErrorReduction(acepy.utils.interface.BaseQueryStrategy):
             should be one of ['pool', 'stream', 'membership']
 
         """
-                
-        if method not in ['zero_one_loss', 'log_loss']:
-            raise ValueError("measure must in ['zero_one_loss', 'log_loss']")
-        self.method = method
         if scenario not in ['pool', 'stream', 'membership']:
             raise ValueError("scenario must in ['pool', 'stream', 'membership']")
         self.scenario = scenario
         super(QureyExpectedErrorReduction, self).__init__(X, y)
-
-    def zero_one_loss(self, prob):
-        '''
-            Compute expected zero_one_loss
-        
-        Parameters
-        ----------
-        predict_proba: the predict_proba of the current model
-
-        Returns
-        -------
-        0/1_loss: float
-            0/1_loss for the predict_proba.
-
-        '''
-        loss = 0.0
-        for i in range(len(prob)):
-            for p in list(prob[i]):
-                loss += 1 - p
-        return loss
 
     def log_loss(self, prob):
         ''' 
@@ -581,7 +557,7 @@ class QureyExpectedErrorReduction(acepy.utils.interface.BaseQueryStrategy):
         
         # get unlabel_x,label_x,label_y
         if self.X is None or self.y is None:
-            raise Exception('Data matrix is not provided, use calc_vote_entropy() instead.')
+            raise Exception('Data matrix is not provided.')
         if not isinstance(unlabel_index, np.ndarray):
             unlabel_index = np.array([i for i in unlabel_index])
         if not isinstance(label_index, np.ndarray):
@@ -608,10 +584,7 @@ class QureyExpectedErrorReduction(acepy.utils.interface.BaseQueryStrategy):
                 new_model = copy.deepcopy(model)
                 new_model.fit(new_train_X, np.append(label_y, yi))              
                 prob = new_model.predict_proba(new_unlabel_X)
-                if self.method == 'zero_one_loss':
-                    score.append(pv[i, yi] * self.zero_one_loss(prob))
-                elif self.method == 'log_loss':
-                    score.append(pv[i, yi] * self.log_loss(prob))
+                score.append(pv[i, yi] * self.log_loss(prob))
             scores.append(np.sum(score))
 
         return unlabel_index[nsmallestarg(scores, batch_size)]

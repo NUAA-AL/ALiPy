@@ -6,7 +6,7 @@ To run the experiment with only one class,
 we have to impose some restrictions to make
 sure the robustness of the code.
 """
-# Authors: Ying-Peng Tang
+# Authors: GuoXiang-Li
 # License: BSD 3 clause
 
 import os
@@ -30,6 +30,8 @@ from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.utils.multi_thread import aceThreading
 import acepy.query_strategy.query_strategy
 import acepy.query_strategy.third_party_methods
+import acepy.metrics.performance
+from acepy.metrics.performance import accuracy_score
 
 
 class AlExperiment:
@@ -56,7 +58,7 @@ class AlExperiment:
     model: object
         An model object which accord the scikit-learn api
 
-    performance_metric: str, optional (default='accuracy')
+    performance_metric: str, optional (default='accuracy_score')
         The performance metric
 
     stopping_criteria: str, optional (default=None)
@@ -92,7 +94,9 @@ class AlExperiment:
 
         self._X, self._y = check_X_y(X, y, accept_sparse='csc', multi_output=True)
         self._model = model
-        self._performance_metric = performance_metric
+        # set default performance metric 
+        self._performance_metric_name = performance_metric
+        self._performance_metric = accuracy_score
 
         # set split in the initial
         train_idx = kwargs.pop('train_idx', None)
@@ -124,32 +128,61 @@ class AlExperiment:
             Giving callable to use a user-defined strategy.
 
         kwargs: dict, optional
-            The args used in user-defined strategy.
+            if kwargs is None,the pre-defined strategy will init in 
+            The args used in strategy.
             Note that, each parameters should be static.
             The parameters will be fed to the callable object automatically.
         """
+        # user-defined strategy
         if callable(strategy):
             self.__custom_strategy_flag = True
-            self._query_function = strategy
             self.__custom_func_arg = kwargs
+            self._query_function = strategy(self._X, self._y, kwargs)
             return
         
+        # a pre-defined strategy in Acepy
         if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QureyExpectedErrorReduction', 
-                            'QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceLALRand', 'QueryInstanceQUIRE']:
+                            'QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
             raise NotImplementedError('Strategy %s is not implemented. Specify a valid '
                                       'method name or privide a callable object.', str(strategy))
-        else:
-            
-        if strategy in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QureyExpectedErrorReduction']:
-            self._query_function = getattr(acepy.query_strategy.query_strategy, strategy)
-        elif strategy in ['QueryInstanceBMDR', 'QueryInstanceGraphDensity', 'QueryInstanceLALRand', 'QueryInstanceQUIRE']:
-            self._query_function = getattr(acepy.query_strategy.third_party_methods, strategy)
-            
-        pass
+        elif strategy == 'QueryInstanceQBC':
+            method = kwargs.pop('method', None)
+            disagreement = kwargs.pop('disagreement', None)
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.query_strategy.QueryInstanceQBC(self._X, self._y,method, disagreement, scenario)
+        elif strategy == 'QueryInstanceUncertainty':
+            method = kwargs.pop('method', None)
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X, self._y,method, scenario)
+        elif strategy == 'QueryRandom':
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.query_strategy.QueryRandom(scenario)
+        elif strategy == 'QureyExpectedErrorReduction':
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X, self._y, scenario)
+        elif strategy == 'QueryInstanceBMDR':
+            kernel = kwargs.pop('kernel', None)
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceBMDR(self._X, self._y, kernel, kwargs)
+        elif strategy == 'QueryInstanceGraphDensity':
+            if self._train_idx is None:
+                raise ValueError('train_idx is None.Please split data firstly.You can call set_data_split or split_AL to split data.')
+            metric = kwargs.pop('metric', None)
+            scenario = kwargs.pop('scenario', None)
+            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceGraphDensity(self._X, self._y, self._train_idx, metric)
+        elif strategy == 'QueryInstanceQUIRE':
+            self._query_function = acepy.query_strategy.third_party_methods.QueryInstanceQUIRE(self._X, self._y, kwargs)
 
     def set_performance_metric(self, performance_metric='accuracy_score'):
-        '''
-        '''
+        """
+            Set the metric for experiment.
+        """
+        if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'one_error', 'coverage_error',
+                                        'label_ranking_loss', 'label_ranking_average_precision_score']:
+            raise NotImplementedError('Performance %s is not implemented.', str(performance_metric))
+        
+        self._performance_metric_name = performance_metric
+        self._performance_metric = getattr(acepy.metrics.performance, performance_metric)
         pass
 
     def set_data_split(self, train_idx, test_idx, label_idx, unlabel_idx):
@@ -243,13 +276,16 @@ class AlExperiment:
 
     def __al_main_loop(self, round, train_id, test_id, Lcollection, Ucollection,
                        saver, examples, labels, global_parameters):
+        """
+            The active-learning main loop.
+        """
         self._model.fit(X=self._X[Lcollection.index, :], y=self.y[Lcollection.index])
         pred = self._model.predict(self._X[test_id, :])
 
         # performance calc
-        accuracy = sum(pred == self._y[test_id]) / len(test_id)
+        perf_result = self._performance_metric(pred, self._y[test_id])
 
-        saver.set_initial_point(accuracy)
+        saver.set_initial_point(perf_result)
         while not self._stopping_criterion.is_stop():
             if not self.__custom_strategy_flag:
                 if 'model' in inspect.getfullargspec(self._query_function.select)[0]:
@@ -267,10 +303,10 @@ class AlExperiment:
             pred = self._model.predict(self._X[test_id, :])
 
             # performance calc
-            accuracy = sum(pred == self._y[test_id]) / len(test_id)
+            perf_result = self._performance_metric(pred, self._y[test_id])
 
             # save intermediate results
-            st = State(select_index=select_ind, performance=accuracy)
+            st = State(select_index=select_ind, performance=perf_result)
             saver.add_state(st)
             saver.save()
             # update stopping_criteria
