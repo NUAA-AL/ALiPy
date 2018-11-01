@@ -46,4 +46,4 @@ mt.start_all_threads()
 ea.add_method(method_name='QBC', method_results=mt.get_results())
 
 print(ea)
-ea.plot_line_chart(std_area=True)
+ea.plot_learning_curves(std_area=True)

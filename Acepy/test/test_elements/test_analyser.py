@@ -103,8 +103,8 @@ def test_list_of_stateio_object1():
     analyser.add_method('random', random_result)
     analyser.add_method('uncertainty', uncertainty_result)
     print(analyser)
-    analyser.plot_line_chart(title='make_classification', std_area=False)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=False)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
 
 def test_stateio_container1():
     from acepy.experiment.experiment_analyser import StateIOContainer
@@ -113,7 +113,7 @@ def test_stateio_container1():
     analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', rsc)
     analyser.add_method('uncertainty', usc)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
 
 def test_list_of_performance1():
     radom_result = [[0.6, 0.7, 0.8, 0.9], [0.7, 0.7, 0.75, 0.85]]  # 2 folds, 4 queries for each fold.
@@ -121,16 +121,16 @@ def test_list_of_performance1():
     analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', radom_result)
     analyser.add_method('uncertainty', uncertainty_result)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
-    analyser.plot_line_chart(title='make_classification', std_area=True, start_point=0.6)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=True, start_point=0.6)
 
 def test_list_of_stateio_object2():
     analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', random_result)
     analyser.add_method('uncertainty', uncertainty_result)
     print(analyser)
-    analyser.plot_line_chart(title='make_classification', std_area=False)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=False)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
 
 def test_stateio_container2():
     from acepy.experiment.experiment_analyser import StateIOContainer
@@ -139,7 +139,7 @@ def test_stateio_container2():
     analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', rsc)
     analyser.add_method('uncertainty', usc)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
 
 def test_list_of_performance2():
     radom_result = [[(1, 0.6), (2, 0.7), (2, 0.8), (1, 0.9)], [(1, 0.7), (1, 0.7), (1.5, 0.75), (2.5, 0.85)]]  # 2 folds, 4 queries for each fold.
@@ -147,5 +147,5 @@ def test_list_of_performance2():
     analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', radom_result)
     analyser.add_method('uncertainty', uncertainty_result)
-    analyser.plot_line_chart(title='make_classification', std_area=True)
-    analyser.plot_line_chart(title='make_classification', std_area=True, start_point=0.6)
+    analyser.plot_learning_curves(title='make_classification', std_area=True)
+    analyser.plot_learning_curves(title='make_classification', std_area=True, start_point=0.6)

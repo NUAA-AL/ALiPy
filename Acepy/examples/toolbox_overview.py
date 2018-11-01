@@ -52,4 +52,4 @@ for round in range(10):
 analyser = acebox.get_experiment_analyser(x_axis='num_of_queries')
 analyser.add_method('QBC', QBC_result)
 print(analyser)
-analyser.plot_line_chart(title='make_classification')
+analyser.plot_learning_curves(title='make_classification')
