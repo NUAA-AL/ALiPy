@@ -418,7 +418,8 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     return False
         return True
 
-    def plot_line_chart(self, x_shift=None, start_point=None, title=None, std_area=False, std_alpha=0.3, saving_path='.'):
+    def plot_learning_curves(self, x_shift=None, start_point=None, title=None, std_area=False, std_alpha=0.3,
+                             saving_path='.'):
         """plotting the performance curves.
 
         Parameters
@@ -601,8 +602,8 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         same = True if len(effective_cost) == 1 else False
         return same, min(effective_cost), method_cost
 
-    def plot_line_chart(self, x_shift=0, start_point=None, interpolate_interval=None,
-                        title=None, std_area=False, std_alpha=0.3, saving_path='.'):
+    def plot_learning_curves(self, x_shift=0, start_point=None, interpolate_interval=None,
+                             title=None, std_area=False, std_alpha=0.3, saving_path='.'):
         """plotting the performance curves.
 
         Parameters

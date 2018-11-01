@@ -6,18 +6,18 @@ Implement classical situation
 # License: BSD 3 clause
 
 import collections
+import copy
+import os
+import random
 
 import numpy as np
-import os
-import copy
-import random
 import prettytable as pt
 from sklearn.utils.validation import check_array
 
-from acepy.utils.misc import check_one_to_one_correspondence, unpack
+import acepy.utils.interface
 from acepy.index.multi_label_tools import check_index_multilabel
 from acepy.utils.ace_warnings import *
-import acepy.utils.interface
+from acepy.utils.misc import check_one_to_one_correspondence, unpack
 
 
 class Oracle(acepy.utils.interface.BaseVirtualOracle):
@@ -528,7 +528,7 @@ class Oracles:
         oracle_object: utils.base.BaseOracle
             oracle object.
         """
-        assert (isinstance(oracle_object, utils.base.BaseVirtualOracle))
+        assert (isinstance(oracle_object, acepy.utils.interface.BaseVirtualOracle))
         self._oracle_dict[oracle_name] = oracle_object
         return self
 

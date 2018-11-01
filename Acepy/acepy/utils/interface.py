@@ -253,7 +253,7 @@ class BaseAnalyser(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def plot_line_chart(self, *args, **kwargs):
+    def plot_learning_curves(self, *args, **kwargs):
         """Plot the performance curves of different methods."""
         pass
 

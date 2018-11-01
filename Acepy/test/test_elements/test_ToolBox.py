@@ -1,9 +1,11 @@
 from __future__ import division
-import numpy as np
+
 import pytest
-from experiment_saver.al_experiment import ToolBox
 from sklearn.datasets import load_iris
-from utils.tools import check_one_to_one_correspondence
+
+from acepy.utils.misc import check_one_to_one_correspondence
+from acepy.utils.toolbox import ToolBox
+
 X, y = load_iris(return_X_y=True)
 
 split_count = 5

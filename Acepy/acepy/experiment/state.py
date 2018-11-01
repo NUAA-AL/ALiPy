@@ -10,6 +10,7 @@ The information includes:
 # License: BSD 3 clause
 
 import copy
+
 import numpy as np
 
 from acepy.utils.ace_warnings import *
@@ -47,6 +48,12 @@ class State:
         if cost is not None:
             self._save_seq['cost'] = copy.copy(cost)
         self.batch_size = len(select_index)
+
+    def __getitem__(self, item):
+        return self.get_value(key=item)
+
+    def __setitem__(self, key, value):
+        return self.add_element(key=key, value=value)
 
     def keys(self):
         """Return the stored keys."""

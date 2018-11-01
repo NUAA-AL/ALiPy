@@ -9,26 +9,22 @@ sure the robustness of the code.
 # Authors: GuoXiang-Li
 # License: BSD 3 clause
 
-import os
-import pickle
-import inspect
 import copy
+import inspect
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.utils import check_array, check_X_y
+from sklearn.utils import check_X_y
 
-from acepy.data_manipulate.al_split import split
-from acepy.experiment.state_io import StateIO
-from acepy.experiment.state import State
-from acepy.utils.ace_warnings import *
-from acepy.oracle.knowledge_repository import MatrixRepository, ElementRepository
-from acepy.experiment.stopping_criteria import StoppingCriteria
-from acepy.experiment.experiment_analyser import ExperimentAnalyser
-from acepy.utils.multi_thread import aceThreading
 import acepy.query_strategy.query_strategy
 import acepy.query_strategy.sota_strategy
+from acepy.data_manipulate.al_split import split
+from acepy.experiment.experiment_analyser import ExperimentAnalyser
+from acepy.experiment.state import State
+from acepy.experiment.state_io import StateIO
+from acepy.experiment.stopping_criteria import StoppingCriteria
 from acepy.index.index_collections import IndexCollection
 from acepy.metrics.performance import accuracy_score
+from acepy.utils.multi_thread import aceThreading
 
 
 class AlExperiment:
@@ -335,7 +331,7 @@ class AlExperiment:
         ea = ExperimentAnalyser()
         ea.add_method(self._query_function_name, self._experiment_result)
         print(ea)
-        ea.plot_line_chart(title=title)
+        ea.plot_learning_curves(title=title)
 
     def save(self):
         pass

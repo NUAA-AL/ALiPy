@@ -7,17 +7,14 @@ from sklearn.utils import check_array
 from sklearn.utils.multiclass import type_of_target, unique_labels
 
 from acepy.data_manipulate.al_split import split, split_multi_label, split_features
-from acepy.experiment.state_io import StateIO
-from acepy.oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
+from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.experiment.state import State
-from acepy.query_strategy.query_strategy import QueryInstanceUncertainty, QueryRandom
-from acepy.utils.ace_warnings import *
+from acepy.experiment.state_io import StateIO
+from acepy.experiment.stopping_criteria import StoppingCriteria
 from acepy.index.index_collections import IndexCollection, MultiLabelIndexCollection, FeatureIndexCollection
 from acepy.oracle.knowledge_repository import MatrixRepository, ElementRepository
+from acepy.oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
 from acepy.query_strategy.query_type import check_query_type
-from acepy.index.multi_label_tools import get_labelmatrix_in_multilabel
-from acepy.experiment.stopping_criteria import StoppingCriteria
-from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.utils.multi_thread import aceThreading
 
 
@@ -355,11 +352,11 @@ class ToolBox:
             raise NotImplemented("Query strategy for other query types is not implemented yet.")
         pass
 
-    def default_model(self):
+    def get_default_model(self):
         # return SVC(probability=True, class_weight='balanced')
         return LogisticRegression()
 
-    def stopping_criterion(self, stopping_criteria=None, value=None):
+    def get_stopping_criterion(self, stopping_criteria=None, value=None):
         """Return example stopping criterion.
 
         Parameters
@@ -380,7 +377,7 @@ class ToolBox:
         """
         return StoppingCriteria(stopping_criteria=stopping_criteria, value=value)
 
-    def experiment_analyser(self, x_axis='num_of_queries'):
+    def get_experiment_analyser(self, x_axis='num_of_queries'):
         """Return ExperimentAnalyser object
 
         Parameters
@@ -398,7 +395,7 @@ class ToolBox:
         """
         return ExperimentAnalyser(x_axis=x_axis)
 
-    def aceThreading(self, target_function=None, max_thread=None, refresh_interval=1, saving_path='.'):
+    def get_ace_threading(self, target_function=None, max_thread=None, refresh_interval=1, saving_path='.'):
         """Return the multithreading tool class
 
         Parameters
@@ -451,6 +448,31 @@ class ToolBox:
     def IndexCollection(self, array=None):
         """Return an IndexCollection object initialized with array"""
         return IndexCollection(array)
+
+    def State(self, select_index, performance, queried_label=None, cost=None):
+        """Get a State object for storing information in one iteration of active learning.
+
+        Parameters
+        ----------
+        select_index: array-like or object
+            If multiple select_index are provided, it should be a list or np.ndarray type.
+            otherwise, it will be treated as only one pair for adding.
+
+        performance: array-like or object
+            Performance after querying.
+
+        queried_label: array-like or object, optional
+            The queried label.
+
+        cost: array-like or object, optional
+            Cost corresponds to the query.
+
+        Returns
+        -------
+        state: State
+            The State object.
+        """
+        return State(select_index=select_index, performance=performance, queried_label=queried_label, cost=cost)
 
     @classmethod
     def load(cls, path):

@@ -1,11 +1,12 @@
 import collections
+
 import numpy as np
 
 import acepy.utils.misc
 
 
 def check_index_multilabel(index):
-    """check if the given index is legal."""
+    """check if the given indexes are legal."""
     if not isinstance(index, (list, np.ndarray)):
         index = [index]
     datatype = collections.Counter([type(i) for i in index])

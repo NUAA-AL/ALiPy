@@ -1,19 +1,11 @@
 from sklearn import linear_model
 from sklearn.datasets import load_iris
 
-from analyser.experiment_analyser import ExperimentAnalyser
-from data_process.al_split import split
-from experiment_saver.state import State
-from experiment_saver.state_io import StateIO
-# QBC
-# QBC_ve
-# random
-# uncertainty
-from query_strategy.query_strategy import (QueryInstanceQBC,
-                                           QueryInstanceUncertainty,
-                                           QueryRandom)
-from utils.al_collections import IndexCollection
-from utils.multi_thread import aceThreading
+from acepy.data_manipulate.al_split import split
+from acepy.experiment import ExperimentAnalyser, State
+from acepy.index.index_collections import IndexCollection
+from acepy.query_strategy.query_strategy import (QueryInstanceQBC)
+from acepy.utils.multi_thread import aceThreading
 
 X, y = load_iris(return_X_y=True)
 Train_idx, Test_idx, L_pool, U_pool = split(X=X, y=y, test_ratio=0.3, initial_label_rate=0.2, split_count=10)
@@ -26,11 +18,11 @@ qs = QueryInstanceQBC(X, y, disagreement='vote_entropy')
 def run_thread(round, train_id, test_id, Lcollection, Ucollection, saver, examples, labels, global_parameters):
     # initialize object
     reg.fit(X=examples[Lcollection.index, :], y=labels[Lcollection.index])
-    pred = reg.predict(X[test_id, :])
-    accuracy = sum(pred == y[test_id]) / len(test_id)
+    pred = reg.predict(examples[test_id, :])
+    accuracy = sum(pred == labels[test_id]) / len(test_id)
     # initialize StateIO module
     saver.set_initial_point(accuracy)
-    while len(Ucollection) > 10:
+    while len(Ucollection) > 30:
         select_index = qs.select(Lcollection, Ucollection, reg, n_jobs=1)
         Ucollection.difference_update(select_index)
         Lcollection.update(select_index)
@@ -49,9 +41,9 @@ def run_thread(round, train_id, test_id, Lcollection, Ucollection, saver, exampl
 
 
 mt = aceThreading(X, y, Train_idx, Test_idx, [IndexCollection(i) for i in L_pool], [IndexCollection(i) for i in U_pool],
-                  target_func=run_thread)
+                  max_thread=None, target_func=run_thread)
 mt.start_all_threads()
-ea.add_method(mt.get_results(), 'QBC')
+ea.add_method(method_name='QBC', method_results=mt.get_results())
 
 print(ea)
-ea.simple_plot()
+ea.plot_learning_curves(std_area=True)

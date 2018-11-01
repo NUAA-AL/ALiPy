@@ -1,8 +1,10 @@
 from __future__ import division
-import pytest
+
 import numpy as np
-import random
-from utils.tools import check_index_multilabel, check_one_to_one_correspondence, nlargestarg, nsmallestarg
+import pytest
+
+from acepy.index.multi_label_tools import check_index_multilabel
+from acepy.utils.misc import check_one_to_one_correspondence, nlargestarg, nsmallestarg
 
 
 def test_check_index_multilabel():

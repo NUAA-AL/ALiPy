@@ -19,11 +19,11 @@ import copy
 import os
 import pickle
 import sys
-import prettytable as pt
+
 import numpy as np
+import prettytable as pt
 
 import acepy.experiment.state
-from acepy.utils.ace_warnings import *
 from acepy.index.index_collections import IndexCollection
 
 
@@ -94,16 +94,20 @@ class StateIO:
         self.init_L = IndexCollection(init_L) if not isinstance(init_L, IndexCollection) else init_L
         self.initial_point = initial_point
         self.batch_size = 0
-        if saving_path is not None:
-            self.saving_path = os.path.abspath(saving_path)
-            if not os.path.exists(self.saving_path):
-                os.mkdir(self.saving_path)
-        else:
-            self.saving_path = None
         self.__state_list = []
         self._first_print = True
         self.cost_inall = 0
         self._numqdata = 0
+        self._saving_file_name = 'AL_round_' + str(self.round) + '.pkl'
+        self._saving_dir = None
+        if saving_path is not None:
+            if not isinstance(saving_path, str):
+                raise TypeError("A string is expected, but received: %s" % str(type(saving_path)))
+            saving_path = os.path.abspath(saving_path)
+            if os.path.isdir(saving_path):
+                self._saving_dir = saving_path
+            else:
+                self._saving_dir, self._saving_file_name = os.path.split(saving_path)
 
     @classmethod
     def load(cls, path):
@@ -134,20 +138,11 @@ class StateIO:
         """
         self.initial_point = perf
 
-    def save(self, file_name=None):
-        """Saving intermediate results to file.
-
-        Parameters
-        ----------
-        file_name: str, optional (default=None)
-            File name for saving, if not given ,then default name will be used.
-        """
-        if self.saving_path is None:
+    def save(self):
+        """Saving intermediate results to file."""
+        if self._saving_dir is None:
             return
-        if file_name is None:
-            f = open(os.path.join(self.saving_path, 'AL_round_' + str(self.round) + '.pkl'), 'wb')
-        else:
-            f = open(os.path.join(self.saving_path, file_name), 'wb')
+        f = open(os.path.join(self._saving_dir, self._saving_file_name), 'wb')
         pickle.dump(self, f)
         f.close()
 
@@ -347,7 +342,7 @@ class StateIO:
         tb.add_column('number of queries', [len(self.__state_list)])
         # tb.add_column('queried data', ["%d (%.2f%% of unlabeled data)" % (numqdata, self.queried_percentage)])
         tb.add_column('cost', [cost])
-        # tb.add_column('saving path', [self.saving_path])
+        # tb.add_column('saving path', [self._saving_dir])
         tb.add_column('Performance:', ["%.3f ± %.2f" % self.get_current_performance()])
         return str(tb)
 

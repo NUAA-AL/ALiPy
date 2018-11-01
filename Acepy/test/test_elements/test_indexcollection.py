@@ -8,13 +8,11 @@ Test the functions in index container:
 
 
 from __future__ import division
+
 import pytest
-from sklearn.datasets import load_iris
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.utils.multiclass import unique_labels, type_of_target
-from utils.al_collections import *
-from utils.ace_warnings import *
-from data_process.al_split import split_multi_label
+
+from acepy.index.index_collections import *
+from acepy.utils.ace_warnings import *
 
 index1 = IndexCollection([1, 2, 3])
 index2 = IndexCollection([1, 2, 2, 3])
