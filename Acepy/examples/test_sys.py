@@ -2,7 +2,7 @@ import copy
 
 from sklearn.datasets import make_classification
 
-from acepy.experiment.state import State
+from acepy.experiment import State
 from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
                                            QueryInstanceUncertainty,
                                            QueryRandom,

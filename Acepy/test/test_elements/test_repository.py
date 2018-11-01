@@ -5,10 +5,12 @@ Test the functions in repository modules
 # License: BSD 3 clause
 
 from __future__ import division
-import pytest
+
 import numpy as np
-from utils.knowledge_repository import ElementRepository, MatrixRepository
-from utils.ace_warnings import *
+import pytest
+
+from acepy.oracle.knowledge_repository import ElementRepository, MatrixRepository
+from acepy.utils.ace_warnings import *
 
 # initialize
 X = np.array(range(100))  # 100 instances in total with 2 features

@@ -1,12 +1,11 @@
-import threading
-import random
-import numpy as np
-import time
+import copy
+import inspect
 import os
 import pickle
-import inspect
+import threading
+import time
+
 import prettytable as pt
-import copy
 
 from acepy.experiment.state_io import StateIO
 
@@ -87,6 +86,7 @@ class aceThreading:
         if max_thread is None:
             self.__max_thread = self._round_num
         else:
+            assert max_thread > 0
             self.__max_thread = max_thread
         # for controlling the print frequency
         self._start_time = time.clock()
@@ -125,7 +125,7 @@ class aceThreading:
         """Start multi-threading.
 
         this function will automatically invoke the thread_func function with the parameters:
-        (round, train_id, test_id, Ucollection, Lcollection, _saver, _examples, _labels, **global_parameters),
+        (round, train_id, test_id, Ucollection, Lcollection, saver, examples, labels, **global_parameters),
         in which, the global_parameters should be provided by the user for additional variables.
 
         It is necessary that the parameters of your thread_func accord the appointment, otherwise,
@@ -154,7 +154,7 @@ class aceThreading:
         for i in range(self._round_num):
             t = threading.Thread(target=self._target_func, name=str(i), kwargs={
                 'round': i, 'train_id': self._train_idx[i], 'test_id': self._test_idx[i],
-                'Ucollection': copy.deepcopy(self._unlabel_index[i]), 'Lcollection': copy.deepcopy(self._label_index[i]),
+                'Ucollection': self._saver[i].get_workspace()[3], 'Lcollection': self._saver[i].get_workspace()[2],
                 'saver': self._saver[i], 'examples': self._examples, 'labels': self._labels,
                 'global_parameters': global_parameters})
             self.__threads.append(t)
@@ -165,7 +165,7 @@ class aceThreading:
         else:
             assert (len(self._recover_arr) == self._round_num)
         # start thread
-        available_thread = self._round_num
+        available_thread = self.__max_thread
         for i in range(self._round_num):
             if not self._recover_arr[i]:
                 continue
@@ -179,12 +179,16 @@ class aceThreading:
                 self._update_thread_state()
                 self.save()
             else:
+                # waiting current thread
                 while True:
                     if self._if_refresh():
                         print(self)
-                    if threading.active_count() < self.__max_thread:
+                        # The active_count seems also include the main thread
+                        # print(threading.active_count())
+                    if threading.active_count() - 1 < self.__max_thread:
+                        available_thread += self.__max_thread - threading.active_count() + 1
                         break
-                available_thread += self.__max_thread - threading.active_count()
+                # run the if code
                 self.__threads[i].start()
                 self._thread_time_elapse[i] = time.time()
                 self.__alive_thread[i] = True
@@ -194,7 +198,7 @@ class aceThreading:
                 self._update_thread_state()
                 self.save()
 
-        # waiting for other __threads.
+        # waiting for other threads.
         for i in range(self._round_num):
             if not self._recover_arr[i]:
                 continue
@@ -262,6 +266,8 @@ class aceThreading:
         self._target_func, self._global_parameters, self.__alive_thread, self._saver = state
 
     def save(self):
+        if self._saving_path is None:
+            return
         if os.path.isdir(self._saving_path):
             f = open(os.path.join(self._saving_path, 'multi_thread_state.pkl'), 'wb')
         else:
@@ -283,34 +289,32 @@ class aceThreading:
         # recover the workspace
         # init self
         recover_thread = cls(breakpoint._examples, breakpoint._labels, breakpoint._train_idx,
-                             breakpoint._test_idx, breakpoint._unlabel_index, breakpoint._label_index,
+                             breakpoint._test_idx, breakpoint._label_index, breakpoint._unlabel_index,
                              breakpoint._target_func, breakpoint.__max_thread,
                              breakpoint._refresh_interval, breakpoint._saving_path)
         # loading tmp files
         state_path = os.path.join(breakpoint._saving_path, 'AL_result')
         recover_arr = [True] * breakpoint._round_num
         for i in range(breakpoint._round_num):
-            file_dir = os.path.join(state_path, 'experiment_result_file_round_' + str(i) + '.pkl')
+            file_dir = os.path.join(state_path, breakpoint._saver[i]._saving_file_name)
             if not breakpoint.__alive_thread[i]:
                 if os.path.exists(file_dir) and os.path.getsize(file_dir) != 0:
                     # all finished
+                    recover_thread._saver[i] = StateIO.load(
+                        os.path.join(state_path, breakpoint._saver[i]._saving_file_name))
                     recover_arr[i] = False
                 else:
                     # not started
                     pass
             else:
                 if os.path.getsize(file_dir) == 0:
-                    # not saving, but started
+                    # not saving, but started, use the initialized stateIO object
                     continue
                 # still running
+                # load intermediate result file
                 recover_thread._saver[i] = StateIO.load(
-                    os.path.join(state_path, 'experiment_result_file_round_' + str(i) + '.pkl'))
-                tmp = recover_thread._saver[i].get_workspace()
-                recover_thread._unlabel_index[i] = tmp[2]
-                recover_thread._label_index[i] = tmp[3]
+                    os.path.join(state_path, breakpoint._saver[i]._saving_file_name))
         recover_thread._recover_arr = recover_arr
-        # recover_thread.__init_threads(breakpoint._global_parameters)
-        # recover_thread.__start_all_threads()
         return recover_thread
 
 

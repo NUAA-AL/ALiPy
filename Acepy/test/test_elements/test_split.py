@@ -5,12 +5,14 @@ Test the functions in al split modules
 # License: BSD 3 clause
 
 from __future__ import division
+
 import pytest
 from sklearn.datasets import load_iris
 from sklearn.preprocessing import LabelBinarizer
-from sklearn.utils.multiclass import unique_labels, type_of_target
-from data_process.al_split import *
-from utils.tools import check_index_multilabel, integrate_multilabel_index, flattern_multilabel_index
+from sklearn.utils.multiclass import unique_labels
+
+from acepy.data_manipulate.al_split import *
+from acepy.index.multi_label_tools import check_index_multilabel, integrate_multilabel_index, flattern_multilabel_index
 
 """
 Test 3 types of split setting:

@@ -5,13 +5,15 @@ Test the functions in StateIO class
 # License: BSD 3 clause
 
 from __future__ import division
-import pytest
+
 import os
+
 import numpy as np
+import pytest
 from sklearn.datasets import load_iris
-from experiment_saver.state import State
-from experiment_saver.state_io import StateIO
-from experiment_saver.al_experiment import ToolBox as acebox
+
+from acepy.experiment import State, StateIO
+from acepy.utils.toolbox import ToolBox as acebox
 
 X, y = load_iris(return_X_y=True)
 split_count = 5

@@ -206,7 +206,7 @@ class IndexCollection(BaseCollection):
             The sampled index collection.
         """
         assert (0 < rate < 1)
-        perm = acepy.utils.tools.randperm(len(self) - 1, round(rate * len(self)))
+        perm = acepy.utils.misc.randperm(len(self) - 1, round(rate * len(self)))
         return IndexCollection([self.index[i] for i in perm])
 
 

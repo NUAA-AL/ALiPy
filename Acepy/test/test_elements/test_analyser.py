@@ -42,7 +42,7 @@ for round in range(split_count):
 
     saver.set_initial_point(accuracy)
     while not stopping_criterion.is_stop():
-        select_ind = randomStrategy.select(Lind, Uind)
+        select_ind = randomStrategy.select(Uind)
         label, cost = oracle.query_by_index(select_ind)
         Lind.update(select_ind)
         Uind.difference_update(select_ind)
@@ -149,5 +149,3 @@ def test_list_of_performance2():
     analyser.add_method('uncertainty', uncertainty_result)
     analyser.plot_line_chart(title='make_classification', std_area=True)
     analyser.plot_line_chart(title='make_classification', std_area=True, start_point=0.6)
-
-test_list_of_performance2()

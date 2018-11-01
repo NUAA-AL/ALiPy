@@ -5,11 +5,10 @@ Test the functions in StateIO class
 # License: BSD 3 clause
 
 from __future__ import division
-import pytest
+
 import copy
-from utils.stopping_criteria import StoppingCriteria
-from experiment_saver.state_io import StateIO
-from experiment_saver.state import State
+
+from acepy.experiment import StoppingCriteria, StateIO, State
 
 stop1 = StoppingCriteria()
 stop2 = StoppingCriteria(stopping_criteria='num_of_queries', value=10)
