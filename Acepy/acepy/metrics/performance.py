@@ -7,12 +7,11 @@ Implement classical methods
 # License: BSD 3 clause
 
 from __future__ import division
+
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.stats import rankdata
 
-from acepy.utils.misc import check_one_to_one_correspondence
- 
  
 __all__ = [
     'accuracy_score',

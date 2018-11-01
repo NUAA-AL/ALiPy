@@ -1,7 +1,7 @@
 from sklearn.datasets import load_iris, make_classification
 from acepy.experiment.state import State
 from acepy.utils.toolbox import ToolBox
-from acepy.query_strategy.query_strategy import QueryInstanceUncertainty
+from acepy.query_strategy.query_strategy import QueryInstanceUncertainty,QureyExpectedErrorReduction
 
 from acepy.experiment.al_experiment import AlExperiment
 
@@ -12,7 +12,14 @@ X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redu
 
 al = AlExperiment(X, y)
 al.split_AL()
-al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+user_query = QureyExpectedErrorReduction
+print(callable(user_query))
+if callable(user_query):
+    print("callable")
+    al.set_query_strategy(user_query, strategyname='QueryEER')
+else:
+    al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
 
-al.start_query(multi_thread=False)
+# al.start_query(multi_thread=False)
+al.start_query()
 al.get_experiment_result()
