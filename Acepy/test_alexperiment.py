@@ -21,5 +21,6 @@ else:
     al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
 
 # al.start_query(multi_thread=False)
+al.set_performance_metric()
 al.start_query()
 al.get_experiment_result()

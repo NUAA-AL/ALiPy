@@ -140,7 +140,7 @@ class AlExperiment:
             else:
                 self._query_function_name = 'user-defined strategy'
             if len(kwargs) == 0:
-                self.__custom_func_arg = None
+                self.__custom_func_arg = kwargs
                 self._query_function = strategy(self._X, self._y)
             else:    
                 self.__custom_func_arg = kwargs
