@@ -649,4 +649,3 @@ class QureyExpectedErrorReduction(acepy.utils.interface.BaseIndexQuery):
             scores.append(np.sum(score))
 
         return unlabel_index[nsmallestarg(scores, batch_size)]
-

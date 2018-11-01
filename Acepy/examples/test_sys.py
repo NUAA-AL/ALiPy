@@ -35,7 +35,7 @@ EER = QureyExpectedErrorReduction(X, y)
 QBC_result = []
 for round in range(split_count):
     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
-    saver = acebox.StateIO(round)
+    saver = acebox.get_stateio(round)
 
     # calc the initial point
     model.fit(X=X[Lind.index, :], y=y[Lind.index])

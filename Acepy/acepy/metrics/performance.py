@@ -7,12 +7,11 @@ Implement classical methods
 # License: BSD 3 clause
 
 from __future__ import division
+
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.stats import rankdata
 
-from acepy.utils.tools import check_one_to_one_correspondence
- 
  
 __all__ = [
     'accuracy_score',
@@ -72,6 +71,57 @@ def type_of_target(y):
     return 'unknown'
         
 
+def auc(x, y, reorder=True):
+    """Compute Area Under the Curve (AUC) using the trapezoidal rule
+
+    Parameters
+    ----------
+    x : array, shape = [n]
+        x coordinates. These must be either monotonic increasing or monotonic
+        decreasing.
+    y : array, shape = [n]
+        y coordinates.
+    reorder : boolean, optional (default='deprecated')
+        Whether to sort x before computing. If False, assume that x must be
+        either monotonic increasing or monotonic decreasing. If True, y is
+        used to break ties when sorting x. Make sure that y has a monotonic
+        relation to x when setting reorder to True.
+
+    Returns
+    -------
+    auc : float
+
+    """
+    check_consistent_length(x, y)
+
+    if x.shape[0] < 2:
+        raise ValueError('At least 2 points are needed to compute'
+                         ' area under curve, but x.shape = %s' % x.shape)
+
+    direction = 1
+    if reorder is True:
+        # reorder the data points according to the x axis and using y to
+        # break ties
+        order = np.lexsort((y, x))
+        x, y = x[order], y[order]
+    else:
+        dx = np.diff(x)
+        if np.any(dx < 0):
+            if np.all(dx <= 0):
+                direction = -1
+            else:
+                raise ValueError("x is neither increasing nor decreasing "
+                                 ": {}.".format(x))
+
+    area = direction * np.trapz(y, x)
+    if isinstance(area, np.memmap):
+        # Reductions such as .sum used internally in np.trapz do not return a
+        # scalar by default for numpy.memmap instances contrary to
+        # regular numpy.ndarray instances.
+        area = area.dtype.type(area)
+    return area
+
+    
 def _check_targets(y_true, y_pred):
     """Check that y_true and y_pred belong to the same classification task
 
@@ -213,57 +263,6 @@ def f1_score(y_true, y_pred, pos_label=1, sample_weight=None):
                            sample_weight=sample_weight)
     
     return 2 * (p * r) / (p + r)
-
-
-def auc(x, y, reorder=True):
-    """Compute Area Under the Curve (AUC) using the trapezoidal rule
-
-    Parameters
-    ----------
-    x : array, shape = [n]
-        x coordinates. These must be either monotonic increasing or monotonic
-        decreasing.
-    y : array, shape = [n]
-        y coordinates.
-    reorder : boolean, optional (default='deprecated')
-        Whether to sort x before computing. If False, assume that x must be
-        either monotonic increasing or monotonic decreasing. If True, y is
-        used to break ties when sorting x. Make sure that y has a monotonic
-        relation to x when setting reorder to True.
-
-    Returns
-    -------
-    auc : float
-
-    """
-    check_consistent_length(x, y)
-
-    if x.shape[0] < 2:
-        raise ValueError('At least 2 points are needed to compute'
-                         ' area under curve, but x.shape = %s' % x.shape)
-
-    direction = 1
-    if reorder is True:
-        # reorder the data points according to the x axis and using y to
-        # break ties
-        order = np.lexsort((y, x))
-        x, y = x[order], y[order]
-    else:
-        dx = np.diff(x)
-        if np.any(dx < 0):
-            if np.all(dx <= 0):
-                direction = -1
-            else:
-                raise ValueError("x is neither increasing nor decreasing "
-                                 ": {}.".format(x))
-
-    area = direction * np.trapz(y, x)
-    if isinstance(area, np.memmap):
-        # Reductions such as .sum used internally in np.trapz do not return a
-        # scalar by default for numpy.memmap instances contrary to
-        # regular numpy.ndarray instances.
-        area = area.dtype.type(area)
-    return area
 
 
 def get_fps_tps_thresholds(y_true, y_score, pos_label=None):

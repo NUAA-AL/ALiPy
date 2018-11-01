@@ -120,7 +120,6 @@ class aceThreading:
                     "Ucollection, Lcollection, saver, examples, labels, global_parameters)")
         self._target_func = target_function
 
-
     def start_all_threads(self, global_parameters=None):
         """Start multi-threading.
 
