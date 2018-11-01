@@ -12,15 +12,20 @@ X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redu
 
 al = AlExperiment(X, y)
 al.split_AL()
-user_query = QueryInstanceUncertainty
-print(callable(user_query))
-if callable(user_query):
-    print("callable")
-    al.set_query_strategy(user_query, strategyname='QueryUn')
-else:
-    al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+# user_query = QueryInstanceUncertainty
+# print(callable(user_query))
+# if callable(user_query):
+#     print("callable")
+#     al.set_query_strategy(user_query, strategyname='QueryUn')
+# else:
+#     al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+# al.set_query_strategy('QueryInstanceQUIRE')
+
+al.set_query_strategy('QueryInstanceGraphDensity', metric='manhattan')
+al.set_performance_metric('roc_auc_score')
 
 # al.start_query(multi_thread=False)
-al.set_performance_metric()
 al.start_query()
 al.get_experiment_result()

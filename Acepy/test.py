@@ -4,6 +4,7 @@ from sklearn.datasets import make_classification
 
 from acepy.experiment.state import State
 from acepy.query_strategy.query_strategy import (QueryInstanceQBC)
+from acepy.query_strategy.sota_strategy import QueryInstanceQUIRE,QueryInstanceGraphDensity
 from acepy.utils.toolbox import ToolBox
 
 X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redundant=2,
@@ -23,6 +24,7 @@ stopping_criterion = acebox.get_stopping_criterion('num_of_queries', 50)
 
 # use pre-defined strategy, The data matrix is a reference which will not use additional memory
 QBCStrategy = QueryInstanceQBC(X, y)
+
 
 QBC_result = []
 for round in range(split_count):
@@ -56,8 +58,75 @@ for round in range(split_count):
     stopping_criterion.reset()
     QBC_result.append(copy.deepcopy(saver))
 
+QUIRE_result = []
+for round in range(split_count):
+    train_idx, test_idx, Lind, Uind = acebox.get_split(round)
+    # saver = acebox.StateIO(round)
+    saver = acebox.get_stateio(round)
+
+    QUIRE = QueryInstanceQUIRE(X, y, train_idx)
+    # calc the initial point
+    model.fit(X=X[Lind.index, :], y=y[Lind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+    saver.set_initial_point(accuracy)
+    while not stopping_criterion.is_stop():
+        select_ind = QUIRE.select(Lind, Uind)
+        Lind.update(select_ind)
+        Uind.difference_update(select_ind)
+
+        # update model and calc performance
+        model.fit(X=X[Lind.index, :], y=y[Lind.index])
+        pred = model.predict(X[test_idx, :])
+        accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+        # save intermediate result
+        st = State(select_index=select_ind, performance=accuracy)
+        saver.add_state(st)
+        saver.save()
+
+        # update stopping_criteria
+        stopping_criterion.update_information(saver)
+    stopping_criterion.reset()
+    QUIRE_result.append(copy.deepcopy(saver))
+
+QIGD_result = []
+for round in range(split_count):
+    train_idx, test_idx, Lind, Uind = acebox.get_split(round)
+    # saver = acebox.StateIO(round)
+    saver = acebox.get_stateio(round)
+
+    QIGD = QueryInstanceGraphDensity(X, y, train_idx)
+    # calc the initial point
+    model.fit(X=X[Lind.index, :], y=y[Lind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+    saver.set_initial_point(accuracy)
+    while not stopping_criterion.is_stop():
+        select_ind = QIGD.select(Lind, Uind)
+        Lind.update(select_ind)
+        Uind.difference_update(select_ind)
+
+        # update model and calc performance
+        model.fit(X=X[Lind.index, :], y=y[Lind.index])
+        pred = model.predict(X[test_idx, :])
+        accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+        # save intermediate result
+        st = State(select_index=select_ind, performance=accuracy)
+        saver.add_state(st)
+        saver.save()
+
+        # update stopping_criteria
+        stopping_criterion.update_information(saver)
+    stopping_criterion.reset()
+    QIGD_result.append(copy.deepcopy(saver))
+
 analyser = acebox.get_experiment_analyser()
-print('type of QBC_result:', type(QBC_result))
 analyser.add_method('QBC', QBC_result)
+analyser.add_method('QUIRE', QUIRE_result)
+analyser.add_method('QIGD', QIGD_result)
 print(analyser)
 analyser.plot_learning_curves(title='make_classification')
