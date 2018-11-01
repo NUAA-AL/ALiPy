@@ -398,6 +398,12 @@ class QueryInstanceQBC(acepy.utils.interface.BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
         if self._disagreement == 'vote_entropy':
             score = self.calc_vote_entropy(predict)
         else:
@@ -429,6 +435,8 @@ class QueryInstanceQBC(acepy.utils.interface.BaseIndexQuery):
             raise Exception("Found input variables with inconsistent numbers of"
                             " shapes: %r" % [int(l) for l in shapes])
         committee_size = len(predict_matrices)
+        if not committee_size > 1:
+            raise ValueError("Two or more committees are expected, but received: %d" % committee_size)
         input_shape = uniques[0]
         return input_shape, committee_size
 

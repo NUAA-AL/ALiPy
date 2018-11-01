@@ -1,14 +1,12 @@
 import copy
-from sklearn.datasets import load_iris, make_classification
+
+from sklearn.datasets import make_classification
 
 from acepy.experiment.state import State
+from acepy.query_strategy.query_strategy import (QueryInstanceUncertainty,
+                                                 QueryRandom,
+                                                 )
 from acepy.utils.toolbox import ToolBox
-
-from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
-                                           QueryInstanceUncertainty,
-                                           QueryRandom,
-                                           )
-
 
 X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redundant=2,
     n_repeated=0, n_classes=2, n_clusters_per_class=2, weights=None, flip_y=0.01, class_sep=1.0,
@@ -20,10 +18,10 @@ acebox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path=None)
 acebox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=split_count)
 
 # use the default Logistic Regression classifier
-model = acebox.default_model()
+model = acebox.get_default_model()
 
 # query 50 times
-stopping_criterion = acebox.stopping_criterion('num_of_queries', 50)
+stopping_criterion = acebox.get_stopping_criterion('num_of_queries', 50)
 
 # use pre-defined strategy, The data matrix is a reference which will not use additional memory
 randomStrategy = QueryRandom()
@@ -101,7 +99,7 @@ for round in range(split_count):
 # 2. The cost sensitive setting
 
 def test_list_of_stateio_object1():
-    analyser = acebox.experiment_analyser()
+    analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', random_result)
     analyser.add_method('uncertainty', uncertainty_result)
     print(analyser)
@@ -112,7 +110,7 @@ def test_stateio_container1():
     from acepy.experiment.experiment_analyser import StateIOContainer
     rsc = StateIOContainer(method_name='random', method_results=random_result)
     usc = StateIOContainer(method_name='uncertainty', method_results=uncertainty_result)
-    analyser = acebox.experiment_analyser()
+    analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', rsc)
     analyser.add_method('uncertainty', usc)
     analyser.plot_line_chart(title='make_classification', std_area=True)
@@ -120,14 +118,14 @@ def test_stateio_container1():
 def test_list_of_performance1():
     radom_result = [[0.6, 0.7, 0.8, 0.9], [0.7, 0.7, 0.75, 0.85]]  # 2 folds, 4 queries for each fold.
     uncertainty_result = [[0.7, 0.75, 0.85, 0.9], [0.73, 0.75, 0.88, 0.92]]
-    analyser = acebox.experiment_analyser()
+    analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', radom_result)
     analyser.add_method('uncertainty', uncertainty_result)
     analyser.plot_line_chart(title='make_classification', std_area=True)
     analyser.plot_line_chart(title='make_classification', std_area=True, start_point=0.6)
 
 def test_list_of_stateio_object2():
-    analyser = acebox.experiment_analyser(x_axis='cost')
+    analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', random_result)
     analyser.add_method('uncertainty', uncertainty_result)
     print(analyser)
@@ -138,7 +136,7 @@ def test_stateio_container2():
     from acepy.experiment.experiment_analyser import StateIOContainer
     rsc = StateIOContainer(method_name='random', method_results=random_result)
     usc = StateIOContainer(method_name='uncertainty', method_results=uncertainty_result)
-    analyser = acebox.experiment_analyser(x_axis='cost')
+    analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', rsc)
     analyser.add_method('uncertainty', usc)
     analyser.plot_line_chart(title='make_classification', std_area=True)
@@ -146,7 +144,7 @@ def test_stateio_container2():
 def test_list_of_performance2():
     radom_result = [[(1, 0.6), (2, 0.7), (2, 0.8), (1, 0.9)], [(1, 0.7), (1, 0.7), (1.5, 0.75), (2.5, 0.85)]]  # 2 folds, 4 queries for each fold.
     uncertainty_result = [[(1, 0.7), (2, 0.75), (1, 0.85), (1, 0.9), (1, 0.91)], [(1, 0.73), (2, 0.75), (3, 0.88)]]
-    analyser = acebox.experiment_analyser(x_axis='cost')
+    analyser = acebox.get_experiment_analyser(x_axis='cost')
     analyser.add_method('random', radom_result)
     analyser.add_method('uncertainty', uncertainty_result)
     analyser.plot_line_chart(title='make_classification', std_area=True)

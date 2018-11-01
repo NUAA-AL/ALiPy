@@ -3,13 +3,10 @@ Test functions of oracle modules
 '''
 
 from __future__ import division
-import pytest
 import numpy as np
 import random
 from sklearn.datasets import load_iris, make_multilabel_classification
 from sklearn.preprocessing import LabelBinarizer
-from sklearn.utils.multiclass import unique_labels, type_of_target
-from utils.tools import check_index_multilabel, integrate_multilabel_index, flattern_multilabel_index, check_one_to_one_correspondence
 from oracle.oracle import Oracle, OracleQueryMultiLabel, Oracles
 
 
@@ -25,7 +22,8 @@ def test_Oracle():
         test, _ = oracle.query_by_index(r)
         assert test == y[r]
     for i in range(10):
-        oracle._add_one_entry(y[50+i], 50+i)
+        # oracle._add_one_entry(y[50+i], 50+i)
+        oracle.add_knowledge(y[50 + i], 50 + i)
         test, _ = oracle.query_by_index(50+i)
         assert test == y[50+i]
     for i in range(5):
