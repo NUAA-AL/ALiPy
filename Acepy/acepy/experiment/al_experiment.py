@@ -87,6 +87,7 @@ class AlExperiment:
                  stopping_criteria=None, stopping_value=None, batch_size=1, **kwargs):
         self.__custom_strategy_flag = False
         self._split = False
+        self._metrics = False
         self._split_count = 0
 
         self._X, self._y = check_X_y(X, y, accept_sparse='csc', multi_output=True)
@@ -138,15 +139,18 @@ class AlExperiment:
                 self._query_function_name = strategyname
             else:
                 self._query_function_name = 'user-defined strategy'
-            self.__custom_func_arg = kwargs
-            self._query_function = strategy(self._X, self._y, kwargs)
-            # self._query_function = strategy(self._X, self._y)
+            if len(kwargs) == 0:
+                self.__custom_func_arg = None
+                self._query_function = strategy(self._X, self._y)
+            else:    
+                self.__custom_func_arg = kwargs
+                self._query_function = strategy(self._X, self._y, kwargs)
         else:
             # a pre-defined strategy in Acepy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 
                             'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
-                raise NotImplementedError('Strategy %s is not implemented. Specify a valid '
-                                      'method name or privide a callable object.', str(strategy))
+                raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
+                                      'method name or privide a callable object.'.format(str(strategy)))
             else:
                 self._query_function_name = strategy
                 if strategy == 'QueryInstanceQBC':
@@ -176,10 +180,11 @@ class AlExperiment:
         """
         if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'one_error', 'coverage_error',
                                         'label_ranking_loss', 'label_ranking_average_precision_score']:
-            raise NotImplementedError('Performance %s is not implemented.', str(performance_metric))
+            raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
         
         self._performance_metric_name = performance_metric
         self._performance_metric = getattr(acepy.metrics.performance, performance_metric)
+        self._metrics = True
 
     def set_data_split(self, train_idx, test_idx, label_idx, unlabel_idx):
         """set the data split indexes.
@@ -265,7 +270,10 @@ class AlExperiment:
         """
         if not self._split:
             raise Exception("Data split is unknown. Use set_data_split() to set an existed split, "
-                            "or use split_AL() to generate new split.")                           
+                            "or use split_AL() to generate new split.")   
+        if not self._metrics:
+            raise Exception("Performance_Metrics is unknown." 
+                    " Use set_performance_metric() to define a performance_metrics.")                      
         if multi_thread:
             ace = aceThreading(self._X, self._y, self._train_idx, self._test_idx, self._label_idx, self._unlabel_idx)
             ace.set_target_function(self.__al_main_loop)
