@@ -133,12 +133,14 @@ class AlExperiment:
                 self._query_function_name = strategyname
             else:
                 self._query_function_name = 'user-defined strategy'
-            if len(kwargs) == 0:
-                self.__custom_func_arg = kwargs
-                self._query_function = strategy(self._X, self._y)
-            else:    
-                self.__custom_func_arg = kwargs
-                self._query_function = strategy(self._X, self._y, kwargs)
+            self.__custom_func_arg = kwargs
+            self._query_function = strategy(self._X, self._y, **kwargs)
+            # if len(kwargs) == 0:
+            #     self.__custom_func_arg = kwargs
+            #     self._query_function = strategy(self._X, self._y)
+            # else:    
+            #     self.__custom_func_arg = kwargs
+            #     self._query_function = strategy(self._X, self._y, kwargs)
         else:
             # a pre-defined strategy in Acepy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 
@@ -165,9 +167,20 @@ class AlExperiment:
                     self._query_function_metric = kwargs.pop('metric', 'manhattan')
                     self._query_function_kwargs = kwargs
      
-    def set_performance_metric(self, performance_metric='accuracy_score'):
+    def set_performance_metric(self, performance_metric='accuracy_score', **kwargs):
         """
             Set the metric for experiment.
+
+            Parameters
+            ------------
+            performace_metric: str 
+                The query performance-metric function.
+                Giving str to use a pre-defined performance-metric.
+            kwargs: dict, optional
+                if kwargs is None,the pre-defined strategy will init in the default way.
+                The args used in performance-metric.
+                Note that, each parameters should be static.
+                
         """
         if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'one_error', 'coverage_error',
                                         'label_ranking_loss', 'label_ranking_average_precision_score']:
@@ -312,8 +325,8 @@ class AlExperiment:
                 else:
                     raise Exception("The QueryInstanceGraphDensity need metric.Please input metric in set_query_strategy().")
             elif self._query_function_name == 'QueryInstanceQUIRE':
-                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, self._query_function_kwargs)
-                self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id)
+                self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
+                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id)
 
         # performance calc
         perf_result = self._performance_metric(pred, self._y[test_id])
