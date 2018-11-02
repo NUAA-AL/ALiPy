@@ -20,8 +20,8 @@ al.split_AL()
 # else:
 #     al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
 
-al.set_query_strategy(strategy="QueryInstanceQUIRE")
-# al.set_query_strategy('QueryInstanceQUIRE')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+al.set_query_strategy('QueryInstanceQUIRE')
 
 
 # al.set_query_strategy('QueryInstanceGraphDensity', metric='manhattan')

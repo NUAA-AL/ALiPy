@@ -135,12 +135,6 @@ class AlExperiment:
                 self._query_function_name = 'user-defined strategy'
             self.__custom_func_arg = kwargs
             self._query_function = strategy(self._X, self._y, **kwargs)
-            # if len(kwargs) == 0:
-            #     self.__custom_func_arg = kwargs
-            #     self._query_function = strategy(self._X, self._y)
-            # else:    
-            #     self.__custom_func_arg = kwargs
-            #     self._query_function = strategy(self._X, self._y, kwargs)
         else:
             # a pre-defined strategy in Acepy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 
@@ -287,10 +281,10 @@ class AlExperiment:
         
         if multi_thread:
             max_thread = kwargs.pop('max_thread', None)
-            refresh_interval = float(kwargs.pop('refresh_interval', 1.0))
+            refresh_interval = kwargs.pop('refresh_interval', 1.0)
             saving_path = kwargs.pop('saving_path', '.')
             ace = aceThreading(self._X, self._y, self._train_idx, self._test_idx, 
-                                self._label_idx, self._unlabel_idx)
+                                self._label_idx, self._unlabel_idx, max_thread=max_thread, refresh_interval=refresh_interval, saving_path=saving_path)
             ace.set_target_function(self.__al_main_loop)
             ace.start_all_threads()
             self._experiment_result = ace.get_results()
@@ -316,16 +310,17 @@ class AlExperiment:
         self._model.fit(X=self._X[Lcollection.index, :], y=self._y[Lcollection.index])
         pred = self._model.predict(self._X[test_id, :])
 
-
         # some query strategy,such as QueryInstanceGraphDensity,QueryInstanceQUIRE, need train_ind
         if self._query_function_need_train_ind:
             if self._query_function_name == 'QueryInstanceGraphDensity':
                 if self._query_function_metric is not None:
-                    self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
+                    querfunction = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
+                    # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
                 else:
                     raise Exception("The QueryInstanceGraphDensity need metric.Please input metric in set_query_strategy().")
             elif self._query_function_name == 'QueryInstanceQUIRE':
-                self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
+                querfunction = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
+                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
                 # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id)
 
         # performance calc
@@ -334,16 +329,21 @@ class AlExperiment:
         # stopping-criterion 
         stopping_criterion = copy.deepcopy(self._stopping_criterion)
         saver.set_initial_point(perf_result)
-        while not stopping_criterion.is_stop():
+
+        while not stopping_criterion.is_stop():            
             if not self.__custom_strategy_flag:
-                if 'model' in inspect.getfullargspec(self._query_function.select)[0]:
+                if self._query_function_name == 'QueryInstanceGraphDensity':
+                    select_ind = querfunction.select(Lcollection, Ucollection, batch_size=self._batch_size, **self._query_function_kwargs)
+                elif self._query_function_name == 'QueryInstanceQUIRE':
+                    select_ind = querfunction.select(Lcollection, Ucollection, batch_size=self._batch_size)
+                elif 'model' in inspect.getfullargspec(self._query_function.select)[0]:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
                                                              model=self._model)
                 else:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size)
             else:
                 select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
-                                                         **self.__custom_func_arg)
+                                                         **self.__custom_func_arg)                     
             Lcollection.update(select_ind)
             Ucollection.difference_update(select_ind)
             # update model

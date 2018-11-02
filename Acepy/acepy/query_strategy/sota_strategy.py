@@ -90,7 +90,7 @@ class QueryInstanceQUIRE(acepy.utils.interface.BaseIndexQuery):
         #
         X = np.asarray(X)[train_idx]
         y = np.asarray(y)[train_idx]
-        self._train_idx = train_idx
+        self._train_idx = np.asarray(train_idx) 
 
         self.y = np.array(y)
         self.lmbda = kwargs.pop('lambda', 1.)
