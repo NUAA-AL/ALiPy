@@ -15,13 +15,16 @@ from scipy.stats import rankdata
  
 __all__ = [
     'accuracy_score',
-    'auc',
+    'zero_one_loss',
+    'roc_auc_score',
     'get_fps_tps_thresholds',
     'hamming_loss',
     'one_error',
     'coverage_error',
     'label_ranking_loss',
-    'label_ranking_average_precision_score'
+    'label_ranking_average_precision_score',
+    'micro_auc_score',
+    'average_precision_score'
 ]
 
 

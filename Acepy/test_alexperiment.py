@@ -20,12 +20,26 @@ al.split_AL()
 # else:
 #     al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
 
+
+# ++++++++++++++test query_strategy++++++++++++
 # al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
-al.set_query_strategy('QueryInstanceQUIRE')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='margin')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='distance_to_boundary')
 
+# al.set_query_strategy('QueryRandom')
 
+# al.set_query_strategy('QureyExpectedErrorReduction')
+
+# al.set_query_strategy('QueryInstanceQBC', method='query_by_bagging', disagreement='vote_entropy')
+al.set_query_strategy('QueryInstanceQBC', method='query_by_bagging', disagreement='KL_divergence')
+# +++++++++test sota_stratgey++++++++++++
 # al.set_query_strategy('QueryInstanceGraphDensity', metric='manhattan')
+# al.set_query_strategy('QueryInstanceQUIRE')
+# al.set_performance_metric('zero_one_loss')
+
 al.set_performance_metric('roc_auc_score')
+
 
 # al.start_query(multi_thread=False)
 al.start_query()
