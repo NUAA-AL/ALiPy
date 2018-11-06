@@ -1,7 +1,7 @@
 from sklearn.datasets import load_iris, make_classification
 from acepy.experiment.state import State
 from acepy.utils.toolbox import ToolBox
-from acepy.query_strategy.query_strategy import QueryInstanceUncertainty,QureyExpectedErrorReduction
+from acepy.query_strategy.query_strategy import QueryInstanceUncertainty
 
 from acepy.experiment.al_experiment import AlExperiment
 
@@ -12,13 +12,42 @@ X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redu
 
 al = AlExperiment(X, y)
 al.split_AL()
-user_query = QureyExpectedErrorReduction
-print(callable(user_query))
-if callable(user_query):
-    print("callable")
-    al.set_query_strategy(user_query, strategyname='QueryEER')
-else:
-    al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+# +++++++++++test user define query strategy+++++++++
+# user_query = QueryInstanceUncertainty
+# print(callable(user_query))
+# if callable(user_query):
+#     print("callable")
+#     al.set_query_strategy(user_query, strategyname='QueryUn')
+# else:
+#     al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+
+
+# ++++++++++++++test query_strategy++++++++++++
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='entropy')
+al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='margin')
+# al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='distance_to_boundary')
+
+# al.set_query_strategy('QueryRandom')
+
+# al.set_query_strategy('QureyExpectedErrorReduction')
+
+# al.set_query_strategy('QueryInstanceQBC', method='query_by_bagging', disagreement='vote_entropy')
+# al.set_query_strategy('QueryInstanceQBC', method='query_by_bagging', disagreement='KL_divergence')
+
+# +++++++++test sota_stratgey++++++++++++
+# al.set_query_strategy('QueryInstanceGraphDensity', metric='manhattan')
+# al.set_query_strategy('QueryInstanceQUIRE')
+
+
+
+
+# al.set_performance_metric('zero_one_loss')
+al.set_performance_metric('roc_auc_score')
+
+# 返回值不对应
+# al.set_performance_metric('f1_score')
+
 
 # al.start_query(multi_thread=False)
 al.start_query()

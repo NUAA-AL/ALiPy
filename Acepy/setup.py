@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='acepy',
-    version='0.1.1',
+    version='0.1.0',
     description='Active learning tools in Python',
     long_description=open('README.md').read(),
     author='Ying-Peng Tang, Guo-Xiang Li',

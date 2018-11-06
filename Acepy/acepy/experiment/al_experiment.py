@@ -85,12 +85,11 @@ class AlExperiment:
         self._split = False
         self._metrics = False
         self._split_count = 0
+        self._query_function_need_train_ind = False
+        self._existed_query_strategy = False
 
         self._X, self._y = check_X_y(X, y, accept_sparse='csc', multi_output=True)
         self._model = model
-        # set default performance metric 
-        self._performance_metric_name = performance_metric
-        self._performance_metric = accuracy_score
         self._experiment_result = []
         # set split in the initial
         train_idx = kwargs.pop('train_idx', None)
@@ -113,20 +112,27 @@ class AlExperiment:
 
     def set_query_strategy(self, strategy="QueryInstanceUncertainty", **kwargs):
         """
+            Set the query strategy of the experiment.
 
         Parameters
         ----------
         strategy: {str, callable}, optional (default='QueryInstanceUncertainty')
             The query strategy function.
-            Giving str to use a pre-defined strategy
+            Giving str to use a pre-defined strategy.
             Giving callable to use a user-defined strategy.
 
         kwargs: dict, optional
-            if kwargs is None,the pre-defined strategy will init in 
             The args used in strategy.
+            If kwargs is None,the pre-defined query strategy will init in default way.
+            (See the default way of pre-defined query strategy in the acepy/query_strategy/'query_strategy' and 'sota_strategy').        
+            If strategy is a user-define strategy,the parameters accord with definition of function parameter.
+
             Note that, each parameters should be static.
             The parameters will be fed to the callable object automatically.
         """
+        # check 
+        if self._existed_query_strategy:
+            raise Exception("You already has set the query strategy,don`t has to set it again.")
         # user-defined strategy
         if callable(strategy):
             self.__custom_strategy_flag = True
@@ -135,12 +141,8 @@ class AlExperiment:
                 self._query_function_name = strategyname
             else:
                 self._query_function_name = 'user-defined strategy'
-            if len(kwargs) == 0:
-                self.__custom_func_arg = None
-                self._query_function = strategy(self._X, self._y)
-            else:    
-                self.__custom_func_arg = kwargs
-                self._query_function = strategy(self._X, self._y, kwargs)
+            self.__custom_func_arg = kwargs
+            self._query_function = strategy(self._X, self._y, **kwargs)
         else:
             # a pre-defined strategy in Acepy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 
@@ -152,30 +154,40 @@ class AlExperiment:
                 if strategy == 'QueryInstanceQBC':
                     method = kwargs.pop('method', None)
                     disagreement = kwargs.pop('disagreement', None)
-                    self._query_function = acepy.query_strategy.query_strategy.QueryInstanceQBC(self._X, self._y, method, disagreement, scenario)
+                    self._query_function = acepy.query_strategy.query_strategy.QueryInstanceQBC(self._X, self._y, method, disagreement)
                 elif strategy == 'QueryInstanceUncertainty':
                     measure = kwargs.pop('measure', None)
                     self._query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X, self._y, measure)
                 elif strategy == 'QueryRandom':
-                    self._query_function = acepy.query_strategy.query_strategy.QueryRandom(self._X, self._y, kwargs)
+                    self._query_function = acepy.query_strategy.query_strategy.QueryRandom(self._X, self._y)
                 elif strategy == 'QureyExpectedErrorReduction':
                     self._query_function = acepy.query_strategy.query_strategy.QureyExpectedErrorReduction(self._X, self._y)
-                elif strategy == 'QueryInstanceGraphDensity':
+                elif strategy == 'QueryInstanceGraphDensity' or strategy == 'QueryInstanceQUIRE':
                     if self._train_idx is None:
                         raise ValueError('train_idx is None.Please split data firstly.You can call set_data_split or split_AL to split data.')
-                    metric = kwargs.pop('metric', None)
-                    self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, self._train_idx, metric)
-                elif strategy == 'QueryInstanceQUIRE':
-                    if self._train_idx is None:
-                        raise ValueError('train_idx is None.Please split data firstly.You can call set_data_split or split_AL to split data.')
-                    self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, self._train_idx, kwargs)
+                    self._query_function_need_train_ind = True
+                    self._query_function_metric = kwargs.pop('metric', 'manhattan')
+                    self._query_function_kwargs = kwargs
      
-    def set_performance_metric(self, performance_metric='accuracy_score'):
+    def set_performance_metric(self, performance_metric='accuracy_score', **kwargs):
         """
-            Set the metric for experiment.
+        Set the metric for experiment.
+
+        Parameters
+        ------------
+        performace_metric: str 
+            The query performance-metric function.
+            Giving str to use a pre-defined performance-metric.
+            
+        kwargs: dict, optional
+            The args used in performance-metric.
+            if kwargs is None,the pre-defined performance will init in the default way.
+             (See the default way of pre-defined query strategy in the acepy/metric/'performance').
+            Note that, each parameters should be static.
+                
         """
         if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'one_error', 'coverage_error',
-                                        'label_ranking_loss', 'label_ranking_average_precision_score']:
+                                        'label_ranking_loss', 'label_ranking_average_precision_score', 'zero_one_loss']:
             raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
         
         self._performance_metric_name = performance_metric
@@ -183,7 +195,8 @@ class AlExperiment:
         self._metrics = True
 
     def set_data_split(self, train_idx, test_idx, label_idx, unlabel_idx):
-        """set the data split indexes.
+        """
+            set the data split indexes by user input the specific parameters.
 
         Parameters
         ----------
@@ -198,10 +211,6 @@ class AlExperiment:
 
         unlabel_idx: array-like, optional (default=None)
             index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
-
-        Returns
-        -------
-
         """
         if not (len(train_idx) == len(test_idx) == len(label_idx) == len(unlabel_idx)):
             raise ValueError("_train_idx, _test_idx, _label_idx, _unlabel_idx "
@@ -259,25 +268,57 @@ class AlExperiment:
             all_class=all_class)
         return self._train_idx, self._test_idx, self._label_idx, self._unlabel_idx
 
-    def start_query(self, multi_thread=True):
+    def start_query(self, multi_thread=True, **kwargs):
         """Start the active learning main loop
         If using implemented query strategy, It will run in multi-thread default
 
+        Parameters
+        ----------
+        multi_thread: bool, optional (default=True)
+            Decide whether to run in multi-thread.
+            if multi thread is True,it will run in multi-thread way.
+            if not,it will be executed sequentially.
+
+        kwargs: set, optional
+            The parameters will use in aceThreading init or stateio init.
+            if the kwargs is None,it will init in the default way.
+
+            if multi_thread is True,the kwargs will be used for aceThreading init,
+            aceThreading(A class implement multi-threading in active learning for multiple 
+            random splits experiments.)
+            and you can see the specific parameter settings in acepy/utils/'multi_thread.py' init().
+
+            if not,the kwargs will be used for stateio init,
+            stateio(A class to store states.)
+            and you can see the specific parameter settings in acepy/experiment/'state_io.py' init().
+            
+            Note that, each parameters should be static.
         """
         if not self._split:
             raise Exception("Data split is unknown. Use set_data_split() to set an existed split, "
                             "or use split_AL() to generate new split.")   
         if not self._metrics:
             raise Exception("Performance_Metrics is unknown." 
-                    " Use set_performance_metric() to define a performance_metrics.")                      
+                    " Use set_performance_metric() to define a performance_metrics.")      
+        
         if multi_thread:
-            ace = aceThreading(self._X, self._y, self._train_idx, self._test_idx, self._label_idx, self._unlabel_idx)
+            max_thread = kwargs.pop('max_thread', None)
+            refresh_interval = kwargs.pop('refresh_interval', 1.0)
+            saving_path = kwargs.pop('saving_path', '.')
+            ace = aceThreading(self._X, self._y, self._train_idx, self._test_idx, 
+                                self._label_idx, self._unlabel_idx, max_thread=max_thread, refresh_interval=refresh_interval, saving_path=saving_path)
             ace.set_target_function(self.__al_main_loop)
             ace.start_all_threads()
             self._experiment_result = ace.get_results()
         else:
+            initial_point = kwargs.pop('initial_point', None)
+            saving_path = kwargs.pop('saving_path', None)
+            check_flag = kwargs.pop('check_flag', True)
+            verbose = kwargs.pop('verbose', True)
+            print_interval = kwargs.pop('print_interval', 1)
             for round in range(self._split_count):
-                saver = StateIO(round, self._train_idx[round], self._test_idx[round], self._label_idx[round], self._unlabel_idx[round])
+                saver = StateIO(round, self._train_idx[round], self._test_idx[round], self._label_idx[round], 
+                            self._unlabel_idx[round], initial_point, saving_path, check_flag, verbose, print_interval)
                 self.__al_main_loop(round, self._train_idx[round], self._test_idx[round], self._label_idx[round], self._unlabel_idx[round], saver)
                 self._experiment_result.append(copy.deepcopy(saver))
                 
@@ -291,20 +332,40 @@ class AlExperiment:
         self._model.fit(X=self._X[Lcollection.index, :], y=self._y[Lcollection.index])
         pred = self._model.predict(self._X[test_id, :])
 
+        # some query strategy,such as QueryInstanceGraphDensity,QueryInstanceQUIRE, need train_ind
+        if self._query_function_need_train_ind:
+            if self._query_function_name == 'QueryInstanceGraphDensity':
+                if self._query_function_metric is not None:
+                    querfunction = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
+                    # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
+                else:
+                    raise Exception("The QueryInstanceGraphDensity need metric.Please input metric in set_query_strategy().")
+            elif self._query_function_name == 'QueryInstanceQUIRE':
+                querfunction = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
+                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
+                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id)
+
         # performance calc
         perf_result = self._performance_metric(pred, self._y[test_id])
 
+        # stopping-criterion 
+        stopping_criterion = copy.deepcopy(self._stopping_criterion)
         saver.set_initial_point(perf_result)
-        while not self._stopping_criterion.is_stop():
+
+        while not stopping_criterion.is_stop():            
             if not self.__custom_strategy_flag:
-                if 'model' in inspect.getfullargspec(self._query_function.select)[0]:
+                if self._query_function_name == 'QueryInstanceGraphDensity':
+                    select_ind = querfunction.select(Lcollection, Ucollection, batch_size=self._batch_size, **self._query_function_kwargs)
+                elif self._query_function_name == 'QueryInstanceQUIRE':
+                    select_ind = querfunction.select(Lcollection, Ucollection, batch_size=self._batch_size)
+                elif 'model' in inspect.getfullargspec(self._query_function.select)[0]:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
                                                              model=self._model)
                 else:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size)
             else:
                 select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
-                                                         **self.__custom_func_arg)
+                                                         **self.__custom_func_arg)                     
             Lcollection.update(select_ind)
             Ucollection.difference_update(select_ind)
             # update model
@@ -319,12 +380,17 @@ class AlExperiment:
             saver.add_state(st)
             saver.save()
             # update stopping_criteria
-            self._stopping_criterion.update_information(saver)
-        self._stopping_criterion.reset()
+            stopping_criterion.update_information(saver)
+        # self._stopping_criterion.reset()
 
     def get_experiment_result(self, title=None):
         """
             Print the experiment result,and draw a line chart.
+
+        Parameters
+        ----------
+        title: str
+            the title of the line chart.
         """
         if len(self._experiment_result) == 0:
             raise Exception('There is no experiment result.Use start_query() get experiment result firstly.')
@@ -332,9 +398,3 @@ class AlExperiment:
         ea.add_method(self._query_function_name, self._experiment_result)
         print(ea)
         ea.plot_learning_curves(title=title)
-
-    def save(self):
-        pass
-
-    def recover(self):
-        pass
