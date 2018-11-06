@@ -11,13 +11,14 @@ from __future__ import division
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.stats import rankdata
-
+from sklearn.metrics import f1_score
  
 __all__ = [
     'accuracy_score',
     'zero_one_loss',
     'roc_auc_score',
     'get_fps_tps_thresholds',
+    'f1_score',
     'hamming_loss',
     'one_error',
     'coverage_error',

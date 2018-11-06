@@ -124,14 +124,15 @@ class AlExperiment:
         kwargs: dict, optional
             The args used in strategy.
             If kwargs is None,the pre-defined query strategy will init in default way.
-            (See the default way of pre-defined query strategy in the 'query_strategy' and 'sota_strategy').        
+            (See the default way of pre-defined query strategy in the acepy/query_strategy/'query_strategy' and 'sota_strategy').        
             If strategy is a user-define strategy,the parameters accord with definition of function parameter.
+
             Note that, each parameters should be static.
             The parameters will be fed to the callable object automatically.
         """
         # check 
         if self._existed_query_strategy:
-            raise Exception("")
+            raise Exception("You already has set the query strategy,don`t has to set it again.")
         # user-defined strategy
         if callable(strategy):
             self.__custom_strategy_flag = True
@@ -179,8 +180,9 @@ class AlExperiment:
             Giving str to use a pre-defined performance-metric.
             
         kwargs: dict, optional
-            if kwargs is None,the pre-defined strategy will init in the default way.
             The args used in performance-metric.
+            if kwargs is None,the pre-defined performance will init in the default way.
+             (See the default way of pre-defined query strategy in the acepy/metric/'performance').
             Note that, each parameters should be static.
                 
         """
@@ -277,8 +279,20 @@ class AlExperiment:
             if multi thread is True,it will run in multi-thread way.
             if not,it will be executed sequentially.
 
-        kwargs: set,optional
+        kwargs: set, optional
+            The parameters will use in aceThreading init or stateio init.
+            if the kwargs is None,it will init in the default way.
 
+            if multi_thread is True,the kwargs will be used for aceThreading init,
+            aceThreading(A class implement multi-threading in active learning for multiple 
+            random splits experiments.)
+            and you can see the specific parameter settings in acepy/utils/'multi_thread.py' init().
+
+            if not,the kwargs will be used for stateio init,
+            stateio(A class to store states.)
+            and you can see the specific parameter settings in acepy/experiment/'state_io.py' init().
+            
+            Note that, each parameters should be static.
         """
         if not self._split:
             raise Exception("Data split is unknown. Use set_data_split() to set an existed split, "
