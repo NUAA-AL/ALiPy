@@ -16,6 +16,7 @@ from acepy.oracle.knowledge_repository import MatrixRepository, ElementRepositor
 from acepy.oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
 from acepy.query_strategy.query_type import check_query_type
 from acepy.utils.multi_thread import aceThreading
+import acepy.metrics.performance
 
 
 class ToolBox:
@@ -335,12 +336,21 @@ class ToolBox:
                                      examples=self._X[Lcollection.index, :] if instance_flag else None,
                                      indexes=Lcollection.index)
 
-    def get_query_strategy(self, strategy_name="random"):
+    def get_query_strategy(self, strategy_name="QueryRandom", **kwargs):
         """Return the query strategy object.
 
         Parameters
         ----------
-        strategy_name: str, optional (default='random')
+        strategy_name: str, optional (default='QueryRandom')
+            The name of a query strategy, should be one of
+            ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
+            'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']
+
+        arg1, arg2, ...: dict, optional
+            if kwargs is None,the pre-defined strategy will init in
+            The args used in strategy.
+            Note that, each parameters should be static.
+            The parameters will be fed to the callable object automatically.
 
         Returns
         -------
@@ -350,7 +360,34 @@ class ToolBox:
         """
         if self.query_type != "AllLabels":
             raise NotImplemented("Query strategy for other query types is not implemented yet.")
+
         pass
+
+    def calc_performance_metric(self, y_true, y_pred, performance_metric='accuracy_score', **kwargs):
+        """Evaluate the model performance.
+
+        Parameters
+        ----------
+        y_true : array, shape = [n_samples] or [n_samples, n_classes]
+            The true labels correspond to the y_pred.
+
+        y_pred : array, shape = [n_samples] or [n_samples, n_classes]
+            The predict result of the model. Note that, different metrics
+            need different types of predict.
+
+        performance_metric: str, optional (default='accuracy_score')
+            The name of the performance metric function.
+            Should be one of ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss',
+            'one_error', 'coverage_error', 'label_ranking_loss', 'label_ranking_average_precision_score'].
+
+        """
+        if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss',
+                                      'one_error', 'coverage_error',
+                                      'label_ranking_loss', 'label_ranking_average_precision_score']:
+            raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
+
+        performance_metric = getattr(acepy.metrics.performance, performance_metric)
+        return performance_metric(y_pred, y_true)
 
     def get_default_model(self):
         # return SVC(probability=True, class_weight='balanced')
