@@ -152,11 +152,11 @@ class AlExperiment:
             else:
                 self._query_function_name = strategy
                 if strategy == 'QueryInstanceQBC':
-                    method = kwargs.pop('method', None)
-                    disagreement = kwargs.pop('disagreement', None)
+                    method = kwargs.pop('method', 'query_by_bagging')
+                    disagreement = kwargs.pop('disagreement', 'vote_entropy')
                     self._query_function = acepy.query_strategy.query_strategy.QueryInstanceQBC(self._X, self._y, method, disagreement)
                 elif strategy == 'QueryInstanceUncertainty':
-                    measure = kwargs.pop('measure', None)
+                    measure = kwargs.pop('measure', 'entropy')
                     self._query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X, self._y, measure)
                 elif strategy == 'QueryRandom':
                     self._query_function = acepy.query_strategy.query_strategy.QueryRandom(self._X, self._y)
