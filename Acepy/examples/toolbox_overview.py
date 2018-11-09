@@ -1,5 +1,7 @@
 import copy
+
 from sklearn.datasets import load_iris
+
 from acepy.utils.toolbox import ToolBox
 
 X, y = load_iris(return_X_y=True)
@@ -15,7 +17,7 @@ model = acebox.get_default_model()
 stopping_criterion = acebox.get_stopping_criterion('num_of_queries', 50)
 
 # Use pre-defined strategy
-QBCStrategy = acebox.get_query_strategy(strategy_name='QBC')
+QBCStrategy = acebox.get_query_strategy(strategy_name='QueryInstanceQBC')
 QBC_result = []
 
 for round in range(10):
@@ -34,7 +36,7 @@ for round in range(10):
         # Update model and calc performance according to the model you are using
         model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
         pred = model.predict(X[test_idx, :])
-        accuracy = acebox.calc_performance_metric(y_true=y[label_ind.index],
+        accuracy = acebox.calc_performance_metric(y_true=y[test_idx],
                                                   y_pred=pred,
                                                   performance_metric='accuracy_score')
 
@@ -52,4 +54,4 @@ for round in range(10):
 analyser = acebox.get_experiment_analyser(x_axis='num_of_queries')
 analyser.add_method('QBC', QBC_result)
 print(analyser)
-analyser.plot_learning_curves(title='Iris', std_area=True)
+analyser.plot_learning_curves(title='Example of al', std_area=True)
