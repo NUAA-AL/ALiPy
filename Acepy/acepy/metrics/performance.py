@@ -910,23 +910,3 @@ def average_precision_score(y_true, y_score, sample_weight=None):
             summary = summary + sum(indicator[loc:class_num])*1.0/(class_num-loc)
         aveprec = aveprec + summary*1.0/labels_size[i]
     return aveprec*1.0/test_data_num
-
-
-if __name__ == '__main__':
-    # print(roc_auc_score(y, scores))
-    # print(accuracy_score(np.array([[0, 1], [1, 1]]), np.ones((2, 2))))
-    # fpr, tpr, thresholds = roc_curve(y, scores, pos_label=2)
-
-    # print('fpr is ', fpr)
-    # print('tpr is ', tpr)
-    # y_true = np.array([[1, 0, 1, 0],[0, 1, 0, 1],[1, 0, 0, 1],[0, 1, 1, 0],[1, 0, 0, 0]])
-    # y_socre = np.array([[0.9, 0.0, 0.4, 0.6],[0.1, 0.8, 0.0, 0.8],[0.8, 0.0, 0.1, 0.7],[0.1, 0.7, 0.1, 0.2],[1.0, 0, 0, 1.0]])
-    # y_true = np.array([[1, 0, 1, 0],[0, 1, 0, 1]])
-    # y_socre = np.array([[0.9, 0.0, 0.4, 0.6],[0.1, 0.8, 0.0, 0.8]])
-
-    # print(label_ranking_average_precision_score(y_true,y_socre))
-    # y_true = np.array([1, 1, 0, 0])
-    # y_pred = np.array([0.1, 0.4, 0.35, 0.8])
-    # print(f1_score(y_true, y_pred))
-
-    pass

@@ -314,4 +314,3 @@ class QueryInstanceGraphDensity(interface.BaseIndexQuery):
         output['connectivity'] = self.connect
         output['graph_density'] = self.starting_density
         return output
-

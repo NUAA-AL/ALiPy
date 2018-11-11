@@ -720,10 +720,3 @@ class _CostSensitiveAnalyser(BaseAnalyser):
                         "%.3f ± %.2f" % (summary.mean, summary.std),
                         method_cost[i] if len(method_cost[i]) == 1 else 'Not same budget'])
         return '\n' + str(tb)
-
-
-if __name__ == "__main__":
-    a = [1.2, 2, 3]
-    b = [1.6, 2.5, 1.1]
-    print(ExperimentAnalyser().paired_ttest(a, b))
-    print(ExperimentAnalyser().paired_ttest(a, a))

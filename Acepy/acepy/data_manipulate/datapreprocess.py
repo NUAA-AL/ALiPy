@@ -115,11 +115,3 @@ def StandardScale(X):
     x_StdS = (X - data_mean) / data_var
 
     return x_StdS
-
-
-if __name__ == '__main__':
-    data = [[0, 0], [0, 0], [1, 1], [1, 1]]
-    data1 = [[-1, 2, 1], [-0.5, 6, 1], [0, 10, 1], [1, 18, 1]]
-    print(StandardScale(data))
-    print(minmax_scale(data1, (0, 1)))
-    pass

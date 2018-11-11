@@ -464,4 +464,3 @@ def split_save(train_idx, test_idx, label_idx, unlabel_idx, path):
             np.save(os.path.join(saving_path, 'unlabel_idx.npy'), unlabel_idx)
     else:
         raise Exception("A path to a directory is expected.")
-

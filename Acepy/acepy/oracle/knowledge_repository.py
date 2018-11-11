@@ -588,19 +588,3 @@ class MatrixRepository(BaseRepository):
                 str(query_result[1]), str(query_result[0][0]), str(query_result[0][1]))])
         tb.add_column('in all', ["number_of_queries:%s\ncost:%s" % (str(len(self._query_history)), str(self.cost_inall))])
         return str(tb)
-
-
-if __name__ == '__main__':
-    import numpy as np
-    X = np.random.randn(100, 20)  # 100 instances in total
-    y = np.random.randn(100)
-    label_ind = [11, 32, 0, 6, 74]
-
-    repo = ElementRepository(labels=y[label_ind], indexes=label_ind, examples=X[label_ind])
-    # asume you have queried once and got some information
-    select_ind = [12]
-    repo.update_query(labels=y[select_ind], indexes=select_ind, examples=X[select_ind])
-    X_train, y_train, ind_train = repo.get_training_data()
-    print(X_train)
-    print(y_train)
-    print(ind_train)

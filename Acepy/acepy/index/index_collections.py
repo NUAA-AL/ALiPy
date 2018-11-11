@@ -462,10 +462,3 @@ class FeatureIndexCollection(MultiLabelIndexCollection):
             super(FeatureIndexCollection, self).__init__(data=data, label_size=feature_size)
         except(Exception, ValueError):
             raise Exception("The inference of feature_size is failed, please set a specific value.")
-
-
-if __name__ == '__main__':
-    a = IndexCollection([1, 2, 3, 4])
-    b = np.asarray(a)
-    print(a)
-    print(b)

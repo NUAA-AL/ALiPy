@@ -633,37 +633,3 @@ class OracleQueryFeatures(OracleQueryMultiLabel):
     """
     def __init__(self, feature_mat, indexes=None, cost=None):
         super(OracleQueryFeatures, self).__init__(labels=feature_mat, indexes=indexes, cost=cost)
-
-
-if __name__ == '__main__':
-    a = Oracle([1, 2, 3])
-    print(a.query_by_index(1))
-    a.add_knowledge(labels=0, indexes=3)
-    print(a.query_by_index([3]))
-    a.add_knowledge(labels=[4, 5], indexes=[4, 5])
-    print(a.query_by_index([5]))
-
-    # a = Oracle([[1, 2, 3], [4, 5, 6]])
-    # print(a.query_by_index(1))
-    # a.add_knowledge(_labels=[0, 2, 1], indexes=2)
-    # print(a.query_by_index([2]))
-    # a.add_knowledge(_labels=[[1, 2, 3], [4, 5, 6]], indexes=[3, 4])
-    # print(a.query_by_index([4]))
-
-    b = OracleQueryMultiLabel([[1, 2, 3], [4, 5, 6]])
-    print(b.query_by_index((0,)))
-    print(b.query_by_index((0, (0, 1))))
-    print(b.query_by_index((0, [0, 1])))
-    print(b.query_by_index((0, 0)))
-    b.add_knowledge([7, 8, 9], 2)
-    print(b.query_by_index((2, 0)))
-    print(b.query_by_index([(2, 0), (1,)]))
-
-    multi_oracles = Oracles()
-    multi_oracles.add_oracle('oracle1', a)
-    multi_oracles.add_oracle('oracle2', b)
-    multi_oracles.query_from([5], 'oracle1')
-    multi_oracles.query_from([4, 5], 'oracle1')
-    multi_oracles.query_from([(2, 0), (1,)], 'oracle2')
-    print(multi_oracles)
-    print(multi_oracles.full_history())

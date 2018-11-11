@@ -416,6 +416,3 @@ class StateIO:
 #     def queried_percentage(self):
 #         """return the queried percentage of unlabeled data"""
 #         return 100 * self._numqdata / len(self.init_U)
-
-if __name__ == '__main__':
-    saver = StateIO()

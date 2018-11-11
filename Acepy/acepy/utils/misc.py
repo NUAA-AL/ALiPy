@@ -242,14 +242,3 @@ def unpack(*args):
         else:
             ret_args.append(arg)
     return tuple(ret_args)
-
-
-if __name__ == '__main__':
-    # a = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    # print(get_gaussian_kernel_mat(a))
-    # print()
-    # lm = np.random.randn(2, 4)
-    # print(lm)
-    # print(multi_label_tools.get_labelmatrix_in_multilabel([(0,), (1, 1), (1, 2)], lm))
-    # print(multi_label_tools.get_labelmatrix_in_multilabel([(1, (0, 1)), (0, [1, 2]), (1, 2)], lm))
-    pass
