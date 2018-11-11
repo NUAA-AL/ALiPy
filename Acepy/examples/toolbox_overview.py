@@ -1,7 +1,5 @@
 import copy
-
 from sklearn.datasets import load_iris
-
 from acepy.utils.toolbox import ToolBox
 
 X, y = load_iris(return_X_y=True)
@@ -52,6 +50,6 @@ for round in range(10):
     QBC_result.append(copy.deepcopy(saver))
 
 analyser = acebox.get_experiment_analyser(x_axis='num_of_queries')
-analyser.add_method('QBC', QBC_result)
+analyser.add_method(method_name='QBC', method_results=QBC_result)
 print(analyser)
-analyser.plot_learning_curves(title='Example of al', std_area=True)
+analyser.plot_learning_curves(title='Example of AL', std_area=True)
