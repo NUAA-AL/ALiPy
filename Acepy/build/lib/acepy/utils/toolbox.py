@@ -390,7 +390,7 @@ class ToolBox:
         return performance_metric(y_pred, y_true)
 
     def get_default_model(self):
-        # return LogisticRegression()
+        # return SVC(probability=True, class_weight='balanced')
         return LogisticRegression()
 
     def get_stopping_criterion(self, stopping_criteria=None, value=None):
@@ -415,7 +415,7 @@ class ToolBox:
         return StoppingCriteria(stopping_criteria=stopping_criteria, value=value)
 
     def get_experiment_analyser(self, x_axis='num_of_queries'):
-        """Return ExperimentAnalyser object.
+        """Return ExperimentAnalyser object
 
         Parameters
         ----------

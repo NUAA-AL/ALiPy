@@ -315,3 +315,7 @@ class aceThreading:
                     os.path.join(state_path, breakpoint._saver[i]._saving_file_name))
         recover_thread._recover_arr = recover_arr
         return recover_thread
+
+
+if __name__ == '__main__':
+    pass

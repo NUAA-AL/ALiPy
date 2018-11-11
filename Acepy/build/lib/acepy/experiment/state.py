@@ -60,7 +60,7 @@ class State:
         return self._save_seq.keys()
 
     def add_element(self, key, value):
-        """add_element
+        """Add an element to the object.
 
         Parameters
         ----------

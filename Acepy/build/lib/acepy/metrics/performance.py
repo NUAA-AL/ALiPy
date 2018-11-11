@@ -75,7 +75,7 @@ def type_of_target(y):
     return 'unknown'
         
 
-def _auc(x, y, reorder=True):
+def auc(x, y, reorder=True):
     """Compute Area Under the Curve (AUC) using the trapezoidal rule
 
     Parameters
@@ -262,33 +262,7 @@ def zero_one_loss(y_true, y_pred, normalize=True, sample_weight=None):
 
 
 def f1_score(y_true, y_pred, pos_label=1, sample_weight=None):
-    """
-        Compute the F1 score, also known as balanced F-score or F-measure
 
-    The F1 score can be interpreted as a weighted average of the precision and
-    recall, where an F1 score reaches its best value at 1 and worst score at 0.
-    The relative contribution of precision and recall to the F1 score are
-    equal. The formula for the F1 score is::
-
-        F1 = 2 * (precision * recall) / (precision + recall)
-
-
-    Parameters
-    ----------
-    y_true : 1d array-like, or label indicator array / sparse matrix
-        Ground truth (correct) target values.
-
-    y_pred : 1d array-like, or label indicator array / sparse matrix
-        Estimated targets as returned by a classifier.
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    f1_score : float or array of float, shape = [n_unique_labels]
-
-    """
     p, r, t = precision_recall_curve(y_true, y_pred, pos_label=pos_label,
                            sample_weight=sample_weight)
     
@@ -486,33 +460,12 @@ def roc_auc_score(y_true, y_score, pos_label=None, sample_weight=None):
     auc : float
     """
     fpr, tpr, _ = roc_curve(y_true, y_score, pos_label=pos_label, sample_weight=None)
-    return _auc(fpr, tpr)    
+    return auc(fpr, tpr)    
 
 
 def hamming_loss(y_true, y_pred):
     """Compute the average Hamming loss.
 
-    The Hamming loss is the fraction of labels that are incorrectly predicted.
-
-    Parameters
-    ----------
-    y_true : 1d array-like, or label indicator array / sparse matrix
-        Ground truth (correct) labels.
-
-    y_pred : 1d array-like, or label indicator array / sparse matrix
-        Predicted labels, as returned by a classifier.
-
-    labels : array, shape = [n_labels], optional (default=None)
-        Integer array of labels. If not provided, labels will be inferred
-        from y_true and y_pred.
-
-        .. versionadded:: 0.18
-
-    Returns
-    -------
-    loss : float or int,
-        Return the average Hamming loss between element of ``y_true`` and
-        ``y_pred``.
     """
     y_type, _, _ = _check_targets(y_true, y_pred)
     check_consistent_length(y_true, y_pred)
@@ -530,23 +483,7 @@ def hamming_loss(y_true, y_pred):
 
 def one_error(y_true, y_pred, sample_weight=None):
     '''
-        Compute the one_error,similar to 0/1-loss.
-    Parameters
-    ----------
-    y_true : array, shape = [n_samples] or [n_samples, n_classes]
-        True binary labels or binary label indicators.
 
-    y_score : array, shape = [n_samples] or [n_samples, n_classes]
-        Target scores, can either be probability estimates of the positive
-        class, confidence values, or non-thresholded measure of decisions
-        (as returned by "decision_function" on some classifiers).
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    one_error : float
     '''
     check_consistent_length(y_true, y_pred, sample_weight)
     y_type = type_of_target(y_true)
@@ -559,30 +496,7 @@ def one_error(y_true, y_pred, sample_weight=None):
 
 
 def coverage_error(y_true, y_score, sample_weight=None):
-    """Coverage error measure.
-    Compute how far we need to go through the ranked scores to cover all
-    true labels. The best value is equal to the average number
-    of labels in ``y_true`` per sample.
-
-    Ties in ``y_scores`` are broken by giving maximal rank that would have
-    been assigned to all tied values.
-
-    Parameters
-    ----------
-    y_true : array, shape = [n_samples, n_labels]
-        True binary labels in binary indicator format.
-
-    y_score : array, shape = [n_samples, n_labels]
-        Target scores, can either be probability estimates of the positive
-        class, confidence values, or non-thresholded measure of decisions
-        (as returned by "decision_function" on some classifiers).
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    coverage_error : float
+    """Coverage error measure
     """
     check_consistent_length(y_true, y_score, sample_weight)
     y_type = type_of_target(y_true)
@@ -596,34 +510,8 @@ def coverage_error(y_true, y_score, sample_weight=None):
 
 
 def label_ranking_loss(y_true, y_score, sample_weight=None):
-    """Compute Ranking loss measure.
-    
-    Compute the average number of label pairs that are incorrectly ordered
-    given y_score weighted by the size of the label set and the number of
-    labels not in the label set.
+    """Compute Ranking loss measure
 
-    Parameters
-    ----------
-    y_true : array or sparse matrix, shape = [n_samples, n_labels]
-        True binary labels in binary indicator format.
-
-    y_score : array, shape = [n_samples, n_labels]
-        Target scores, can either be probability estimates of the positive
-        class, confidence values, or non-thresholded measure of decisions
-        (as returned by "decision_function" on some classifiers).
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    loss : float
-
-    References
-    ----------
-    .. [1] Tsoumakas, G., Katakis, I., & Vlahavas, I. (2010).
-           Mining multi-label data. In Data mining and knowledge discovery
-           handbook (pp. 667-685). Springer US.
     """
     check_consistent_length(y_true, y_score, sample_weight)
 
@@ -777,26 +665,6 @@ def findIndex(a, b):
 
    
 def micro_auc_score(y_true, y_score, sample_weight=None):
-    """
-    Compute the micro_auc_score.
-
-    Parameters
-    ----------
-    y_true : array, shape = [n_samples] or [n_samples, n_classes]
-        True binary labels or binary label indicators.
-
-    y_score : array, shape = [n_samples] or [n_samples, n_classes]
-        Target scores, can either be probability estimates of the positive
-        class, confidence values, or non-thresholded measure of decisions
-        (as returned by "decision_function" on some classifiers).
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    micro_auc_score : float
-    """
     check_consistent_length(y_true, y_score, sample_weight)
     if y_true.shape != y_score.shape:
         raise ValueError("y_true and y_score have different shape")
@@ -842,33 +710,6 @@ def micro_auc_score(y_true, y_score, sample_weight=None):
 
 
 def average_precision_score(y_true, y_score, sample_weight=None):
-    """
-        Compute average precision (AP) from prediction scores
-
-    AP summarizes a precision-recall curve as the weighted mean of precisions
-    achieved at each threshold, with the increase in recall from the previous
-    threshold used as the weight:
-
-    .. math::
-        \\text{AP} = \\sum_n (R_n - R_{n-1}) P_n
-
-    Parameters
-    ----------
-    y_true : array, shape = [n_samples] or [n_samples, n_classes]
-        True binary labels or binary label indicators.
-
-    y_score : array, shape = [n_samples] or [n_samples, n_classes]
-        Target scores, can either be probability estimates of the positive
-        class, confidence values, or non-thresholded measure of decisions
-        (as returned by "decision_function" on some classifiers).
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    average_precision : float
-    """
     check_consistent_length(y_true, y_score, sample_weight)
     if y_true.shape != y_score.shape:
         raise ValueError("y_true and y_score have different shape")

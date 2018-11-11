@@ -3,7 +3,6 @@ Misc functions to be settled
 """
 
 from __future__ import division
-
 import xml.dom.minidom
 import numpy as np
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, \

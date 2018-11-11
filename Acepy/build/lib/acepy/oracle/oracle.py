@@ -198,7 +198,7 @@ class Oracle(acepy.utils.interface.BaseVirtualOracle):
     def query_by_example(self, queried_examples):
         """Query function, query information giving an instance.
         Note that, this function only available if initializes with
-        data matrix.
+         data matrix.
 
         Parameters
         ----------
