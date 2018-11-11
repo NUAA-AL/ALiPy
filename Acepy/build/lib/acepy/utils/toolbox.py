@@ -6,7 +6,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_array
 from sklearn.utils.multiclass import type_of_target, unique_labels
 
-import acepy.metrics.performance
 from acepy.data_manipulate.al_split import split, split_multi_label, split_features
 from acepy.experiment.experiment_analyser import ExperimentAnalyser
 from acepy.experiment.state import State
@@ -17,6 +16,7 @@ from acepy.oracle.knowledge_repository import MatrixRepository, ElementRepositor
 from acepy.oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
 from acepy.query_strategy.query_type import check_query_type
 from acepy.utils.multi_thread import aceThreading
+import acepy.metrics.performance
 
 
 class ToolBox:
@@ -361,44 +361,7 @@ class ToolBox:
         if self.query_type != "AllLabels":
             raise NotImplemented("Query strategy for other query types is not implemented yet.")
 
-        # a pre-defined strategy in Acepy
-        if strategy_name not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-                                 'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
-            raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
-                                      'method name or privide a callable object.'.format(str(strategy_name)))
-        else:
-            if strategy_name == 'QueryInstanceQBC':
-                method = kwargs.pop('method', 'query_by_bagging')
-                disagreement = kwargs.pop('disagreement', 'vote_entropy')
-                query_function = acepy.query_strategy.query_strategy.QueryInstanceQBC(self._X, self._y,
-                                                                                      method, disagreement)
-            elif strategy_name == 'QueryInstanceUncertainty':
-                measure = kwargs.pop('measure', 'entropy')
-                query_function = acepy.query_strategy.query_strategy.QueryInstanceUncertainty(self._X,
-                                                                                              self._y,
-                                                                                              measure)
-            elif strategy_name == 'QueryRandom':
-                query_function = acepy.query_strategy.query_strategy.QueryRandom(self._X, self._y)
-            elif strategy_name == 'QureyExpectedErrorReduction':
-                query_function = acepy.query_strategy.query_strategy.QureyExpectedErrorReduction(self._X,
-                                                                                                 self._y)
-            elif strategy_name == 'QueryInstanceGraphDensity' or strategy_name == 'QueryInstanceQUIRE':
-                if kwargs.pop('train_idx', None) is None:
-                    raise ValueError(
-                        "Missing necessary parameter 'train_idx' in GraphDensity or QUIRE method.")
-                if strategy_name == 'QueryInstanceGraphDensity':
-                    query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X,
-                                                                                                  self._y,
-                                                                                                  train_idx=kwargs.pop(
-                                                                                                      'train_idx'))
-                else:
-                    query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X,
-                                                                                           self._y,
-                                                                                           train_idx=kwargs.pop(
-                                                                                               'train_idx'),
-                                                                                           metric=kwargs.pop('metric',
-                                                                                                             'manhattan'))
-        return query_function
+        pass
 
     def calc_performance_metric(self, y_true, y_pred, performance_metric='accuracy_score', **kwargs):
         """Evaluate the model performance.
@@ -424,10 +387,10 @@ class ToolBox:
             raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
 
         performance_metric = getattr(acepy.metrics.performance, performance_metric)
-        return performance_metric(y_pred, y_true, **kwargs)
+        return performance_metric(y_pred, y_true)
 
     def get_default_model(self):
-        # return LogisticRegression()
+        # return SVC(probability=True, class_weight='balanced')
         return LogisticRegression()
 
     def get_stopping_criterion(self, stopping_criteria=None, value=None):
@@ -452,7 +415,7 @@ class ToolBox:
         return StoppingCriteria(stopping_criteria=stopping_criteria, value=value)
 
     def get_experiment_analyser(self, x_axis='num_of_queries'):
-        """Return ExperimentAnalyser object.
+        """Return ExperimentAnalyser object
 
         Parameters
         ----------

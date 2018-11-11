@@ -57,7 +57,6 @@ def minmax_scale(X, feature_range=(0, 1)):
     Returns
     -------
     x_scaled : array-like, shape (n_samples, n_features)
-        The data after the transformation.
         
     """
 
@@ -83,12 +82,8 @@ def minmax_scale(X, feature_range=(0, 1)):
 
 def StandardScale(X):
     '''
-        Standardize features by removing the mean and scaling to unit variance.
+        Standardize features by removing the mean and scaling to unit variance
     
-    The transformation is given by::
-
-        x_StdS = (X - X.mean(axis=0)) / X.var(axis=0)
-
     Parameters
     ----------
     X: array-like
@@ -122,4 +117,3 @@ if __name__ == '__main__':
     data1 = [[-1, 2, 1], [-0.5, 6, 1], [0, 10, 1], [1, 18, 1]]
     print(StandardScale(data))
     print(minmax_scale(data1, (0, 1)))
-    pass

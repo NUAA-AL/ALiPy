@@ -270,7 +270,7 @@ class AlExperiment:
 
     def start_query(self, multi_thread=True, **kwargs):
         """Start the active learning main loop
-        If using implemented query strategy, It will run in multi-thread default.
+        If using implemented query strategy, It will run in multi-thread default
 
         Parameters
         ----------

@@ -11,10 +11,8 @@ Formal (Not Implement yet):
 """
 
 from __future__ import division
-import time
-
 import numpy as np
-
+import time
 from acepy.experiment.state_io import StateIO
 
 
@@ -35,7 +33,7 @@ class StoppingCriteria:
     5. Preset running time (CPU time) is reached
 
     Parameters
-    ----------
+    __________
     stopping_criteria: str, optional (default=None)
         Stopping criteria, must be one of: [None, 'num_of_queries', 'cost_limit', 'percent_of_unlabel', 'time_limit']
 
@@ -97,7 +95,7 @@ class StoppingCriteria:
         return False
 
     def update_information(self, saver):
-        """update value according to the specific criterion.
+        """update value according to the specific criterion
 
         Parameters
         ----------

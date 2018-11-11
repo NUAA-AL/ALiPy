@@ -17,7 +17,7 @@ def check_index_multilabel(index):
     return index
 
 
-def infer_label_size_multilabel :
+def infer_label_size_multilabel(index_arr, check_arr=True):
     """Infer the label size from a set of index arr.
 
     raise if all index are example index only.
