@@ -1,7 +1,4 @@
-from sklearn.datasets import load_iris, make_classification
-from acepy.experiment.state import State
-from acepy.utils.toolbox import ToolBox
-from acepy.query_strategy.query_strategy import QueryInstanceUncertainty
+from sklearn.datasets import make_classification
 
 from acepy.experiment.al_experiment import AlExperiment
 

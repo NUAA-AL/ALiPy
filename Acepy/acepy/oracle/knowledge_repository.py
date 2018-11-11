@@ -24,11 +24,11 @@ import numpy as np
 import prettytable as pt
 from sklearn.utils.validation import check_array
 
-from acepy.utils.ace_warnings import *
-from acepy.utils.interface import BaseRepository
-from acepy.utils.misc import _is_arraylike, check_one_to_one_correspondence
-from acepy.index.index_collections import IndexCollection, MultiLabelIndexCollection
-from acepy.utils.misc import unpack
+from ..utils.ace_warnings import *
+from ..utils.interface import BaseRepository
+from ..utils.misc import _is_arraylike, check_one_to_one_correspondence
+from ..index.index_collections import IndexCollection, MultiLabelIndexCollection
+from ..utils.misc import unpack
 
 
 class ElementRepository(BaseRepository):

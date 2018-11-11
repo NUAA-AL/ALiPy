@@ -14,13 +14,13 @@ import numpy as np
 import prettytable as pt
 from sklearn.utils.validation import check_array
 
-import acepy.utils.interface
-from acepy.index.multi_label_tools import check_index_multilabel
-from acepy.utils.ace_warnings import *
-from acepy.utils.misc import check_one_to_one_correspondence, unpack
+from ..utils import interface
+from ..index.multi_label_tools import check_index_multilabel
+from ..utils.ace_warnings import *
+from ..utils.misc import check_one_to_one_correspondence, unpack
 
 
-class Oracle(acepy.utils.interface.BaseVirtualOracle):
+class Oracle(interface.BaseVirtualOracle):
     """Oracle in active learning whose role is to label the given query.
 
     This class implements basic definition of oracle used in experiment.
@@ -528,7 +528,7 @@ class Oracles:
         oracle_object: utils.base.BaseOracle
             oracle object.
         """
-        assert (isinstance(oracle_object, acepy.utils.interface.BaseVirtualOracle))
+        assert (isinstance(oracle_object, interface.BaseVirtualOracle))
         self._oracle_dict[oracle_name] = oracle_object
         return self
 

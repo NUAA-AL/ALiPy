@@ -4,14 +4,10 @@ Misc functions to be settled
 
 from __future__ import division
 
-import xml.dom.minidom
 import numpy as np
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, \
     rbf_kernel
 from sklearn.utils.validation import check_array
-
-import acepy.index.multi_label_tools
-
 
 def check_matrix(matrix):
     """check if the given matrix is legal."""
@@ -109,7 +105,7 @@ def nlargestarg(a, n):
 
     Parameters
     ----------
-    a: array
+    a: {list, np.ndarray}
         Data array.
 
     n: int
@@ -132,7 +128,7 @@ def nsmallestarg(a, n):
 
     Parameters
     ----------
-    a: array
+    a: {list, np.ndarray}
         Data array.
 
     n: int

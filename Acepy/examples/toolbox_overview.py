@@ -1,6 +1,8 @@
 import copy
+
 from sklearn.datasets import load_iris
-from acepy.utils.toolbox import ToolBox
+
+from acepy.toolbox import ToolBox
 
 X, y = load_iris(return_X_y=True)
 acebox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')

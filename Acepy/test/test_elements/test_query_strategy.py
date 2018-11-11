@@ -3,14 +3,14 @@ from __future__ import division
 import pytest
 from sklearn.datasets import load_iris, make_classification
 
-import acepy.utils.toolbox
+import acepy
 from acepy.query_strategy.query_strategy import (QueryInstanceUncertainty,
                                                  QueryInstanceQBC)
 
 X, y = load_iris(return_X_y=True)
 
 split_count = 5
-acebox = acepy.utils.toolbox.ToolBox(X=X, y=y, query_type='AllLabels', saving_path=None)
+acebox = acepy.ToolBox(X=X, y=y, query_type='AllLabels', saving_path=None)
 
 # split data
 acebox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=split_count)

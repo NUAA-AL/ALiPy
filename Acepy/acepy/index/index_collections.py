@@ -13,9 +13,9 @@ import copy
 import numpy as np
 
 import acepy.utils.misc
-from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
-from acepy.utils.ace_warnings import *
-from acepy.utils.interface import BaseCollection
+from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
+from ..utils.ace_warnings import *
+from ..utils.interface import BaseCollection
 
 
 class IndexCollection(BaseCollection):

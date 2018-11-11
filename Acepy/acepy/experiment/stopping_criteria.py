@@ -15,7 +15,7 @@ import time
 
 import numpy as np
 
-from acepy.experiment.state_io import StateIO
+from .state_io import StateIO
 
 
 class StoppingCriteria:

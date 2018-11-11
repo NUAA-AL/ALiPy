@@ -14,9 +14,9 @@ import numpy as np
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_array
 
-from acepy.query_strategy.query_type import check_query_type
-from acepy.utils.misc import check_matrix
-from acepy.utils.misc import randperm
+from ..query_strategy.query_type import check_query_type
+from ..utils.misc import check_matrix
+from ..utils.misc import randperm
 
 
 def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3, initial_label_rate=0.05,

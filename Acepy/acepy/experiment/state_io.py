@@ -23,8 +23,8 @@ import sys
 import numpy as np
 import prettytable as pt
 
-import acepy.experiment.state
-from acepy.index.index_collections import IndexCollection
+from .state import State
+from ..index.index_collections import IndexCollection
 
 
 class StateIO:
@@ -154,7 +154,7 @@ class StateIO:
         state: State
             State object to be added.
         """
-        assert (isinstance(state, acepy.experiment.state.State))
+        assert (isinstance(state, State))
         self.__state_list.append(copy.deepcopy(state))
         self.__update_info()
 

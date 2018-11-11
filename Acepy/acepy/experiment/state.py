@@ -13,7 +13,7 @@ import copy
 
 import numpy as np
 
-from acepy.utils.ace_warnings import *
+from ..utils.ace_warnings import *
 
 
 class State:

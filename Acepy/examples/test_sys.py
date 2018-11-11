@@ -7,7 +7,7 @@ from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
                                            QueryInstanceUncertainty,
                                            QueryRandom,
                                            QureyExpectedErrorReduction)
-from acepy.utils.toolbox import ToolBox
+from acepy.toolbox import ToolBox
 
 X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redundant=2,
                            n_repeated=0, n_classes=2, n_clusters_per_class=2, weights=None, flip_y=0.01, class_sep=1.0,

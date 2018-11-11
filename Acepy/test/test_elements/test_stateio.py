@@ -13,7 +13,7 @@ import pytest
 from sklearn.datasets import load_iris
 
 from acepy.experiment import State, StateIO
-from acepy.utils.toolbox import ToolBox as acebox
+from acepy.toolbox import ToolBox as acebox
 
 X, y = load_iris(return_X_y=True)
 split_count = 5

@@ -17,14 +17,14 @@ from sklearn.utils import check_X_y
 
 import acepy.query_strategy.query_strategy
 import acepy.query_strategy.sota_strategy
-from acepy.data_manipulate.al_split import split
-from acepy.experiment.experiment_analyser import ExperimentAnalyser
-from acepy.experiment.state import State
-from acepy.experiment.state_io import StateIO
-from acepy.experiment.stopping_criteria import StoppingCriteria
-from acepy.index.index_collections import IndexCollection
-from acepy.metrics.performance import accuracy_score
-from acepy.utils.multi_thread import aceThreading
+from ..data_manipulate.al_split import split
+from .experiment_analyser import ExperimentAnalyser
+from .state import State
+from .state_io import StateIO
+from .stopping_criteria import StoppingCriteria
+from ..index.index_collections import IndexCollection
+from ..metrics.performance import accuracy_score
+from ..utils.multi_thread import aceThreading
 
 
 class AlExperiment:

@@ -18,8 +18,8 @@ import numpy as np
 from sklearn.ensemble import BaggingClassifier
 from sklearn.linear_model import LogisticRegression
 
-import acepy.utils.interface
-from acepy.utils.misc import nsmallestarg, randperm, nlargestarg
+from ..utils import interface
+from ..utils.misc import nsmallestarg, randperm, nlargestarg
 
 
 def _get_proba_pred(unlabel_x, model):
@@ -51,7 +51,7 @@ def _get_proba_pred(unlabel_x, model):
     return pv, spv
 
 
-class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
+class QueryInstanceUncertainty(interface.BaseIndexQuery):
     """Uncertainty query strategy.
     The implement of uncertainty measure includes:
     1. margin sampling
@@ -235,7 +235,7 @@ class QueryInstanceUncertainty(acepy.utils.interface.BaseIndexQuery):
         return entropy
 
 
-class QueryRandom(acepy.utils.interface.BaseQueryStrategy):
+class QueryRandom(interface.BaseQueryStrategy):
     """Randomly sample a batch of indexes from the unlabel indexes."""
 
     def select(self, unlabel_index, batch_size=1):
@@ -261,7 +261,7 @@ class QueryRandom(acepy.utils.interface.BaseQueryStrategy):
         return [tpl[i] for i in perm]
 
 
-class QueryInstanceQBC(acepy.utils.interface.BaseIndexQuery):
+class QueryInstanceQBC(interface.BaseIndexQuery):
     """The Query-By-Committee (QBC) algorithm.
 
     QBC minimizes the version space, which is the set of hypotheses that are consistent
@@ -533,7 +533,7 @@ class QueryInstanceQBC(acepy.utils.interface.BaseIndexQuery):
         return score
 
 
-class QureyExpectedErrorReduction(acepy.utils.interface.BaseIndexQuery):
+class QureyExpectedErrorReduction(interface.BaseIndexQuery):
     """The Expected Error Reduction (ERR) algorithm.
 
     The idea is to estimate the expected future error of a model trained using label set and <x, y> on

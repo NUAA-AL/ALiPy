@@ -18,11 +18,11 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, \
     rbf_kernel
 
-import acepy.utils.interface
-import acepy.utils.misc
+
+from ..utils import interface
 
 
-class QueryInstanceQUIRE(acepy.utils.interface.BaseIndexQuery):
+class QueryInstanceQUIRE(interface.BaseIndexQuery):
     """Querying Informative and Representative Examples (QUIRE)
 
     Query the most informative and representative examples where the metrics
@@ -192,7 +192,7 @@ class QueryInstanceQUIRE(acepy.utils.interface.BaseIndexQuery):
         return [self._train_idx[query_index]]
 
 
-class QueryInstanceGraphDensity(acepy.utils.interface.BaseIndexQuery):
+class QueryInstanceGraphDensity(interface.BaseIndexQuery):
     """Diversity promoting sampling method that uses graph density to determine
     most representative points.
 

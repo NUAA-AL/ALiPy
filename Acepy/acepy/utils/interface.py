@@ -12,7 +12,7 @@ import scipy.io as scio
 import scipy.stats
 from sklearn.utils.validation import check_X_y
 
-from acepy.utils.ace_warnings import *
+from .ace_warnings import *
 
 
 class BaseQueryStrategy(metaclass=ABCMeta):
