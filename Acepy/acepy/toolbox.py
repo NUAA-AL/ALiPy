@@ -267,15 +267,22 @@ class ToolBox:
             return copy.deepcopy(self.train_idx), copy.deepcopy(self.test_idx), \
                    copy.deepcopy(self.label_idx), copy.deepcopy(self.unlabel_idx)
 
-    def get_clean_oracle(self):
-        """Get a clean oracle."""
+    def get_clean_oracle(self, query_by_example=False, cost_mat=None):
+        """Get a clean oracle.
+
+        Parameters:
+        -----------
+        query_by_example: bool, optional (default=False)
+            Whether to pass the feature matrix to the oracle object for
+            querying by feature vector. (Need more memory)
+        """
         if self.query_type == 'Features':
-            return OracleQueryFeatures(feature_mat=self._X)
+            return OracleQueryFeatures(feature_mat=self._X, cost=cost_mat)
         elif self.query_type == 'AllLabels':
             if self._target_type == 'multilabel':
-                return OracleQueryMultiLabel(self._y)
+                return OracleQueryMultiLabel(self._y) if not query_by_example else OracleQueryMultiLabel(self._y, examples=self._X, cost=cost_mat)
             else:
-                return Oracle(self._y)
+                return Oracle(self._y) if not query_by_example else Oracle(self._y, examples=self._X, cost=cost_mat)
 
     def get_stateio(self, round, saving_path=None, check_flag=True, verbose=True, print_interval=1):
         """Get a stateio object for experiment saving.

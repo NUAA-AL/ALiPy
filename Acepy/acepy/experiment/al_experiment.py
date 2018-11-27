@@ -390,9 +390,22 @@ class AlExperiment:
             stopping_criterion.update_information(saver)
             # self._stopping_criterion.reset()
 
-    def get_experiment_result(self, title=None):
+    def get_experiment_result(self):
         """
             Print the experiment result,and draw a line chart.
+
+        Parameters
+        ----------
+        title: str
+            the title of the line chart.
+        """
+        if len(self._experiment_result) == 0:
+            raise Exception('There is no experiment result.Use start_query() get experiment result firstly.')
+        return copy.deepcopy(self._experiment_result)
+
+    def plot_learning_curve(self, title=None):
+        """
+        Print the experiment result,and draw a line chart.
 
         Parameters
         ----------

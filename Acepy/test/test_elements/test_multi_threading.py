@@ -40,8 +40,10 @@ def run_thread(round, train_id, test_id, Lcollection, Ucollection, saver, exampl
         saver.save()
 
 
-mt = aceThreading(X, y, Train_idx, Test_idx, [IndexCollection(i) for i in L_pool], [IndexCollection(i) for i in U_pool],
-                  max_thread=None, target_func=run_thread)
+mt = aceThreading(X, y, Train_idx, Test_idx,
+                  [IndexCollection(i) for i in L_pool], [IndexCollection(i) for i in U_pool],
+                  max_thread=None,
+                  target_func=run_thread)
 mt.start_all_threads()
 ea.add_method(method_name='QBC', method_results=mt.get_results())
 

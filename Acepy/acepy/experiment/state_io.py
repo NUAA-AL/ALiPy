@@ -202,8 +202,8 @@ class StateIO:
         """remove and return item at index (default last)."""
         return self.__state_list.pop(i)
 
-    def recovery(self, iteration=None):
-        """Recovery workspace after $iteration$ querying.
+    def recover_workspace(self, iteration=None):
+        """Recover workspace after $iteration$ querying.
         For example, if 0 is given, the initial workspace without any querying will be recovered.
         Note that, the object itself will be recovered, the information after the iteration will be discarded.
 

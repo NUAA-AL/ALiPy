@@ -3,10 +3,7 @@ import copy
 from sklearn.datasets import make_classification
 
 from acepy.experiment import State
-from acepy.query_strategy.query_strategy import (QueryInstanceQBC,
-                                           QueryInstanceUncertainty,
-                                           QueryRandom,
-                                           QureyExpectedErrorReduction)
+from acepy.query_strategy import *
 from acepy.toolbox import ToolBox
 
 X, y = make_classification(n_samples=150, n_features=20, n_informative=2, n_redundant=2,
@@ -131,7 +128,7 @@ for round in range(split_count):
 # for round in range(split_count):
 #     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
 #     saver = acebox.get_stateio(round)
-#     QUIREStrategy = QueryInstanceQUIRE(X, y)
+#     QUIREStrategy = QueryInstanceQUIRE(X, y, train_idx=train_idx)
 #
 #     # calc the initial point
 #     model.fit(X=X[Lind.index, :], y=y[Lind.index])
@@ -190,8 +187,8 @@ for round in range(split_count):
 #         stopping_criterion.update_information(saver)
 #     stopping_criterion.reset()
 #     density_result.append(copy.deepcopy(saver))
-
-
+#
+#
 # EER_result = []
 # for round in range(split_count):
 #     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
@@ -231,4 +228,4 @@ analyser.add_method(method_results=uncertainty_result, method_name='uncertainty'
 # analyser.add_method(method_results=EER_result, method_name='ExpectedErrorReduction')
 # analyser.add_method(method_results=density_result, method_name='density_graph')
 print(analyser)
-analyser.plot_learning_curves(title='Learning curves example')
+analyser.plot_learning_curves(title='Learning curves example', std_area=True)
