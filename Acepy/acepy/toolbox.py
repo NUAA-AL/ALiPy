@@ -437,7 +437,9 @@ class ToolBox:
         return performance_metric(y_pred, y_true, **kwargs)
 
     def get_default_model(self):
-        # return LogisticRegression()
+        """ 
+        return the LogisticRegression() implemented by the sklearn.
+        """
         return LogisticRegression()
 
     def get_stopping_criterion(self, stopping_criteria=None, value=None):

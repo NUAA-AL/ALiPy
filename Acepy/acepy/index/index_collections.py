@@ -84,20 +84,29 @@ class IndexCollection(BaseCollection):
 
     @property
     def index(self):
+        """
+        Get the index of data.
+        """
         return copy.deepcopy(self._innercontainer)
 
     def __getitem__(self, item):
         return self._innercontainer.__getitem__(item)
 
     def get_elementType(self):
+        """
+        Return the type of data.
+        """
         return self._element_type
 
     def pop(self):
-        """Return the popped value. Raise KeyError if empty."""
+        """
+        Return the popped value. Raise KeyError if empty.
+        """
         return self._innercontainer.pop()
 
     def add(self, value):
-        """Add element.
+        """
+        Add element.
 
         It will warn if the value to add is existent.
 
@@ -288,6 +297,9 @@ class MultiLabelIndexCollection(IndexCollection):
 
     @property
     def index(self):
+        """
+        Get the index of data.
+        """
         return list(self._innercontainer)
 
     def add(self, value):
@@ -413,7 +425,7 @@ class MultiLabelIndexCollection(IndexCollection):
 
 
 class FeatureIndexCollection(MultiLabelIndexCollection):
-    """container to store the indexes in feature querying scenario.
+    """Container to store the indexes in feature querying scenario.
 
     This class stores indexes in incomplete feature matrix setting. Each element should be a tuple.
     A single index should only have 1 element (example_index, ) to query all features or

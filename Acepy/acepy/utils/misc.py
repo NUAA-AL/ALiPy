@@ -171,7 +171,8 @@ def calc_kernel_matrix(X, kernel, **kwargs):
 
     Returns
     -------
-
+    kernel-matrix: array of shape (n_samples_1, n_samples_2)
+        kernel matrix between X and X.
     """
     if kernel == 'rbf':
         K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma', 1.))
@@ -231,7 +232,10 @@ def check_one_to_one_correspondence(*args):
 
 
 def unpack(*args):
-    """Unpack the list with only one element."""
+    """Unpack the list with only one element.
+    
+
+    """
     ret_args = []
     for arg in args:
         if isinstance(arg, (list, np.ndarray)):

@@ -562,6 +562,9 @@ class Oracles:
         return result
 
     def get_oracle(self, oracle_name):
+        """
+            Get the specific oracle by name.
+        """
         return self._oracle_dict[oracle_name]
 
     def _update_query_history(self, oracle_name, query_result, index_for_querying):
