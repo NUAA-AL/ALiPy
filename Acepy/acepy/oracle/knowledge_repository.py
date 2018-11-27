@@ -34,7 +34,7 @@ from ..utils.misc import unpack
 class ElementRepository(BaseRepository):
     """Class to store fine-grained (element-wise) data.
 
-    Both the example AND label are not required to be an array-like object,
+    Both the example and label are not required to be an array-like object,
     they can be complicated object.
 
     Parameters
@@ -303,7 +303,7 @@ class ElementRepository(BaseRepository):
         self._query_history.append(((labels, cost), indexes))
 
     def full_history(self):
-        """return full version of query history"""
+        """Return full version of query history"""
         tb = pt.PrettyTable()
         # tb.set_style(pt.MSWORD_FRIENDLY)
         for query_ind in range(len(self._query_history)):
@@ -357,7 +357,7 @@ class MatrixRepository(BaseRepository):
         return item in self._indexes
 
     def add(self, label, select_index, cost=None, example=None):
-        """Add AN element to the repository.
+        """Add an element to the repository.
 
         Parameters
         ----------
@@ -565,6 +565,9 @@ class MatrixRepository(BaseRepository):
         return copy.deepcopy(self._X), copy.deepcopy(self._y), np.asarray(self._indexes)
 
     def clear(self):
+        """
+            Clear the Matrix Knowledge Repository.
+        """
         self.cost_inall = 0
         self._cost_arr = []
         self.num_of_queries = 0

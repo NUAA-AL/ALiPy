@@ -6,7 +6,7 @@ To run the experiment with only one class,
 we have to impose some restrictions to make
 sure the robustness of the code.
 """
-# Authors: GuoXiang-Li
+# Authors: Guo-Xiang Li
 # License: BSD 3 clause
 
 import copy

@@ -72,6 +72,10 @@ class StoppingCriteria:
         self._init_value = value
 
     def is_stop(self):
+        """
+            Determine whether termination conditions have been met,
+            if so,return True.
+        """
         if self._current_unlabel == 0:
             return True
         elif self._stopping_criteria == 'num_of_queries':
@@ -116,6 +120,9 @@ class StoppingCriteria:
         return self
 
     def reset(self):
+        """
+            Reset the current state to the initial.
+        """
         self.value = self._init_value
         self._start_time = time.clock()
         self._current_iter = 0

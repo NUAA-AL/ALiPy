@@ -207,6 +207,9 @@ class StateIOContainer:
         return extracted_matrix
 
     def to_list(self):
+        """
+            Return all StateIOs as a list.
+        """
         return copy.deepcopy(self.__results)
 
     def __len__(self):

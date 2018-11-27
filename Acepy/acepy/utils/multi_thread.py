@@ -264,6 +264,9 @@ class aceThreading:
         self._target_func, self._global_parameters, self.__alive_thread, self._saver = state
 
     def save(self):
+        """
+        Save the information about the current state of multi_thread to the _saving_path in pkl form.
+        """
         if self._saving_path is None:
             return
         if os.path.isdir(self._saving_path):
@@ -275,6 +278,14 @@ class aceThreading:
 
     @classmethod
     def recover(cls, path):
+        """
+        Recover the multi_thread_state from path.
+
+        Parameters
+        ----------
+        path: str
+            the path to save the result files.
+        """
         # load breakpoint
         if not isinstance(path, str):
             raise TypeError("A string is expected, but received: %s" % str(type(path)))

@@ -310,6 +310,9 @@ class QueryInstanceGraphDensity(interface.BaseIndexQuery):
         return list(batch)
 
     def to_dict(self):
+        """
+        Return the connectivity and graph_density in the form of a dictionary.
+        """
         output = {}
         output['connectivity'] = self.connect
         output['graph_density'] = self.starting_density

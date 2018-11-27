@@ -6,7 +6,13 @@ import acepy.utils.misc
 
 
 def check_index_multilabel(index):
-    """check if the given indexes are legal."""
+    """check if the given indexes are legal.
+
+    Parameters
+    ----------
+    index: list or np.ndarray
+        index of the data.
+    """
     if not isinstance(index, (list, np.ndarray)):
         index = [index]
     datatype = collections.Counter([type(i) for i in index])
@@ -30,7 +36,7 @@ def infer_label_size_multilabel(index_arr, check_arr=True):
     Returns
     -------
     label_size: int
-        the inferred label size.
+    the inferred label size.
     """
     if check_arr:
         index_arr = check_index_multilabel(index_arr)
@@ -48,6 +54,25 @@ def infer_label_size_multilabel(index_arr, check_arr=True):
 
 
 def flattern_multilabel_index(index_arr, label_size=None, check_arr=True):
+    """
+    Falt the multilabel_index to one-dimensional.
+
+    Parameters
+    ----------
+    index_arr: list or np.ndarray
+        index array.
+          
+    label_size: int
+        the inferred label size.   
+
+    check_arr: bool
+        if True,check the index_arr is a legal multilabel_index.
+        
+    Returns
+    -------
+    decomposed_data: list
+        the decomposed data after falting.
+    """
     if check_arr:
         index_arr = check_index_multilabel(index_arr)
     if label_size is None:
