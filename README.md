@@ -40,6 +40,23 @@ cd Acepy
 python setup.py install
 ```
 
+The dependencies of acepy are:
+1. Python dependency
+
+```
+python >= 3.4
+```
+        
+2. Basic Dependencies
+
+```
+numpy
+scipy
+scikit-learn
+matplotlib
+prettytable
+```
+
 ## Tools in acepy
 
 The tool classes provided by acepy cover as many components in active learning as possible. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
