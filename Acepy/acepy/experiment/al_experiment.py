@@ -15,8 +15,8 @@ import inspect
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_X_y
 
-from ..query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, QueryInstanceQUIRE, \
-    QueryRandom, QureyExpectedErrorReduction
+from ..query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, QueryRandom, QureyExpectedErrorReduction
+from acepy.Acepy.acepy.query_strategy import QueryInstanceQUIRE, QueryInstanceGraphDensity
 from ..data_manipulate.al_split import split
 from .experiment_analyser import ExperimentAnalyser
 from .state import State
