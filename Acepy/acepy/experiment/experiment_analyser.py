@@ -257,6 +257,8 @@ class _ContentSummary:
         ----------
         method_results: utils.AlExperiment.AlExperiment
             experiment results of a method.
+
+            list of stateIOs
         """
         # examine the AlExperiment object
         if not np.all([sio.check_batch_size() for sio in method_results]):
@@ -619,7 +621,6 @@ class _CostSensitiveAnalyser(BaseAnalyser):
         start_point: float, optional (default=None)
             The value of start point. This value will added before the first data
             point for all methods. If not provided, an infer is attempted.
-
 
         interpolate_interval: float, optional (default=None)
             The interpolate interval in plotting the cost sensitive curves.

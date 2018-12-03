@@ -72,6 +72,3 @@ def test_stop4():
     stop4.update_information(example_saver_local)
     assert stop4._percent == 1/6
     assert stop4.is_stop()
-
-
-

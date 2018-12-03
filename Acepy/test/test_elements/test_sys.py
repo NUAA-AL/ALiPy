@@ -124,108 +124,108 @@ for round in range(split_count):
     stopping_criterion.reset()
     uncertainty_result.append(copy.deepcopy(saver))
 
-# QUIRE_result = []
-# for round in range(split_count):
-#     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
-#     saver = acebox.get_stateio(round)
-#     QUIREStrategy = QueryInstanceQUIRE(X, y, train_idx=train_idx)
-#
-#     # calc the initial point
-#     model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#     pred = model.predict(X[test_idx, :])
-#     accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#     saver.set_initial_point(accuracy)
-#     while not stopping_criterion.is_stop():
-#         select_ind = QUIREStrategy.select(Lind, Uind)
-#         Lind.update(select_ind)
-#         Uind.difference_update(select_ind)
-#
-#         # update model and calc performance
-#         model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#         pred = model.predict(X[test_idx, :])
-#         accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#         # save intermediate result
-#         st = State(select_index=select_ind, performance=accuracy)
-#         saver.add_state(st)
-#         saver.save()
-#
-#         # update stopping_criteria
-#         stopping_criterion.update_information(saver)
-#     stopping_criterion.reset()
-#     QUIRE_result.append(copy.deepcopy(saver))
-#
-# density_result = []
-# for round in range(split_count):
-#     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
-#     saver = acebox.get_stateio(round)
-#     densityStrategy = QueryInstanceGraphDensity(X, y, train_idx=train_idx)
-#
-#     # calc the initial point
-#     model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#     pred = model.predict(X[test_idx, :])
-#     accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#     saver.set_initial_point(accuracy)
-#     while not stopping_criterion.is_stop():
-#         select_ind = densityStrategy.select(Lind, Uind)
-#         Lind.update(select_ind)
-#         Uind.difference_update(select_ind)
-#
-#         # update model and calc performance
-#         model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#         pred = model.predict(X[test_idx, :])
-#         accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#         # save intermediate result
-#         st = State(select_index=select_ind, performance=accuracy)
-#         saver.add_state(st)
-#         saver.save()
-#
-#         # update stopping_criteria
-#         stopping_criterion.update_information(saver)
-#     stopping_criterion.reset()
-#     density_result.append(copy.deepcopy(saver))
-#
-#
-# EER_result = []
-# for round in range(split_count):
-#     train_idx, test_idx, Lind, Uind = acebox.get_split(round)
-#     saver = acebox.get_stateio(round)
-#
-#     # calc the initial point
-#     model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#     pred = model.predict(X[test_idx, :])
-#     accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#     saver.set_initial_point(accuracy)
-#     while not stopping_criterion.is_stop():
-#         select_ind = EER.select(Lind, Uind, model=model)
-#         Lind.update(select_ind)
-#         Uind.difference_update(select_ind)
-#
-#         # update model and calc performance
-#         model.fit(X=X[Lind.index, :], y=y[Lind.index])
-#         pred = model.predict(X[test_idx, :])
-#         accuracy = sum(pred == y[test_idx]) / len(test_idx)
-#
-#         # save intermediate result
-#         st = State(select_index=select_ind, performance=accuracy)
-#         saver.add_state(st)
-#         saver.save()
-#
-#         # update stopping_criteria
-#         stopping_criterion.update_information(saver)
-#     stopping_criterion.reset()
-#     EER_result.append(copy.deepcopy(saver))
+QUIRE_result = []
+for round in range(split_count):
+    train_idx, test_idx, Lind, Uind = acebox.get_split(round)
+    saver = acebox.get_stateio(round)
+    QUIREStrategy = QueryInstanceQUIRE(X, y, train_idx=train_idx)
+
+    # calc the initial point
+    model.fit(X=X[Lind.index, :], y=y[Lind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+    saver.set_initial_point(accuracy)
+    while not stopping_criterion.is_stop():
+        select_ind = QUIREStrategy.select(Lind, Uind)
+        Lind.update(select_ind)
+        Uind.difference_update(select_ind)
+
+        # update model and calc performance
+        model.fit(X=X[Lind.index, :], y=y[Lind.index])
+        pred = model.predict(X[test_idx, :])
+        accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+        # save intermediate result
+        st = State(select_index=select_ind, performance=accuracy)
+        saver.add_state(st)
+        saver.save()
+
+        # update stopping_criteria
+        stopping_criterion.update_information(saver)
+    stopping_criterion.reset()
+    QUIRE_result.append(copy.deepcopy(saver))
+
+density_result = []
+for round in range(split_count):
+    train_idx, test_idx, Lind, Uind = acebox.get_split(round)
+    saver = acebox.get_stateio(round)
+    densityStrategy = QueryInstanceGraphDensity(X, y, train_idx=train_idx)
+
+    # calc the initial point
+    model.fit(X=X[Lind.index, :], y=y[Lind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+    saver.set_initial_point(accuracy)
+    while not stopping_criterion.is_stop():
+        select_ind = densityStrategy.select(Lind, Uind)
+        Lind.update(select_ind)
+        Uind.difference_update(select_ind)
+
+        # update model and calc performance
+        model.fit(X=X[Lind.index, :], y=y[Lind.index])
+        pred = model.predict(X[test_idx, :])
+        accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+        # save intermediate result
+        st = State(select_index=select_ind, performance=accuracy)
+        saver.add_state(st)
+        saver.save()
+
+        # update stopping_criteria
+        stopping_criterion.update_information(saver)
+    stopping_criterion.reset()
+    density_result.append(copy.deepcopy(saver))
+
+
+EER_result = []
+for round in range(split_count):
+    train_idx, test_idx, Lind, Uind = acebox.get_split(round)
+    saver = acebox.get_stateio(round)
+
+    # calc the initial point
+    model.fit(X=X[Lind.index, :], y=y[Lind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+    saver.set_initial_point(accuracy)
+    while not stopping_criterion.is_stop():
+        select_ind = EER.select(Lind, Uind, model=model)
+        Lind.update(select_ind)
+        Uind.difference_update(select_ind)
+
+        # update model and calc performance
+        model.fit(X=X[Lind.index, :], y=y[Lind.index])
+        pred = model.predict(X[test_idx, :])
+        accuracy = sum(pred == y[test_idx]) / len(test_idx)
+
+        # save intermediate result
+        st = State(select_index=select_ind, performance=accuracy)
+        saver.add_state(st)
+        saver.save()
+
+        # update stopping_criteria
+        stopping_criterion.update_information(saver)
+    stopping_criterion.reset()
+    EER_result.append(copy.deepcopy(saver))
 
 analyser = acebox.get_experiment_analyser()
 analyser.add_method(method_results=QBC_result, method_name='QBC')
 analyser.add_method(method_results=random_result, method_name='random')
 analyser.add_method(method_results=uncertainty_result, method_name='uncertainty')
-# analyser.add_method(method_results=QUIRE_result, method_name='QUIRE')
-# analyser.add_method(method_results=EER_result, method_name='ExpectedErrorReduction')
-# analyser.add_method(method_results=density_result, method_name='density_graph')
+analyser.add_method(method_results=QUIRE_result, method_name='QUIRE')
+analyser.add_method(method_results=EER_result, method_name='ExpectedErrorReduction')
+analyser.add_method(method_results=density_result, method_name='density_graph')
 print(analyser)
 analyser.plot_learning_curves(title='Learning curves example', std_area=True)

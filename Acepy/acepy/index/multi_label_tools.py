@@ -141,7 +141,9 @@ def integrate_multilabel_index(index_arr, label_size=None, check_arr=True):
         if len(item[1]) == label_size:
             integrated_arr.append((item[0],))
         else:
-            integrated_arr.append((item[0], tuple(item[0])))
+            # -------------------------------------------------------------------------------------------
+            # integrated_arr.append((item[0], tuple(item[0])))
+            integrated_arr.append((item[0], tuple(item[1])))
 
     return integrated_arr
 

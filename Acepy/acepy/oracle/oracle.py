@@ -119,6 +119,7 @@ class Oracle(interface.BaseVirtualOracle):
             if example is None:
                 raise Exception("This oracle has the instance information,"
                                 "must provide example parameter when adding entry")
+            example = tuple(example)
             self._exa2ind[example] = index
         if self._cost_flag:
             if cost is None:

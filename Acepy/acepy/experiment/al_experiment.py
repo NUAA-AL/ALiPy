@@ -392,12 +392,12 @@ class AlExperiment:
 
     def get_experiment_result(self):
         """
-            Print the experiment result,and draw a line chart.
+            Get the information stored in stateIO
 
-        Parameters
+        Returns
         ----------
-        title: str
-            the title of the line chart.
+        experiment_resuly: StateIO
+            return the stateIO of the experiment.
         """
         if len(self._experiment_result) == 0:
             raise Exception('There is no experiment result.Use start_query() get experiment result firstly.')
