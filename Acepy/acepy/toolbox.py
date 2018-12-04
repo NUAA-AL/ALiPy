@@ -16,8 +16,8 @@ from .index.index_collections import IndexCollection, MultiLabelIndexCollection,
 from .oracle.knowledge_repository import MatrixRepository, ElementRepository
 from .oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
 from .query_strategy.query_type import check_query_type
-from .query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, QueryRandom, QureyExpectedErrorReduction
-from acepy.Acepy.acepy.query_strategy import QueryInstanceQUIRE, QueryInstanceGraphDensity
+from .query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, \
+    QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE
 
 from .utils.multi_thread import aceThreading
 

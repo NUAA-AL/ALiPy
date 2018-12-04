@@ -13,6 +13,7 @@ from __future__ import division
 import collections
 import copy
 import warnings
+import cvxpy
 
 import numpy as np
 from sklearn.ensemble import BaggingClassifier
@@ -21,7 +22,6 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
 from sklearn.neighbors import kneighbors_graph
 
-from acepy.Acepy.acepy.utils import interface
 from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 
@@ -950,3 +950,407 @@ class QueryInstanceGraphDensity(interface.BaseIndexQuery):
         output['connectivity'] = self.connect
         output['graph_density'] = self.starting_density
         return output
+
+
+class QueryInstanceBMDR(interface.BaseIndexQuery):
+    """Discriminative and Representative Queries for Batch Mode Active Learning (BMDR)
+    will query a batch of informative and representative examples by minimizing the ERM risk bound
+    of active learning.
+
+    This method needs to solve a quadratic programming problem for multiple times at one query which
+    is time consuming in the relative large dataset (e.g., more than thousands of unlabeled examples).
+    Note that, the solving speed is also influenced by kernel function. In our testing, the gaussian
+    kernel takes more time to solve the problem.
+    The QP solver is cvxpy here.
+
+    The model used for instances selection is a linear regression model with the kernel form.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    beta: float, optional (default=1000)
+        The MMD parameter.
+
+    gamma: float, optional (default=0.1)
+        The l2-norm regularizer parameter.
+
+    rho: float, optional (default=1)
+        The parameter used in ADMM.
+
+    kernel : {'linear', 'poly', 'rbf', callable}, optional (default='rbf')
+        Specifies the kernel type to be used in the algorithm.
+        It must be one of 'linear', 'poly', 'rbf', or a callable.
+        If a callable is given it is used to pre-compute the kernel matrix
+        from data matrices; that matrix should be an array of shape
+        ``(n_samples, n_samples)``.
+
+    degree : int, optional (default=3)
+        Degree of the polynomial kernel function ('poly').
+        Ignored by all other kernels.
+
+    gamma_ker : float, optional (default=1.)
+        Kernel coefficient for 'rbf', 'poly'.
+
+    coef0 : float, optional (default=1.)
+        Independent term in kernel function.
+        It is only significant in 'poly'.
+
+    References
+    ----------
+    [1] Wang, Z., and Ye, J. 2013. Querying discriminative and
+        representative samples for batch mode active learning. In The
+        19th ACM SIGKDD International Conference on Knowledge
+        Discovery and Data Mining, 158-166.
+    """
+
+    def __init__(self, X, y, beta=1, gamma=1, rho=1, **kwargs):
+        # K: kernel matrix
+        super(QueryInstanceBMDR, self).__init__(X, y)
+
+        self._beta = beta
+        self._gamma = gamma
+        self._rho = rho
+
+        # calc kernel
+        self._kernel = kwargs.pop('kernel', 'rbf')
+        if self._kernel == 'rbf':
+            self._K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'poly':
+            self._K = polynomial_kernel(X=X,
+                                        Y=X,
+                                        coef0=kwargs.pop('coef0', 1),
+                                        degree=kwargs.pop('degree', 3),
+                                        gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'linear':
+            self._K = linear_kernel(X=X, Y=X)
+        elif hasattr(self._kernel, '__call__'):
+            self._K = self._kernel(X=np.array(X), Y=np.array(X))
+        else:
+            raise NotImplementedError
+
+        if not isinstance(self._K, np.ndarray):
+            raise TypeError('K should be an ndarray')
+        if self._K.shape != (len(X), len(X)):
+            raise ValueError(
+                'kernel should have size (%d, %d)' % (len(X), len(X)))
+
+    def select(self, label_index, unlabel_index, batch_size=5, **kwargs):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        KLL = self._K[np.ix_(label_index, label_index)]
+        KLU = self._K[np.ix_(label_index, unlabel_index)]
+        KUU = self._K[np.ix_(unlabel_index, unlabel_index)]
+
+        L_len = len(label_index)
+        U_len = len(unlabel_index)
+        N = L_len + U_len
+
+        # precision of ADMM
+        MAX_ITER = 1000
+        ABSTOL = 1e-4
+        RELTOL = 1e-2
+
+        # train a linear model in kernel form for
+        tau = np.linalg.inv(KLL + self._gamma * np.eye(L_len)).dot(self.y[label_index])
+
+        # start optimization
+        last_round_selected = []
+        while 1:
+            # solve QP
+            P = 0.5 * self._beta * KUU
+            pred_of_unlab = tau.dot(KLU)
+            a = pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab)
+            q = self._beta * (
+            (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                KUU)) + a
+
+            # cvx
+            x = cvxpy.Variable(U_len)
+            objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
+            constraints = [0 <= x, x <= 1, sum(x) == batch_size]
+            prob = cvxpy.Problem(objective, constraints)
+            # The optimal objective value is returned by `prob.solve()`.
+            result = prob.solve()
+            # The optimal value for x is stored in `x.value`.
+            # print(x.value)
+            dr_weight = np.array(x.value)
+            dr_weight = dr_weight.T[0]
+            # end cvx
+
+            # record selected indexes and judge convergence
+            dr_largest = nlargestarg(dr_weight, batch_size)
+            select_ind = np.asarray(unlabel_index)[dr_largest]
+            if set(last_round_selected) == set(select_ind):
+                return select_ind
+            else:
+                last_round_selected = copy.copy(select_ind)
+            # print(dr_weight[dr_largest])
+
+            # ADMM optimization process
+            delta = np.zeros(batch_size)    # dual variable in ADMM
+            select_data = self.X[select_ind]
+            KLQ = self._K[np.ix_(label_index, select_ind)]
+            z = tau.dot(KLQ)
+
+            for solver_iter in range(MAX_ITER):
+                # tau update
+                A = KLL.dot(KLL) + self._rho / 2 * KLQ.dot(KLQ.T) + self._gamma * KLL
+                r = self.y[label_index].dot(KLL) + 0.5*delta.dot(KLQ.T)+ self._rho / 2 * z.dot(KLQ.T)
+                tau = np.linalg.pinv(A).dot(r)
+
+                # z update
+                zold = z
+                v = (self._rho * tau.dot(KLQ) - delta) / (self._rho + 2)
+                ita = 2 / (self._rho + 2)
+                z_sign = np.sign(v)
+                z_sign[z_sign == 0] = 1
+                ztp = (np.abs(v) - ita * np.ones(len(v)))
+                ztp[ztp < 0] = 0
+                z = z_sign * ztp
+
+                # delta update
+                delta += self._rho * (z - tau.dot(KLQ))
+
+                # judge convergence
+                r_norm = np.linalg.norm((tau.dot(KLQ) - z))
+                s_norm = np.linalg.norm(-self._rho * (z - zold))
+                eps_pri = np.sqrt(batch_size) * ABSTOL + RELTOL * max(np.linalg.norm(z), np.linalg.norm(tau.dot(KLQ)))
+                eps_dual = np.sqrt(batch_size) * ABSTOL + RELTOL * np.linalg.norm(delta)
+                if r_norm < eps_pri and s_norm < eps_dual:
+                    break
+
+
+class QueryInstanceSPAL(interface.BaseIndexQuery):
+    """Self-Paced Active Learning: Query the Right Thing at the Right Time (SPAL)
+    will query a batch of informative, representative and easy examples by minimizing a
+    well designed objective function.
+
+    The QP solver is cvxpy here.
+
+    The model used for instances selection is a linear regression model with the kernel form.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    mu: float, optional (default=0.1)
+        The MMD parameter.
+
+    gamma: float, optional (default=0.1)
+        The l2-norm regularizer parameter.
+
+    rho: float, optional (default=1)
+        The parameter used in ADMM.
+
+    lambda_init: float, optional (default=0.1)
+        The initial value of lambda used in SP regularizer.
+
+    lambda_pace: float, optional (default=0.01)
+        The pace of lambda when updating.
+
+    kernel : {'linear', 'poly', 'rbf', callable}, optional (default='rbf')
+        Specifies the kernel type to be used in the algorithm.
+        It must be one of 'linear', 'poly', 'rbf', or a callable.
+        If a callable is given it is used to pre-compute the kernel matrix
+        from data matrices; that matrix should be an array of shape
+        ``(n_samples, n_samples)``.
+
+    degree : int, optional (default=3)
+        Degree of the polynomial kernel function ('poly').
+        Ignored by all other kernels.
+
+    gamma_ker : float, optional (default=1.)
+        Kernel coefficient for 'rbf', 'poly'.
+
+    coef0 : float, optional (default=1.)
+        Independent term in kernel function.
+        It is only significant in 'poly'.
+
+    References
+    ----------
+    [1] Wang, Z., and Ye, J. 2013. Querying discriminative and
+        representative samples for batch mode active learning. In The
+        19th ACM SIGKDD International Conference on Knowledge
+        Discovery and Data Mining, 158-166.
+    """
+
+    def __init__(self, X, y, mu=0.1, gamma=1, rho=1, lambda_init=0.1, lambda_pace=0.01, **kwargs):
+        # K: kernel matrix
+        super(QueryInstanceSPAL, self).__init__(X, y)
+
+        self._mu = mu
+        self._gamma = gamma
+        self._rho = rho
+        self._lambda_init = lambda_init
+        self._lambda_pace = lambda_pace
+        self._lambda = lambda_init
+
+        # calc kernel
+        self._kernel = kwargs.pop('kernel', 'rbf')
+        if self._kernel == 'rbf':
+            self._K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'poly':
+            self._K = polynomial_kernel(X=X,
+                                        Y=X,
+                                        coef0=kwargs.pop('coef0', 1),
+                                        degree=kwargs.pop('degree', 3),
+                                        gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'linear':
+            self._K = linear_kernel(X=X, Y=X)
+        elif hasattr(self._kernel, '__call__'):
+            self._K = self._kernel(X=np.array(X), Y=np.array(X))
+        else:
+            raise NotImplementedError
+
+        if not isinstance(self._K, np.ndarray):
+            raise TypeError('K should be an ndarray')
+        if self._K.shape != (len(X), len(X)):
+            raise ValueError(
+                'kernel should have size (%d, %d)' % (len(X), len(X)))
+
+    def select(self, label_index, unlabel_index, batch_size=5, **kwargs):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        KLL = self._K[np.ix_(label_index, label_index)]
+        KLU = self._K[np.ix_(label_index, unlabel_index)]
+        KUU = self._K[np.ix_(unlabel_index, unlabel_index)]
+
+        L_len = len(label_index)
+        U_len = len(unlabel_index)
+        N = L_len + U_len
+
+        # precision of ADMM
+        MAX_ITER = 1000
+        ABSTOL = 1e-4
+        RELTOL = 1e-2
+
+        # train a linear model in kernel form for
+        theta = np.linalg.inv(KLL + self._gamma * np.eye(L_len)).dot(self.y[label_index])
+
+        # start optimization
+        dr_weight = np.ones(U_len)  # informativeness % representativeness
+        es_weight = np.ones(U_len)  # easiness
+        last_round_selected = []
+        while 1:
+            # solve QP
+            P = 0.5 * self._mu * KUU
+            pred_of_unlab = theta.dot(KLU)
+            a = es_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+            q = self._mu * (
+            (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                KUU)) + a
+            # cvx
+            x = cvxpy.Variable(U_len)
+            objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
+            constraints = [0 <= x, x <= 1, es_weight * x == batch_size]
+            prob = cvxpy.Problem(objective, constraints)
+            # The optimal objective value is returned by `prob.solve()`.
+            result = prob.solve()
+            # The optimal value for x is stored in `x.value`.
+            # print(x.value)
+            dr_weight = np.array(x.value)
+            dr_weight = dr_weight.T[0]
+            # end cvx
+
+            # update easiness weight
+            worst_loss = dr_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+            es_weight = np.zeros(U_len)
+            es_weight_tmp = 1 - (worst_loss / self._lambda)
+            update_indices = np.nonzero(worst_loss < self._lambda)[0]
+            es_weight[update_indices] = es_weight_tmp[update_indices]
+
+            # record selected indexes and judge convergence
+            dr_largest = nlargestarg(dr_weight*es_weight, batch_size)
+            select_ind = np.asarray(unlabel_index)[dr_largest]
+            if set(last_round_selected) == set(select_ind):
+                return select_ind
+            else:
+                last_round_selected = copy.copy(select_ind)
+            # print(dr_largest)
+            # print(dr_weight[dr_largest])
+
+            # ADMM optimization process
+            # Filter less important instances for efficiency
+            mix_weight = dr_weight * es_weight
+            mix_weight[mix_weight<0] = 0
+            validind = np.nonzero(mix_weight > 0.001)[0]
+            if len(validind) < 1:
+                validind = nlargestarg(mix_weight, 1)
+            vKlu = KLU[:, validind]
+
+            delta = np.zeros(len(validind))  # dual variable in ADMM
+            z = theta.dot(vKlu)  # auxiliary variable in ADMM
+
+            # pre-computed constants in ADMM
+            A = 2 * KLL.dot(KLL) + self._rho * vKlu.dot(vKlu.T) + 2 * self._gamma * KLL
+            pinvA = np.linalg.pinv(A)
+            rz = self._rho * vKlu
+            rc = 2 * KLL.dot(self.y[label_index])
+            kdenom = np.sqrt(mix_weight[validind] + self._rho / 2)
+            ci = mix_weight[validind] / kdenom
+
+            for solver_iter in range(MAX_ITER):
+                # theta update
+                r = rz.dot(z.T) + vKlu.dot(delta) + rc
+                theta = pinvA.dot(r)
+
+                # z update
+                zold = z
+                vud = self._rho*theta.dot(vKlu)
+                vi = (vud - delta) / (2 * kdenom)
+                ztmp = np.abs(vi) - ci
+                ztmp[ztmp < 0] = 0
+                ksi = np.sign(vi) * ztmp
+                z = ksi / kdenom
+
+                # delta update
+                delta += self._rho * (z - theta.dot(vKlu))
+
+                # judge convergence
+                r_norm = np.linalg.norm((theta.dot(vKlu) - z))
+                s_norm = np.linalg.norm(-self._rho * (z - zold))
+                eps_pri = np.sqrt(len(validind)) * ABSTOL + RELTOL * max(np.linalg.norm(z), np.linalg.norm(theta.dot(vKlu)))
+                eps_dual = np.sqrt(len(validind)) * ABSTOL + RELTOL * np.linalg.norm(delta)
+                if r_norm < eps_pri and s_norm < eps_dual:
+                    break
