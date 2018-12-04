@@ -1,7 +1,7 @@
 import copy
 from sklearn.datasets import load_iris
 from acepy.toolbox import ToolBox
-from acepy.query_strategy.query_labels import QueryInstanceBMDR, QueryInstanceSPAL
+from acepy.query_strategy.query_labels import QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL
 
 X, y = load_iris(return_X_y=True)
 acebox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')
@@ -14,7 +14,10 @@ train_idx, test_idx, label_ind, unlab_ind = acebox.get_split(round=0)
 # select = bmdr.select(label_ind, unlab_ind)
 # print(select)
 
-spal = QueryInstanceSPAL(X, y, kernel='linear')
-select = spal.select(label_ind, unlab_ind)
-print(select)
+# spal = QueryInstanceSPAL(X, y, kernel='linear')
+# select = spal.select(label_ind, unlab_ind)
+# print(select)
 
+lal = QueryInstanceLAL(X, y, mode='LAL_independent')
+select = lal.select(label_ind, unlab_ind)
+print(select)
