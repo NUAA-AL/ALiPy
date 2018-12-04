@@ -14,6 +14,7 @@ import collections
 import copy
 import warnings
 import cvxpy
+import os
 
 import numpy as np
 from sklearn.ensemble import BaggingClassifier
@@ -21,6 +22,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
 from sklearn.neighbors import kneighbors_graph
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
@@ -1082,8 +1084,8 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             pred_of_unlab = tau.dot(KLU)
             a = pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab)
             q = self._beta * (
-            (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
-                KUU)) + a
+                (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                    KUU)) + a
 
             # cvx
             x = cvxpy.Variable(U_len)
@@ -1108,7 +1110,7 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             # print(dr_weight[dr_largest])
 
             # ADMM optimization process
-            delta = np.zeros(batch_size)    # dual variable in ADMM
+            delta = np.zeros(batch_size)  # dual variable in ADMM
             select_data = self.X[select_ind]
             KLQ = self._K[np.ix_(label_index, select_ind)]
             z = tau.dot(KLQ)
@@ -1116,7 +1118,7 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             for solver_iter in range(MAX_ITER):
                 # tau update
                 A = KLL.dot(KLL) + self._rho / 2 * KLQ.dot(KLQ.T) + self._gamma * KLL
-                r = self.y[label_index].dot(KLL) + 0.5*delta.dot(KLQ.T)+ self._rho / 2 * z.dot(KLQ.T)
+                r = self.y[label_index].dot(KLL) + 0.5 * delta.dot(KLQ.T) + self._rho / 2 * z.dot(KLQ.T)
                 tau = np.linalg.pinv(A).dot(r)
 
                 # z update
@@ -1278,8 +1280,8 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             pred_of_unlab = theta.dot(KLU)
             a = es_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
             q = self._mu * (
-            (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
-                KUU)) + a
+                (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                    KUU)) + a
             # cvx
             x = cvxpy.Variable(U_len)
             objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
@@ -1301,7 +1303,7 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             es_weight[update_indices] = es_weight_tmp[update_indices]
 
             # record selected indexes and judge convergence
-            dr_largest = nlargestarg(dr_weight*es_weight, batch_size)
+            dr_largest = nlargestarg(dr_weight * es_weight, batch_size)
             select_ind = np.asarray(unlabel_index)[dr_largest]
             if set(last_round_selected) == set(select_ind):
                 return select_ind
@@ -1313,7 +1315,7 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             # ADMM optimization process
             # Filter less important instances for efficiency
             mix_weight = dr_weight * es_weight
-            mix_weight[mix_weight<0] = 0
+            mix_weight[mix_weight < 0] = 0
             validind = np.nonzero(mix_weight > 0.001)[0]
             if len(validind) < 1:
                 validind = nlargestarg(mix_weight, 1)
@@ -1337,7 +1339,7 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
 
                 # z update
                 zold = z
-                vud = self._rho*theta.dot(vKlu)
+                vud = self._rho * theta.dot(vKlu)
                 vi = (vud - delta) / (2 * kdenom)
                 ztmp = np.abs(vi) - ci
                 ztmp[ztmp < 0] = 0
@@ -1350,7 +1352,171 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
                 # judge convergence
                 r_norm = np.linalg.norm((theta.dot(vKlu) - z))
                 s_norm = np.linalg.norm(-self._rho * (z - zold))
-                eps_pri = np.sqrt(len(validind)) * ABSTOL + RELTOL * max(np.linalg.norm(z), np.linalg.norm(theta.dot(vKlu)))
+                eps_pri = np.sqrt(len(validind)) * ABSTOL + RELTOL * max(np.linalg.norm(z),
+                                                                         np.linalg.norm(theta.dot(vKlu)))
                 eps_dual = np.sqrt(len(validind)) * ABSTOL + RELTOL * np.linalg.norm(delta)
                 if r_norm < eps_pri and s_norm < eps_dual:
                     break
+
+
+class QueryInstanceLAL(interface.BaseIndexQuery):
+    """The key idea of LAL is to train a regressor that predicts the
+    expected error reduction for a candidate sample in a particular learning state.
+
+    The regressor is trained on 2D datasets and can score unseen data from real
+    datasets. The method yields strategies that work well on real data from a
+    wide range of domains.
+
+    In acepy, LAL will use a pre-extracted data provided by the authors to train
+    the regressor. It will download the data file if no accepted file is found.
+    You can also download 'LAL-iterativetree-simulatedunbalanced-big.npz'
+    and 'LAL-randomtree-simulatedunbalanced-big.npz' from https://github.com/ksenia-konyushkova/LAL.
+    and specify the dir to the file for training.
+
+    The implementation is refer to the https://github.com/ksenia-konyushkova/LAL/ directly.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    mode: str, optional (default='LAL_iterative')
+        The mode of data sampling. must be one of 'LAL_iterative', 'LAL_independent'.
+
+    data_path: str, optional (default='.')
+        Path to store the data file for training.
+        The path should be a dir, and the file name should be
+        'LAL-iterativetree-simulatedunbalanced-big.npz' or 'LAL-randomtree-simulatedunbalanced-big.npz'.
+        If no accepted files are detected, it will download the pre-extracted data file to the given path.
+
+    References
+    ----------
+    [1] Ksenia Konyushkova, and Sznitman Raphael. 2017. Learning
+        Active Learning from Data. In The 31st Conference on
+        Neural Information Processing Systems (NIPS 2017), 4228-4238.
+
+    """
+
+    def __init__(self, X, y, mode='LAL_iterative', data_path='.', cls_est=50, **kwargs):
+        super(QueryInstanceLAL, self).__init__(X, y)
+        iter_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-iterativetree-simulatedunbalanced-big.npz'
+        rand_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-randomtree-simulatedunbalanced-big.npz'
+        self._iter_path = os.path.join(data_path, 'LAL-iterativetree-simulatedunbalanced-big.npz')
+        self._rand_path = os.path.join(data_path, 'LAL-randomtree-simulatedunbalanced-big.npz')
+        self._mode = mode
+        self._selector = None
+
+        assert mode in ['LAL_iterative', 'LAL_independent']
+        if mode == 'LAL_iterative':
+            if not os.path.exists(self._iter_path):
+                # download file
+                print(str(self._iter_path) + " file is not exist. Starting to download...")
+                import requests
+                f = requests.get(iter_url, stream=True)
+                total_size = f.headers['content-length']
+                download_count = 0
+                with open(self._iter_path, "wb") as code:
+                    for chunk in f.iter_content(chunk_size=1024):
+                        download_count += 1
+                        if chunk:
+                            print("\rProgress:%f%% (%d/%d)\t - %s" % (
+                                download_count * 1024 / float(total_size), download_count * 1024, int(total_size),
+                                iter_url), end='')
+                            code.write(chunk)
+                print('\nDownload end.')
+            self._train_selector(self._iter_path)
+        else:
+            if not os.path.exists(self._rand_path):
+                # download file
+                print(str(self._iter_path) + " file is not exist. Starting to download...")
+                import requests
+                f = requests.get(rand_url, stream=True)
+                total_size = f.headers['content-length']
+                download_count = 0
+                with open(self._rand_path, "wb") as code:
+                    for chunk in f.iter_content(chunk_size=1024):
+                        download_count += 1
+                        if chunk:
+                            print("\rProgress:%f%% (%d/%d) - %s" % (
+                                download_count * 1024 / float(total_size), download_count * 1024, int(total_size),
+                                rand_url), end='')
+                            code.write(chunk)
+                print('\nDownload end.')
+            self._train_selector(self._rand_path)
+
+        self.model = RandomForestClassifier(n_estimators=cls_est, oob_score=True, n_jobs=8)
+
+    def _train_selector(self, reg_est=2000, reg_depth=40, feat=6):
+        """Train a random forest as the instance selector.
+        Note that, if the parameters of the forest is too
+        high to your computer, it will take a lot of time
+        for training.
+
+        Parameters
+        ----------
+        reg_est: int, optional (default=2000)
+            The number of estimators of the forest.
+
+        reg_depth: int, optional (default=40)
+            The depth of the forest.
+
+        feat: int, optional (default=6)
+            The feat of the forest.
+        """
+
+        file_path = self._iter_path if self._mode == 'LAL_iterative' else self._rand_path
+        parameters = {'est': reg_est, 'depth': reg_depth, 'feat': feat}
+        regression_data = np.load(file_path)
+        regression_features = regression_data['arr_0']
+        regression_labels = regression_data['arr_1']
+
+        print('Building lal regression model from ' + file_path)
+        lalModel1 = RandomForestRegressor(n_estimators=parameters['est'], max_depth=parameters['depth'],
+                                          max_features=parameters['feat'], oob_score=True, n_jobs=8)
+
+        lalModel1.fit(regression_features, np.ravel(regression_labels))
+
+        print('Done!')
+        print('Oob score = ', lalModel1.oob_score_)
+        self._selector = lalModel1
+
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        unknown_data = self.X[unlabel_index]
+        known_labels = self.y[label_index]
+        known_data = self.X[label_index]
+        n_lablled = len(label_index)
+        n_dim = self.X.shape[1]
+        self.model.fit(known_data, known_labels)
+
+        # predictions of the trees
+        temp = np.array([tree.predict_proba(unknown_data)[:, 0] for tree in self.model.estimators_])
+        # - average and standard deviation of the predicted scores
+        f_1 = np.mean(temp, axis=0)
+        f_2 = np.std(temp, axis=0)
+        # - proportion of positive points
+        f_3 = (sum(known_labels > 0) / n_lablled) * np.ones_like(f_1)
+        # the score estimated on out of bag estimate
+        f_4 = self.model.oob_score_ * np.ones_like(f_1)
+        # - coeficient of variance of feature importance
+        f_5 = np.std(self.model.feature_importances_ / n_dim) * np.ones_like(f_1)
+        # - estimate variance of forest by looking at avergae of variance of some predictions
+        f_6 = np.mean(f_2, axis=0) * np.ones_like(f_1)
+        # - compute the average depth of the trees in the forest
+        f_7 = np.mean(np.array([tree.tree_.max_depth for tree in self.model.estimators_])) * np.ones_like(f_1)
+        # - number of already labelled datapoints
+        f_8 = n_lablled * np.ones_like(f_1)
+
+        # all the featrues put together for regressor
+        LALfeatures = np.concatenate(([f_1], [f_2], [f_3], [f_4], [f_5], [f_6], [f_7], [f_8]), axis=0)
+        LALfeatures = np.transpose(LALfeatures)
+
+        # predict the expercted reduction in the error by adding the point
+        LALprediction = self._selector.predict(LALfeatures)
+        # select the datapoint with the biggest reduction in the error
+        selectedIndex1toN = nlargestarg(LALprediction, batch_size)
+        # retrieve the real index of the selected datapoint
+        selectedIndex = np.asarray(unlabel_index)[selectedIndex1toN]
+        return selectedIndex
