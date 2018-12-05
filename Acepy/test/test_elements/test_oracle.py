@@ -15,6 +15,7 @@ X, y = load_iris(return_X_y=True)
 X = X[0:100, ]
 o = y[0:50]
 oracle = Oracle(o)
+oracle2 = Oracle(y[51:])
 
 
 def test_Oracle():
@@ -79,7 +80,27 @@ def test_OracleQueryMultiLabel():
 multi_oracles = Oracles()
 def test_Oracles():
     multi_oracles.add_oracle('oracle1', oracle)
-    multi_oracles.add_oracle('oracle2', OQM)
-    
-    
-    pass
+    multi_oracles.add_oracle('oracle2', oracle2)
+
+    result = multi_oracles.query_from([1], oracle_name='oracle1')
+    multi_oracles.query_from_s([1])
+    multi_oracles.query_from_s([1,2], oracles_name=['oracle2', 'oracle1'])
+    print(multi_oracles.full_history())
+    print(multi_oracles.cost_inall)
+
+    '''
+    +---------+-----------------+-----------------+--------------------+--------+
+    | oracles |        0        |        1        |         2          | in all |
+    +---------+-----------------+-----------------+--------------------+--------+
+    | oracle1 | query_index:[1] | query_index:[1] | query_index:[1, 2] |   3    |
+    |         |   response:[0]  |   response:[0]  |  response:[0, 0]   |        |
+    |         |     cost:[1]    |     cost:[1]    |    cost:[1, 1]     |        |
+    | oracle2 |        \        | query_index:[1] | query_index:[1, 2] |   2    |
+    |         |                 |   response:[1]  |  response:[1, 1]   |        |
+    |         |                 |     cost:[1]    |    cost:[1, 1]     |        |
+    +---------+-----------------+-----------------+--------------------+--------+
+    7
+    '''
+
+
+test_Oracles()

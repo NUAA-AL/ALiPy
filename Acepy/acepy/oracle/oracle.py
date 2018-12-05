@@ -558,9 +558,40 @@ class Oracles:
             oracle_name = random.sample(self._oracle_dict.keys(), 1)[0]
         result = self._oracle_dict[oracle_name].query_by_index(index_for_querying)
 
-        self._update_query_history(oracle_name, result, index_for_querying)
-        self.cost_inall += np.sum(result[1])
+        self._update_query_history([oracle_name], [result], index_for_querying)
+        self.cost_inall += np.sum(np.asarray(result[1]).flatten())
         return result
+
+    def query_from_s(self, index_for_querying, oracles_name=None):
+        """query index_for_querying from oracle_name.
+        If oracle_name is not specified, it will query one of the oracles randomly.
+
+        Parameters
+        ----------
+        index_for_querying: object
+            index for querying.
+
+        oracles_name: list, optional (default=None)
+            query from which oracles. It should be a list of names.
+            If not specified, it will query from all oracles.
+
+        Returns
+        -------
+        sup_info: list
+            supervised information of queried index.
+
+        costs: list
+            corresponding costs produced by query.
+        """
+        if oracles_name is None:
+            oracles_name = list(self._oracle_dict.keys())
+        results = []
+        for name in oracles_name:
+            results.append(self._oracle_dict[name].query_by_index(index_for_querying))
+
+        self._update_query_history(oracles_name, results, index_for_querying)
+        self.cost_inall += np.sum(np.array([result[1] for result in results]).flatten())
+        return results
 
     def get_oracle(self, oracle_name):
         """
@@ -579,15 +610,16 @@ class Oracles:
         """
         # collect information for displaying
         # key: name
-        # value: (query_times, cost_incured)
+        # value: (query_times, cost_incurred)
         display_dict = dict()
         for key in self._oracle_dict.keys():
             display_dict[key] = [0, 0]
         for query in self.query_history:
             # query is a triplet: (oracle_name, result, index_for_querying)
-            # types of elements are: (str, [[_labels], [cost]], [indexes])
-            display_dict[query[0]][0] += 1
-            display_dict[query[0]][1] += np.sum([np.sum(query[1][1][i]) for i in range(len(query[1][1]))])
+            # types of elements are: ([str], [[_labels], [cost]], [indexes])
+            for i, name in enumerate(query[0]):
+                display_dict[name][0] += 1
+                display_dict[name][1] += np.sum([np.sum(query[1][i][1][j]) for j in range(len(query[1][i][1]))])
 
         tb = pt.PrettyTable()
         tb.field_names = ['oracles', 'number_of_labeling', 'cost']
@@ -607,10 +639,17 @@ class Oracles:
         tb.add_column('oracles', oracle_name_list)
         for query_ind in range(len(self.query_history)):
             query_result = self.query_history[query_ind]
-            name_ind = oracle_name_list.index(query_result[0])
-            oracle_labeling_count[name_ind] += 1
-            tb.add_column(str(query_ind), ['\\' if i != name_ind else "query_index:%s\nresponse:%s\ncost:%s" % (
-            str(query_result[2]), str(query_result[1][0]), str(query_result[1][1])) for i in range(oracles_num)])
+
+            name_inds = enumerate(query_result[0])
+            name_dict = dict()
+            for i, name in name_inds:
+                oracle_labeling_count[oracle_name_list.index(name)] += 1
+                name_dict[name] = i
+
+            tb.add_column(str(query_ind),
+                          ['\\' if name not in name_dict.keys() else "query_index:%s\nresponse:%s\ncost:%s" % (
+                              str(query_result[2]), str(query_result[1][name_dict[name]][0]),
+                              str(query_result[1][name_dict[name]][1])) for name in oracle_name_list])
 
         tb.add_column('in all', oracle_labeling_count)
         return str(tb)
@@ -635,5 +674,6 @@ class OracleQueryFeatures(OracleQueryMultiLabel):
         cost of each queried instance, should be one-to-one correspondence of each feature,
         default is all 1. Shape like [n_samples, n_classes]
     """
+
     def __init__(self, feature_mat, indexes=None, cost=None):
         super(OracleQueryFeatures, self).__init__(labels=feature_mat, indexes=indexes, cost=cost)

@@ -1111,7 +1111,6 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
 
             # ADMM optimization process
             delta = np.zeros(batch_size)  # dual variable in ADMM
-            select_data = self.X[select_ind]
             KLQ = self._K[np.ix_(label_index, select_ind)]
             z = tau.dot(KLQ)
 
@@ -1295,13 +1294,6 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             dr_weight = dr_weight.T[0]
             # end cvx
 
-            # update easiness weight
-            worst_loss = dr_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
-            es_weight = np.zeros(U_len)
-            es_weight_tmp = 1 - (worst_loss / self._lambda)
-            update_indices = np.nonzero(worst_loss < self._lambda)[0]
-            es_weight[update_indices] = es_weight_tmp[update_indices]
-
             # record selected indexes and judge convergence
             dr_largest = nlargestarg(dr_weight * es_weight, batch_size)
             select_ind = np.asarray(unlabel_index)[dr_largest]
@@ -1311,6 +1303,14 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
                 last_round_selected = copy.copy(select_ind)
             # print(dr_largest)
             # print(dr_weight[dr_largest])
+
+
+            # update easiness weight
+            worst_loss = dr_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+            es_weight = np.zeros(U_len)
+            es_weight_tmp = 1 - (worst_loss / self._lambda)
+            update_indices = np.nonzero(worst_loss < self._lambda)[0]
+            es_weight[update_indices] = es_weight_tmp[update_indices]
 
             # ADMM optimization process
             # Filter less important instances for efficiency
@@ -1392,6 +1392,13 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         'LAL-iterativetree-simulatedunbalanced-big.npz' or 'LAL-randomtree-simulatedunbalanced-big.npz'.
         If no accepted files are detected, it will download the pre-extracted data file to the given path.
 
+    cls_est: int, optional (default=50)
+        The number of estimator used for training the random forest whose role
+        is calculating the features for selector.
+
+    train_slt: bool, optional (default=True)
+        Whether to train a selector in initializing.
+
     References
     ----------
     [1] Ksenia Konyushkova, and Sznitman Raphael. 2017. Learning
@@ -1400,17 +1407,23 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
 
     """
 
-    def __init__(self, X, y, mode='LAL_iterative', data_path='.', cls_est=50, **kwargs):
+    def __init__(self, X, y, mode='LAL_iterative', data_path='.', cls_est=50, train_slt=True, **kwargs):
         super(QueryInstanceLAL, self).__init__(X, y)
-        iter_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-iterativetree-simulatedunbalanced-big.npz'
-        rand_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-randomtree-simulatedunbalanced-big.npz'
+        if not os.path.isdir(data_path):
+            raise ValueError("Please pass the directory of the file.")
         self._iter_path = os.path.join(data_path, 'LAL-iterativetree-simulatedunbalanced-big.npz')
         self._rand_path = os.path.join(data_path, 'LAL-randomtree-simulatedunbalanced-big.npz')
+        assert mode in ['LAL_iterative', 'LAL_independent']
         self._mode = mode
         self._selector = None
+        self.model = RandomForestClassifier(n_estimators=cls_est, oob_score=True, n_jobs=8)
+        if train_slt:
+            self.train_selector()
 
-        assert mode in ['LAL_iterative', 'LAL_independent']
-        if mode == 'LAL_iterative':
+    def train_selector(self):
+        iter_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-iterativetree-simulatedunbalanced-big.npz'
+        rand_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-randomtree-simulatedunbalanced-big.npz'
+        if self._mode == 'LAL_iterative':
             if not os.path.exists(self._iter_path):
                 # download file
                 print(str(self._iter_path) + " file is not exist. Starting to download...")
@@ -1427,7 +1440,7 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
                                 iter_url), end='')
                             code.write(chunk)
                 print('\nDownload end.')
-            self._train_selector(self._iter_path)
+            self.train_selector_from_file(self._iter_path)
         else:
             if not os.path.exists(self._rand_path):
                 # download file
@@ -1445,11 +1458,9 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
                                 rand_url), end='')
                             code.write(chunk)
                 print('\nDownload end.')
-            self._train_selector(self._rand_path)
+            self.train_selector_from_file(self._rand_path)
 
-        self.model = RandomForestClassifier(n_estimators=cls_est, oob_score=True, n_jobs=8)
-
-    def _train_selector(self, reg_est=2000, reg_depth=40, feat=6):
+    def train_selector_from_file(self, file_path=None, reg_est=2000, reg_depth=40, feat=6):
         """Train a random forest as the instance selector.
         Note that, if the parameters of the forest is too
         high to your computer, it will take a lot of time
@@ -1457,6 +1468,9 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
 
         Parameters
         ----------
+        file_path: str, optional (default=None)
+            The path to the specific data file.
+
         reg_est: int, optional (default=2000)
             The number of estimators of the forest.
 
@@ -1467,7 +1481,11 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
             The feat of the forest.
         """
 
-        file_path = self._iter_path if self._mode == 'LAL_iterative' else self._rand_path
+        if file_path is None:
+            file_path = self._iter_path if self._mode == 'LAL_iterative' else self._rand_path
+        else:
+            if not os.path.isdir(file_path):
+                raise ValueError("Please pass the path to a specific file, not a directory.")
         parameters = {'est': reg_est, 'depth': reg_depth, 'feat': feat}
         regression_data = np.load(file_path)
         regression_features = regression_data['arr_0']
@@ -1484,6 +1502,11 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         self._selector = lalModel1
 
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        if self._selector is None:
+            raise ValueError(
+                "Please train the selection regressor first.\nUse train_selector_from_file(path) "
+                "if you have already download the data for training. Otherwise, use train_selector() "
+                "method to download the data and train a selector.")
         unknown_data = self.X[unlabel_index]
         known_labels = self.y[label_index]
         known_data = self.X[label_index]
