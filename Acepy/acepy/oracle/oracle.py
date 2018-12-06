@@ -517,6 +517,16 @@ class Oracles:
         self.cost_inall = 0
         self.query_history = []
 
+    def __len__(self):
+        return self._oracle_dict.__len__()
+
+    def __getitem__(self, item):
+        return self._oracle_dict.__getitem__(item)
+
+    def names(self):
+        """Return the names of added oracles."""
+        return self._oracle_dict.keys()
+
     def add_oracle(self, oracle_name, oracle_object):
         """Adding an oracle. The oracle name should be unique to identify
         different oracles.
@@ -595,9 +605,9 @@ class Oracles:
 
     def get_oracle(self, oracle_name):
         """
-            Get the specific oracle by name.
+        Get the specific oracle by name.
         """
-        return self._oracle_dict[oracle_name]
+        return self.__getitem__(oracle_name)
 
     def _update_query_history(self, oracle_name, query_result, index_for_querying):
         """record the query history"""
