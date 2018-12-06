@@ -12,7 +12,6 @@ from __future__ import division
 
 import collections
 import copy
-import warnings
 import cvxpy
 import os
 
@@ -23,9 +22,11 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
 from sklearn.neighbors import kneighbors_graph
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.utils.multiclass import unique_labels
 
 from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
+from ..utils.ace_warnings import *
 
 
 def _get_proba_pred(unlabel_x, model):
@@ -163,7 +164,7 @@ class QueryInstanceUncertainty(interface.BaseIndexQuery):
             The indexes of unlabeled samples. Should be one-to-one
             correspondence to the prediction matrix.
 
-        predict: 2d array, shape [n_samples, n_classes] or [n_samples]
+        predict: 2d array, shape [n_samples, n_classes]
             The probabilistic prediction matrix for the unlabeled set.
 
         batch_size: int, optional (default=1)
@@ -357,8 +358,8 @@ class QueryInstanceQBC(interface.BaseIndexQuery):
             raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
         if model is None:
             model = LogisticRegression()
-            model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
-                      self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
+            model.fit(self.X[label_index],
+                      self.y[label_index])
 
         unlabel_x = self.X[unlabel_index]
         label_x = self.X[label_index]
@@ -921,6 +922,13 @@ class QueryInstanceGraphDensity(interface.BaseIndexQuery):
         """
         # If a neighbor has already been sampled, reduce the graph density
         # for its direct neighbors to promote diversity.
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
         batch = set()
 
         # build map from value to index
@@ -1010,9 +1018,18 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
         Discovery and Data Mining, 158-166.
     """
 
-    def __init__(self, X, y, beta=1, gamma=1, rho=1, **kwargs):
+    def __init__(self, X, y, beta=1000, gamma=0.1, rho=1, **kwargs):
         # K: kernel matrix
         super(QueryInstanceBMDR, self).__init__(X, y)
+        ul = unique_labels(self.y)
+        if len(ul) != 2:
+            warnings.warn("This query strategy is implemented for binary classification only.",
+                          category=FunctionWarning)
+        if len(ul) == 2 and {1, -1} != set(ul):
+            y_temp = np.array(copy.deepcopy(self.y))
+            y_temp[y_temp == ul[0]] = 1
+            y_temp[y_temp == ul[1]] = -1
+            self.y = y_temp
 
         self._beta = beta
         self._gamma = gamma
@@ -1041,7 +1058,7 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             raise ValueError(
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
 
-    def select(self, label_index, unlabel_index, batch_size=5, **kwargs):
+    def select(self, label_index, unlabel_index, batch_size=5, qp_solver='ECOS', **kwargs):
         """Select indexes from the unlabel_index for querying.
 
         Parameters
@@ -1055,11 +1072,25 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
         batch_size: int, optional (default=1)
             Selection batch size.
 
+        qp_solver: str, optional (default='ECOS')
+            The solver in cvxpy to solve QP, must be one of
+            ['ECOS', 'OSQP']
+            ECOS: https://www.embotech.com/ECOS
+            OSQP: https://osqp.org/
+
         Returns
         -------
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
         KLL = self._K[np.ix_(label_index, label_index)]
         KLU = self._K[np.ix_(label_index, unlabel_index)]
         KUU = self._K[np.ix_(unlabel_index, unlabel_index)]
@@ -1095,7 +1126,8 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             constraints = [0 <= x, x <= 1, sum(x) == batch_size]
             prob = cvxpy.Problem(objective, constraints)
             # The optimal objective value is returned by `prob.solve()`.
-            result = prob.solve()
+            # print(prob.is_qp())
+            result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
             # The optimal value for x is stored in `x.value`.
             # print(x.value)
             dr_weight = np.array(x.value)
@@ -1202,9 +1234,18 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
         Discovery and Data Mining, 158-166.
     """
 
-    def __init__(self, X, y, mu=0.1, gamma=1, rho=1, lambda_init=0.1, lambda_pace=0.01, **kwargs):
+    def __init__(self, X, y, mu=0.1, gamma=0.1, rho=1, lambda_init=0.1, lambda_pace=0.01, **kwargs):
         # K: kernel matrix
         super(QueryInstanceSPAL, self).__init__(X, y)
+        ul = unique_labels(self.y)
+        if len(unique_labels(self.y)) != 2:
+            warnings.warn("This query strategy is implemented for binary classification only.",
+                          category=FunctionWarning)
+        if len(ul) == 2 and {1, -1} != set(ul):
+            y_temp = np.array(copy.deepcopy(self.y))
+            y_temp[y_temp == ul[0]] = 1
+            y_temp[y_temp == ul[1]] = -1
+            self.y = y_temp
 
         self._mu = mu
         self._gamma = gamma
@@ -1236,7 +1277,7 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             raise ValueError(
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
 
-    def select(self, label_index, unlabel_index, batch_size=5, **kwargs):
+    def select(self, label_index, unlabel_index, batch_size=5, qp_solver='ECOS', **kwargs):
         """Select indexes from the unlabel_index for querying.
 
         Parameters
@@ -1250,11 +1291,25 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
         batch_size: int, optional (default=1)
             Selection batch size.
 
+        qp_solver: str, optional (default='ECOS')
+            The solver in cvxpy to solve QP, must be one of
+            ['ECOS', 'OSQP']
+            ECOS: https://www.embotech.com/ECOS
+            OSQP: https://osqp.org/
+
         Returns
         -------
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
         KLL = self._K[np.ix_(label_index, label_index)]
         KLU = self._K[np.ix_(label_index, unlabel_index)]
         KUU = self._K[np.ix_(unlabel_index, unlabel_index)]
@@ -1291,12 +1346,38 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             constraints = [0 <= x, x <= 1, es_weight * x == batch_size]
             prob = cvxpy.Problem(objective, constraints)
             # The optimal objective value is returned by `prob.solve()`.
-            result = prob.solve()
+            result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            # Sometimes the constraints can not be satisfied,
+            # thus we relax the constraints to get an approximate solution.
+            if not (type(result) == float and result != float('inf') and result != float('-inf')):
+                P = 0.5 * self._mu * KUU
+                pred_of_unlab = theta.dot(KLU)
+                a = es_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+                q = self._mu * (
+                    (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                        KUU)) + a
+                # cvx
+                x = cvxpy.Variable(U_len)
+                objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
+                constraints = [0 <= x, x <= 1]
+                prob = cvxpy.Problem(objective, constraints)
+                # The optimal objective value is returned by `prob.solve()`.
+                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+
             # The optimal value for x is stored in `x.value`.
             # print(x.value)
             dr_weight = np.array(x.value)
+            # print(dr_weight)
+            # print(result)
             dr_weight = dr_weight.T[0]
             # end cvx
+
+            # update easiness weight
+            worst_loss = dr_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+            es_weight = np.zeros(U_len)
+            es_weight_tmp = 1 - (worst_loss / self._lambda)
+            update_indices = np.nonzero(worst_loss < self._lambda)[0]
+            es_weight[update_indices] = es_weight_tmp[update_indices]
 
             # record selected indexes and judge convergence
             dr_largest = nlargestarg(dr_weight * es_weight, batch_size)
@@ -1305,16 +1386,8 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
                 return select_ind
             else:
                 last_round_selected = copy.copy(select_ind)
-            # print(dr_largest)
-            # print(dr_weight[dr_largest])
-
-
-            # update easiness weight
-            worst_loss = dr_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
-            es_weight = np.zeros(U_len)
-            es_weight_tmp = 1 - (worst_loss / self._lambda)
-            update_indices = np.nonzero(worst_loss < self._lambda)[0]
-            es_weight[update_indices] = es_weight_tmp[update_indices]
+                # print(dr_largest)
+                # print(dr_weight[dr_largest])
 
             # ADMM optimization process
             # Filter less important instances for efficiency
@@ -1413,6 +1486,9 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
 
     def __init__(self, X, y, mode='LAL_iterative', data_path='.', cls_est=50, train_slt=True, **kwargs):
         super(QueryInstanceLAL, self).__init__(X, y)
+        if len(unique_labels(self.y)) != 2:
+            warnings.warn("This query strategy is implemented for binary classification only.",
+                          category=FunctionWarning)
         if not os.path.isdir(data_path):
             raise ValueError("Please pass the directory of the file.")
         self._iter_path = os.path.join(data_path, 'LAL-iterativetree-simulatedunbalanced-big.npz')
@@ -1515,8 +1591,16 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         if self._selector is None:
             raise ValueError(
                 "Please train the selection regressor first.\nUse train_selector_from_file(path) "
-                "if you have already download the data for training. Otherwise, use train_selector() "
-                "method to download the data and train a selector.")
+                "if you have already download the data for training. Otherwise, use download_data() "
+                "method to download the data first.")
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
         unknown_data = self.X[unlabel_index]
         known_labels = self.y[label_index]
         known_data = self.X[label_index]
@@ -1545,11 +1629,12 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         # all the featrues put together for regressor
         LALfeatures = np.concatenate(([f_1], [f_2], [f_3], [f_4], [f_5], [f_6], [f_7], [f_8]), axis=0)
         LALfeatures = np.transpose(LALfeatures)
-
         # predict the expercted reduction in the error by adding the point
         LALprediction = self._selector.predict(LALfeatures)
         # select the datapoint with the biggest reduction in the error
         selectedIndex1toN = nlargestarg(LALprediction, batch_size)
+        # print(LALprediction)
+        # print(np.asarray(LALprediction)[selectedIndex1toN])
         # retrieve the real index of the selected datapoint
         selectedIndex = np.asarray(unlabel_index)[selectedIndex1toN]
         return selectedIndex

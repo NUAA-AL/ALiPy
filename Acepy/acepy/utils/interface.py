@@ -28,6 +28,7 @@ class BaseQueryStrategy(metaclass=ABCMeta):
     which uses the information of test set, the train_idx of the
     data set should be given in initializing.
     """
+
     def __init__(self, X=None, y=None, **kwargs):
         if X is not None and y is not None:
             if isinstance(X, np.ndarray) and isinstance(y, np.ndarray):
@@ -46,31 +47,67 @@ class BaseQueryStrategy(metaclass=ABCMeta):
         """Select instances to query."""
         pass
 
-    def select_by_prediction_mat(self, unlabel_index, predict, **kwargs):
-        """select in a model-independent way.
-
-        Parameters
-        ----------
-        prediction_mat: array, shape [n_examples, n_classes]
-            The probability prediction matrix.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled instances. Should be one-to-one
-            correspondence to the prediction_mat
-
-        Returns
-        -------
-        selected_index: list
-            The elements of selected_index should be in unlabel_index.
-        """
-        pass
+        # def select_by_prediction_mat(self, unlabel_index, predict, **kwargs):
+        #     """select in a model-independent way.
+        #
+        #     Parameters
+        #     ----------
+        #     prediction_mat: array, shape [n_examples, n_classes]
+        #         The probability prediction matrix.
+        #
+        #     unlabel_index: {list, np.ndarray, IndexCollection}
+        #         The indexes of unlabeled instances. Should be one-to-one
+        #         correspondence to the prediction_mat
+        #
+        #     Returns
+        #     -------
+        #     selected_index: list
+        #         The elements of selected_index should be in unlabel_index.
+        #     """
+        #     pass
 
 
 class BaseIndexQuery(BaseQueryStrategy):
     """The base class for the selection method which imposes a constraint on the parameters of select()"""
+
     @abstractmethod
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
-        """Select instances to query."""
+        """Select instances to query.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+        """
+
+
+class BaseNoisyOracleQuery(BaseQueryStrategy):
+    @abstractmethod
+    def select(self, label_index, unlabel_index, oracles, batch_size=1, **kwargs):
+        """Query from oracles. Return the selected instance, cost and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        oracles: {list, acepy.oracle.Oracles}, optional (default=None)
+            An acepy.oracle.Oracle object that contains all the
+            available oracles or a list of oracles.
+            Each oracle should be a acepy.oracle.Oracle object.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+        """
 
 
 class BaseVirtualOracle(metaclass=ABCMeta):
@@ -159,6 +196,7 @@ class BaseRepository(metaclass=ABCMeta):
     2. History recording
     3. Get labeled set for training model
     """
+
     def __getitem__(self, index):
         """Same function with retrieve by index.
 
@@ -231,6 +269,7 @@ class BaseAnalyser(metaclass=ABCMeta):
           element is the x_axis (e.g., iteration, cost),
           and the second element is the y_axis (e.g., the performance)
     """
+
     def __init__(self):
         # The data extracted from the original data.
         self._data_extracted = dict()
