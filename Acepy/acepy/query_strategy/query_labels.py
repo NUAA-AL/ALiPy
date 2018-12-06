@@ -1078,7 +1078,9 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
 
         # start optimization
         last_round_selected = []
+        iter_round = 0
         while 1:
+            iter_round += 1
             # solve QP
             P = 0.5 * self._beta * KUU
             pred_of_unlab = tau.dot(KLU)
@@ -1103,7 +1105,7 @@ class QueryInstanceBMDR(interface.BaseIndexQuery):
             # record selected indexes and judge convergence
             dr_largest = nlargestarg(dr_weight, batch_size)
             select_ind = np.asarray(unlabel_index)[dr_largest]
-            if set(last_round_selected) == set(select_ind):
+            if set(last_round_selected) == set(select_ind) or iter_round > 15:
                 return select_ind
             else:
                 last_round_selected = copy.copy(select_ind)
@@ -1273,7 +1275,9 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
         dr_weight = np.ones(U_len)  # informativeness % representativeness
         es_weight = np.ones(U_len)  # easiness
         last_round_selected = []
+        iter_round = 0
         while 1:
+            iter_round += 1
             # solve QP
             P = 0.5 * self._mu * KUU
             pred_of_unlab = theta.dot(KLU)
@@ -1297,7 +1301,7 @@ class QueryInstanceSPAL(interface.BaseIndexQuery):
             # record selected indexes and judge convergence
             dr_largest = nlargestarg(dr_weight * es_weight, batch_size)
             select_ind = np.asarray(unlabel_index)[dr_largest]
-            if set(last_round_selected) == set(select_ind):
+            if set(last_round_selected) == set(select_ind) or iter_round > 15:
                 return select_ind
             else:
                 last_round_selected = copy.copy(select_ind)
@@ -1418,47 +1422,53 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         self._selector = None
         self.model = RandomForestClassifier(n_estimators=cls_est, oob_score=True, n_jobs=8)
         if train_slt:
-            self.train_selector()
+            self.download_data()
+            self.train_selector_from_file()
 
-    def train_selector(self):
+    def download_data(self):
         iter_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-iterativetree-simulatedunbalanced-big.npz'
         rand_url = 'https://raw.githubusercontent.com/ksenia-konyushkova/LAL/master/lal%20datasets/LAL-randomtree-simulatedunbalanced-big.npz'
+        chunk_size = 64 * 1024
         if self._mode == 'LAL_iterative':
             if not os.path.exists(self._iter_path):
                 # download file
-                print(str(self._iter_path) + " file is not exist. Starting to download...")
+                print(str(self._iter_path) + " file is not found. Starting to download...")
                 import requests
                 f = requests.get(iter_url, stream=True)
                 total_size = f.headers['content-length']
                 download_count = 0
                 with open(self._iter_path, "wb") as code:
-                    for chunk in f.iter_content(chunk_size=1024):
+                    for chunk in f.iter_content(chunk_size=chunk_size):
                         download_count += 1
                         if chunk:
-                            print("\rProgress:%f%% (%d/%d)\t - %s" % (
-                                download_count * 1024 / float(total_size), download_count * 1024, int(total_size),
-                                iter_url), end='')
+                            print("\rProgress:%.2f%% (%d/%d)\t - %s" % (
+                                min(download_count * chunk_size * 100 / float(total_size), 100.00),
+                                min(download_count * chunk_size, int(total_size)),
+                                int(total_size), iter_url), end='')
                             code.write(chunk)
                 print('\nDownload end.')
-            self.train_selector_from_file(self._iter_path)
+            return self._iter_path
+            # self.train_selector_from_file(self._iter_path)
         else:
             if not os.path.exists(self._rand_path):
                 # download file
-                print(str(self._iter_path) + " file is not exist. Starting to download...")
+                print(str(self._rand_path) + " file is not found. Starting to download...")
                 import requests
                 f = requests.get(rand_url, stream=True)
                 total_size = f.headers['content-length']
                 download_count = 0
                 with open(self._rand_path, "wb") as code:
-                    for chunk in f.iter_content(chunk_size=1024):
+                    for chunk in f.iter_content(chunk_size=chunk_size):
                         download_count += 1
                         if chunk:
-                            print("\rProgress:%f%% (%d/%d) - %s" % (
-                                download_count * 1024 / float(total_size), download_count * 1024, int(total_size),
-                                rand_url), end='')
+                            print("\rProgress:%.2f%% (%d/%d) - %s" % (
+                                min(download_count * chunk_size * 100 / float(total_size), 100.00),
+                                min(download_count * chunk_size, int(total_size)),
+                                int(total_size), rand_url), end='')
                             code.write(chunk)
                 print('\nDownload end.')
-            self.train_selector_from_file(self._rand_path)
+            return self._rand_path
+            # self.train_selector_from_file(self._rand_path)
 
     def train_selector_from_file(self, file_path=None, reg_est=2000, reg_depth=40, feat=6):
         """Train a random forest as the instance selector.
@@ -1484,7 +1494,7 @@ class QueryInstanceLAL(interface.BaseIndexQuery):
         if file_path is None:
             file_path = self._iter_path if self._mode == 'LAL_iterative' else self._rand_path
         else:
-            if not os.path.isdir(file_path):
+            if os.path.isdir(file_path):
                 raise ValueError("Please pass the path to a specific file, not a directory.")
         parameters = {'est': reg_est, 'depth': reg_depth, 'feat': feat}
         regression_data = np.load(file_path)
