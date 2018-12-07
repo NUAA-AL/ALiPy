@@ -51,12 +51,12 @@ for round in range(split_count):
     pred = model.predict(X[test_idx, :])
     accuracy = sum(pred == y[test_idx]) / len(test_idx)
     saver.set_initial_point(accuracy)
-    ceal = QueryNoisyOraclesCEAL(X, y, initial_labeled_indexs=label_ind)
+    ceal = QueryNoisyOraclesCEAL(X, y, oracles=oracles, initial_labeled_indexes=label_ind)
 
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
         # Passing model=None to use the default model for evaluating the committees' disagreement
-        select_ind, select_ora = ceal.select(label_ind, unlab_ind, oracles=oracles, batch_size=5)
+        select_ind, select_ora = ceal.select(label_ind, unlab_ind, batch_size=5)
         print(select_ind)
         print(select_ora)
 

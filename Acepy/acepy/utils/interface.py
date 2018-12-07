@@ -67,49 +67,6 @@ class BaseQueryStrategy(metaclass=ABCMeta):
         #     pass
 
 
-class BaseIndexQuery(BaseQueryStrategy):
-    """The base class for the selection method which imposes a constraint on the parameters of select()"""
-
-    @abstractmethod
-    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
-        """Select instances to query.
-
-        Parameters
-        ----------
-        label_index: {list, np.ndarray, IndexCollection}
-            The indexes of labeled samples.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled samples.
-
-        batch_size: int, optional (default=1)
-            Selection batch size.
-        """
-
-
-class BaseNoisyOracleQuery(BaseQueryStrategy):
-    @abstractmethod
-    def select(self, label_index, unlabel_index, oracles, batch_size=1, **kwargs):
-        """Query from oracles. Return the selected instance, cost and label.
-
-        Parameters
-        ----------
-        label_index: {list, np.ndarray, IndexCollection}
-            The indexes of labeled samples.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled samples.
-
-        oracles: {list, acepy.oracle.Oracles}, optional (default=None)
-            An acepy.oracle.Oracle object that contains all the
-            available oracles or a list of oracles.
-            Each oracle should be a acepy.oracle.Oracle object.
-
-        batch_size: int, optional (default=1)
-            Selection batch size.
-        """
-
-
 class BaseVirtualOracle(metaclass=ABCMeta):
     """
     Basic class of virtual Oracle for experiment
