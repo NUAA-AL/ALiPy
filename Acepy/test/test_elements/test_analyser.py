@@ -3,7 +3,7 @@ import copy
 from sklearn.datasets import make_classification
 
 from acepy.experiment.state import State
-from acepy.query_strategy.query_strategy import (QueryInstanceUncertainty,
+from acepy.query_strategy import (QueryInstanceUncertainty,
                                                  QueryRandom,
                                                  )
 from acepy.toolbox import ToolBox
@@ -149,3 +149,5 @@ def test_list_of_performance2():
     analyser.add_method('uncertainty', uncertainty_result)
     analyser.plot_learning_curves(title='make_classification', std_area=True)
     analyser.plot_learning_curves(title='make_classification', std_area=True, start_point=0.6)
+
+test_stateio_container2()
