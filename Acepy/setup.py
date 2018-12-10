@@ -11,7 +11,7 @@ setup(
     author_email='tangyp@nuaa.edu.cn, GuoXiangLi@nuaa.edu.cn',
     url='https://github.com/tangypnuaa/acepy',
     setup_requires=[],
-    install_requires=['numpy', 'scipy', 'scikit-learn', 'matplotlib', 'prettytable'],
+    install_requires=['numpy', 'scipy', 'scikit-learn', 'matplotlib', 'prettytable', 'cvxpy'],
     packages=[
         'acepy',
         'acepy.data_manipulate',

@@ -1,5 +1,7 @@
 # acepy: ACtive lEarning toolbox for PYthon
 
+Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.cn/huangsj)
+
 ## Introduction
 
 Acepy is a python package for experimenting with different active learning settings and algorithms. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
@@ -106,28 +108,18 @@ Acepy provide several commonly used strategies for now, and new algorithms will 
 	1. (In Progress) ALBL (AAAI 2015 Active Learning by Learning)
 	2. (In Progress) LAL (NIPS 2017 Learning Active Learning from Data)
 
+### Implement your own algorithm
+
+In acepy, there is no limitation for your implementation. All you need is ensure the returned selected index is a subset of unlabeled indexes.
+
+```
+select_ind = my_query(unlab_ind, **my_parameters)
+assert set(select_ind) < set(unlab_ind)
+```
+	
 ## Usage
 
-There are 2 ways to use acepy.
-
-First one is to use the high level encapsulation `acepy.experiment.AlExperiment` class. Here is a simple example, for the full tutorial of this class, please see the [acepy main page]() (Coming soon):
-
-```
-from sklearn.datasets import load_iris
-from acepy.experiment.al_experiment import AlExperiment
-
-X, y = load_iris(return_X_y=True)
-al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50,)
-al.split_AL()
-al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
-al.set_performance_metric('roc_auc_score')
-al.start_query(multi_thread=True)
-al.plot_learning_curve()
-```
-
-However, the above code only supports the most commonly setting in active learning, and has some limitations if you want to implement your own algorithm.
-
-To custom your active learning program, it is recommended to use each tools independently in acepy. Here is a complete example of implementing the experiment with acepy.
+There are 2 ways to use acepy. Acepy provides independent tools to ensure the scalability, thus it is recommended to follow the examples provided in the tutorial in acepy main page and pick the tools according to your usage to customize your experiment. In this way, on one hand, the logic of your program is absolutely clear to you and thus easy to debug. On the other hand, some parts in your active learning process can be substituted by your own implementation for special usage.
 
 ```
 import copy
@@ -187,5 +179,19 @@ print(analyser)
 analyser.plot_learning_curves(title='Example of AL', std_area=True)
 ```
 
-Acepy provide many tools for various settings in active learning. For more examples and usages of each module in acepy, please refer to the [documentation]() (Coming soon).
+However, some users may also need a high level encapsulation which is eaiser to use. Luckily, acepy also provides a class which has encapsulated various tools and implemented the main loop of active learning, namely acepy.experiment.AlExperiment. Note that, AlExperiment only support the most commonly used scenario - query all labels of an instance. You can run the experiments with only a few lines of codes by this class. All you need is to specify the various options, the query process will be run in multi-threaded.
 
+```
+from sklearn.datasets import load_iris
+from acepy.experiment.al_experiment import AlExperiment
+
+X, y = load_iris(return_X_y=True)
+al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50,)
+al.split_AL()
+al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
+al.set_performance_metric('roc_auc_score')
+al.start_query(multi_thread=True)
+al.plot_learning_curve()
+```
+
+Note that, if you want to implement your own algorithm with this class, there are some constraints have to be satisfied, please see api reference for this class.

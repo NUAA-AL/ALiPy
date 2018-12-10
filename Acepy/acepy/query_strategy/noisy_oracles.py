@@ -36,6 +36,7 @@ from .query_labels import _get_proba_pred
 from ..utils.ace_warnings import *
 from ..oracle import Oracles, Oracle
 
+
 def majority_vote(labels, weight=None):
     """Perform majority vote to determine the true label from
     multiple noisy oracles.
@@ -61,6 +62,7 @@ def majority_vote(labels, weight=None):
     vote_result = collections.Counter(labels)
     most_votes = vote_result.most_common(n=1)
     return most_votes[0][0], most_votes[0][1]
+
 
 class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
     """Cost-Effective Active Learning from Diverse Labelers (CEAL) method assume
@@ -251,6 +253,7 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
                 labels, cost = oracle.query_by_index(nn_of_selected_ins)
                 oracles_score.append(sum([nn_dist[i] * (labels[i] == self.y[nn_of_selected_ins[i]]) for i in
                                           range(num_of_neighbors)]) / num_of_neighbors)
+                oracles_cost.append()
                 # calc c_i, cost of each labeler
                 labels, cost = oracle.query_by_index(label_index)
                 oracles_cost.append(
@@ -264,5 +267,3 @@ class QueryNoisyOraclesIEthresh(BaseNoisyOracleQuery):
     """
 
     """
-
-
