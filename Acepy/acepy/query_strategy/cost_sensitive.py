@@ -10,11 +10,12 @@ import queue
 
 import numpy as np
 from sklearn.svm import SVC
+from ..acepy.utils import interface
 from ..acepy.utils.interface import BaseQueryStrategy 
 from ..acepy.utils.misc import randperm, nlargestarg, nsmallestarg
 
 
-class HALC():
+class HALC(BaseQueryStrategy):
     """
     Parameters
     ----------
@@ -55,7 +56,8 @@ class HALC():
         self.y = y
         self.n_samples, self.n_classes = np.shape(y)
         self.label_index = label_index
-        self.Uncertainty = np.zeros([self.n_samples, self.n_classes])
+        # self.Uncertainty = np.zeros([self.n_samples, self.n_classes])
+       
         if costs is None:
             self.costs = np.ones(self.n_classes)
         else:
@@ -95,20 +97,29 @@ class HALC():
             i_y = train_y[:, i]
             m = copy.deepcopy(self.base_model)
             m.fit(train_X, i_y)
-            models.append(m)   
+            models.append(copy.deepcopy(m))   
         return models
     
-    def cal_uncertainty(self, unlabel_index):
+    def cal_uncertainty(self):
         """
             calculate the uncertainty of instance xi on a label yj.
-        """      
-        unlabel_data = self.X[unlabel_index, :]
-        for i in unlabel_index:
-            instance = unlabel_data[i, :]
-            for j in np.arange(self.n_classes):
-                model = self.models[i]
-                d_v = model.decision_values(instance)
-                self.Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
+        Returns: 2d-arrray-like, shape [n_samples, n_classes]
+        the uncertainty of instance xi on a label yj.
+        """
+        Uncertainty = np.zeros([self.n_samples, self.n_classes])
+        # unlabel_data = self.X[unlabel_index, :]
+        for j in np.arange(self.n_classes):
+            model = self.models[j]
+            j_target = self.Train_Target[:, j]
+            j_label = np.where(j_target != 0)
+            j_unlabel = np.where(j_target == 0)
+            for i in j_unlabel[0]:
+                d_v = model.decision_values(self.X[i][j])
+                Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
+            Uncertainty[j_label, j] = -np.infty
+        
+        return Uncertainty
+
      
     def _cal_Distance(self):
         """
@@ -124,16 +135,16 @@ class HALC():
         Distance = Distance + Distance.T
         return Distance
 
-    def cal_relevance(self, Xi_index, j_class, label_index, k=5):
+    def cal_relevance(self, Xi_index, j_class, k=5):
         """
         """
-        train_data = self.X[label_index, :]
-        Xi = self.X[Xi_index]
+        label_index = np.where(self.Train_Target != 0)
+        Xi = self.X[Xi_index, :]
         distance = self.Distance[Xi_index]
         KNN_index = nsmallestarg(distance, k)
         vote = []
         for i in KNN_index:
-            if i in label_index:
+            if i in label_index[0]:
                 g_j = self.y[i, j_class]
             else:
                 g_j = self.models[j_class].decision_values(self.X[i, :])
@@ -145,49 +156,90 @@ class HALC():
         """
         Udes = 0
         que = queue.Queue()
-        q.put(j_class)     
-        while !que.empty():
+        que.put(j_class)     
+        while not que.empty():
             temp = que.get()
             if np.any(self.label_tree[j_class]):
                 for i in self.label_tree[j_class]:
                     if self.label_tree[j_class, i] == 1:
-                        q.put(i)
+                        que.put(i)
             else:
                 Udes += self.Uncertainty[xi_index][temp]
         return Udes
     
-    def cal_Informativeness(self, label_index, unlabel_index, train_target):
+    def cal_Informativeness(self):
         """
 
         Returns:
-        Info : 2D array 
+        Info : 2d array-like 
         shape [n_unlabel_samples, n_classes]
         Informativeness of each unlabel samples
         """
-        data = self.X[unlabel_index, :]
-        Infor = np.zeros((len(unlabel_index), self.n_classes))
-        self.cal_uncertainty(unlabel_index)
-        for i in unlabel_index:
-            
-            for j in np.arange(self.n_classes):
-                if self.cal_relevance(i,j, label_index) == 1:
-                    Infor[i][j] = self.Uncertainty[i][j] * 2
-                elif self.cal_relevance(i,j, label_index) == -1:
-                    Infor[i][j] = self.Uncertainty[i][j] + self.cal_Udes(i, j)
-                if train_target[i][j] != 0:
-                    Infor[i][j] = - np.infty
-        
+        Infor = np.zeros((self.n_samples, self.n_classes))
+        Uncertainty = self.cal_uncertainty()
+        for j in np.arange(self.n_classes):
+            j_target = self.Train_Target[:, j]
+            j_label = np.where(j_target != 0)
+            j_unlabel = np.where(j_target == 0)
+            for i in j_unlabel[0]:
+                flag = self.cal_relevance(i, j,k=5)
+                if flag == 1:
+                    Infor[i][j] = Uncertainty[i][j] * 2
+                elif flag == -1:
+                    Infor[i][j] = Uncertainty[i][j] + self.cal_Udes(i, j)
+            Infor[j_label][j] = -np.infty
+
         return Infor
-
-
-
         
+    def select(self, label_index, budget):
+
+        Infor = self.cal_Informativeness()
+
+        # sort the infor in descent way,in the meanwhile record instance label pair
+        for j in np.arange(self.n_samples):
+            j_info = Infor[:, j]
+            sort_index = np.argsort(j_info)
+            sort_index = sort_index[1: 40]
+            useless_index = np.where(Infor[sort_index][j] == -np.infty)
+            
+             
 
 
+
+
+class QueryRandom(interface.BaseQueryStrategy):
+    """Randomly sample a batch of indexes from the unlabel indexes."""
+
+    def select(self, unlabel_index, target, cost, batch_size=1):
+        """Select indexes randomly.
+
+        Parameters
+        ----------
+        unlabel_index: collections.Iterable
+            The indexes of unlabeled set.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        select_pair: 2d array-like, shape[query_instance, query_label]
+            The selected indexes which is a subset of unlabel_index.
         
-    
-    def select(self, label_index, unlabel_index, budget):
-
+        query_cost: float
+            the total cost of query the label
+        """
+        n_samples, n_classes = np.shape(target)
+        select_pair = np.zeros((batch_size, n_classes))
+        query_cost = 0
+        perm = randperm(n_samples - 1, batch_size)
+        for i in np.arange(batch_size):
+            instacne_target = target[perm[i], :]
+            unlabel_class = np.sum(instacne_target == 0)
+            query_label = randperm(unlabel_class -1, 1)
+            select_pair[i][query_label] == 1
+            query_cost += cost[query_label]
+        return select_pair, query_cost
 
                 
 
