@@ -223,8 +223,8 @@ class MultiLabelIndexCollection(IndexCollection):
     """Class for managing multi-label indexes.
 
     This class stores indexes in multi-label. Each element should be a tuple.
-    A single index should only have 1 element (example_index, ) to query all _labels or
-    2 elements (example_index, [label_indexes]) to query specific _labels.
+    A single index should only have 1 element (example_index, ) to query all labels or
+    2 elements (example_index, [label_indexes]) to query specific labels.
 
     Some examples of valid multi-label indexes include:
     queried_index = (1, [3,4])
@@ -232,7 +232,7 @@ class MultiLabelIndexCollection(IndexCollection):
     queried_index = (1, 3)
     queried_index = (1, (3))
     queried_index = (1, (3,4))
-    queried_index = (1, )   # query all _labels
+    queried_index = (1, )   # query all labels
 
     Several validity checking are implemented in this class.
     Such as repeated elements, Index out of bound.

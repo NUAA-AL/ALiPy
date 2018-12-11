@@ -1,7 +1,5 @@
 import copy
-
 from sklearn.datasets import load_iris
-
 from acepy.toolbox import ToolBox
 
 X, y = load_iris(return_X_y=True)
