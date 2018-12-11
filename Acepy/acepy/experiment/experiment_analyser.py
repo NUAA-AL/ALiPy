@@ -55,7 +55,7 @@ def ExperimentAnalyser(x_axis='num_of_queries'):
     if x_axis == 'num_of_queries':
         return _NumOfQueryAnalyser()
     else:
-        return _CostSensitiveAnalyser()
+        return _CostEffectiveAnalyser()
 
 
 def _type_of_data(result):
@@ -255,10 +255,8 @@ class _ContentSummary:
 
         Parameters
         ----------
-        method_results: utils.AlExperiment.AlExperiment
-            experiment results of a method.
-
-            list of stateIOs
+        method_results: list
+            A list of StateIO object that contains experiment results of a method.
         """
         # examine the AlExperiment object
         if not np.all([sio.check_batch_size() for sio in method_results]):
@@ -515,14 +513,14 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         return '\n' + str(tb)
 
 
-class _CostSensitiveAnalyser(BaseAnalyser):
+class _CostEffectiveAnalyser(BaseAnalyser):
     """Class to process the cost sensitive experiment results.
 
     The validity checking will depend only on the cost.
     """
 
     def __init__(self):
-        super(_CostSensitiveAnalyser, self).__init__()
+        super(_CostEffectiveAnalyser, self).__init__()
 
     def add_method(self, method_name, method_results):
         """
@@ -698,7 +696,7 @@ class _CostSensitiveAnalyser(BaseAnalyser):
 
         # axis & title
         plt.legend(fancybox=True, framealpha=0.5)
-        plt.xlabel("Number of queries")
+        plt.xlabel("Cost")
         plt.ylabel("Performance")
         if title is not None:
             plt.title(str(title))

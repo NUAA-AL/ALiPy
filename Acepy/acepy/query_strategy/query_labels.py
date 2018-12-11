@@ -24,7 +24,7 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.utils.multiclass import unique_labels
 
-import acepy.query_strategy.base
+from .base import BaseIndexQuery
 from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 from ..utils.ace_warnings import *
@@ -59,7 +59,7 @@ def _get_proba_pred(unlabel_x, model):
     return pv, spv
 
 
-class QueryInstanceUncertainty(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceUncertainty(BaseIndexQuery):
     """Uncertainty query strategy.
     The implement of uncertainty measure includes:
     1. margin sampling
@@ -269,7 +269,7 @@ class QueryRandom(interface.BaseQueryStrategy):
         return [tpl[i] for i in perm]
 
 
-class QueryInstanceQBC(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceQBC(BaseIndexQuery):
     """The Query-By-Committee (QBC) algorithm.
 
     QBC minimizes the version space, which is the set of hypotheses that are consistent
@@ -541,7 +541,7 @@ class QueryInstanceQBC(acepy.query_strategy.base.BaseIndexQuery):
         return score
 
 
-class QureyExpectedErrorReduction(acepy.query_strategy.base.BaseIndexQuery):
+class QureyExpectedErrorReduction(BaseIndexQuery):
     """The Expected Error Reduction (ERR) algorithm.
 
     The idea is to estimate the expected future error of a model trained using label set and <x, y> on
@@ -659,7 +659,7 @@ class QureyExpectedErrorReduction(acepy.query_strategy.base.BaseIndexQuery):
         return unlabel_index[nsmallestarg(scores, batch_size)]
 
 
-class QueryInstanceQUIRE(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceQUIRE(BaseIndexQuery):
     """Querying Informative and Representative Examples (QUIRE)
 
     Query the most informative and representative examples where the metrics
@@ -829,7 +829,7 @@ class QueryInstanceQUIRE(acepy.query_strategy.base.BaseIndexQuery):
         return [self._train_idx[query_index]]
 
 
-class QueryInstanceGraphDensity(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceGraphDensity(BaseIndexQuery):
     """Diversity promoting sampling method that uses graph density to determine
     most representative points.
 
@@ -963,7 +963,7 @@ class QueryInstanceGraphDensity(acepy.query_strategy.base.BaseIndexQuery):
         return output
 
 
-class QueryInstanceBMDR(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceBMDR(BaseIndexQuery):
     """Discriminative and Representative Queries for Batch Mode Active Learning (BMDR)
     will query a batch of informative and representative examples by minimizing the ERM risk bound
     of active learning.
@@ -1177,7 +1177,7 @@ class QueryInstanceBMDR(acepy.query_strategy.base.BaseIndexQuery):
                     break
 
 
-class QueryInstanceSPAL(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceSPAL(BaseIndexQuery):
     """Self-Paced Active Learning: Query the Right Thing at the Right Time (SPAL)
     will query a batch of informative, representative and easy examples by minimizing a
     well designed objective function.
@@ -1437,7 +1437,7 @@ class QueryInstanceSPAL(acepy.query_strategy.base.BaseIndexQuery):
                     break
 
 
-class QueryInstanceLAL(acepy.query_strategy.base.BaseIndexQuery):
+class QueryInstanceLAL(BaseIndexQuery):
     """The key idea of LAL is to train a regressor that predicts the
     expected error reduction for a candidate sample in a particular learning state.
 
