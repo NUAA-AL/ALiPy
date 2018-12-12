@@ -24,6 +24,7 @@ import numpy as np
 import prettytable as pt
 
 from .state import State
+from ..utils.interface import BaseCollection
 from ..index.index_collections import IndexCollection
 
 
@@ -90,8 +91,8 @@ class StateIO:
         self.round = round
         self.train_idx = copy.copy(train_idx)
         self.test_idx = copy.copy(test_idx)
-        self.init_U = IndexCollection(init_U) if not isinstance(init_U, IndexCollection) else init_U
-        self.init_L = IndexCollection(init_L) if not isinstance(init_L, IndexCollection) else init_L
+        self.init_U = IndexCollection(init_U) if not isinstance(init_U, BaseCollection) else init_U
+        self.init_L = IndexCollection(init_L) if not isinstance(init_L, BaseCollection) else init_L
         self.initial_point = initial_point
         self.batch_size = 0
         self.__state_list = []

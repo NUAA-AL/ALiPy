@@ -7,7 +7,7 @@ import time
 
 import prettytable as pt
 
-from ..experiment.state_io import StateIO
+from ..experiment import StateIO
 
 class aceThreading:
     """This class implement multi-threading in active learning for multiple 
