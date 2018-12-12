@@ -12,7 +12,7 @@ import copy
 
 import numpy as np
 
-import acepy.utils.misc
+from ..utils.misc import randperm
 from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
 from ..utils.ace_warnings import *
 from ..utils.interface import BaseCollection
@@ -215,7 +215,7 @@ class IndexCollection(BaseCollection):
             The sampled index collection.
         """
         assert (0 < rate < 1)
-        perm = acepy.utils.misc.randperm(len(self) - 1, round(rate * len(self)))
+        perm = randperm(len(self) - 1, round(rate * len(self)))
         return IndexCollection([self.index[i] for i in perm])
 
 

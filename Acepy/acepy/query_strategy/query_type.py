@@ -7,6 +7,8 @@ Query type related functions
 
 import numpy as np
 
+from .base import BaseMultiLabelQuery
+
 
 def check_query_type(type):
     """Check the query type.
@@ -48,3 +50,28 @@ def check_query_type(type):
     else:
         return False
 
+
+class QueryTypeAURO(BaseMultiLabelQuery):
+    """AURO select one instance and its 2 labels to query which one is more relevant.
+
+    The query type of this method is different with the normal active learning
+    algorithms that always query labels.
+
+     Parameters
+    ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    References
+    ----------
+    [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
+        querying informative and representative examples. IEEE
+        Transactions on Pattern Analysis and Machine Intelligence
+        36(10):1936–1949
+    """
+
+    def __init__(self, X, y, **kwargs):
+        super(QueryTypeAURO, self).__init__(X, y)
