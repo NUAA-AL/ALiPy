@@ -14,7 +14,7 @@ import numpy as np
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_array
 
-from ..query_strategy.query_type import check_query_type
+from ..query_strategy import check_query_type
 from ..utils.misc import check_matrix
 from ..utils.misc import randperm
 
