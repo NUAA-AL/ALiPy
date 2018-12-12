@@ -7,12 +7,13 @@ import collections
 import copy
 import warnings
 import queue
+# from decorators import memoized
 
 import numpy as np
 from sklearn.svm import SVC
-from ..acepy.utils import interface
-from ..acepy.utils.interface import BaseQueryStrategy 
-from ..acepy.utils.misc import randperm, nlargestarg, nsmallestarg
+from acepy.utils import interface
+from acepy.utils.interface import BaseQueryStrategy 
+from acepy.utils.misc import randperm, nlargestarg, nsmallestarg
 
 
 class HALC(BaseQueryStrategy):
@@ -46,7 +47,7 @@ class HALC(BaseQueryStrategy):
         the weights of each class.if not provide,it will all be 1 
 
     """
-    def __init__(self, X=None, y=None, label_index=None, costs=None, weights=None, label_tree=None, base_model=None, models=None, batch_size=1):
+    def __init__(self, X=None, y=None, label_index=None, weights=None, label_tree=None, base_model=None, models=None):
     
         # super(costsSensitiveUncertainty, self).__init__(X, y)
         assert(np.shape(X)[0] == np.shape(y)[0])
@@ -58,12 +59,6 @@ class HALC(BaseQueryStrategy):
         self.label_index = label_index
         # self.Uncertainty = np.zeros([self.n_samples, self.n_classes])
        
-        if costs is None:
-            self.costs = np.ones(self.n_classes)
-        else:
-            assert(np.shape(y)[0] == len(costs))
-            self.costs = costs
-
         if weights is None:
             self.weights = np.ones(self.n_classes)
         else:
@@ -191,18 +186,64 @@ class HALC(BaseQueryStrategy):
 
         return Infor
         
-    def select(self, label_index, budget):
+    def select(self, label_index, costs, budget):
 
         Infor = self.cal_Informativeness()
+        instance_pair = np.array([0, 0])
+        infor_value=np.array([0])
+        corresponding_cost = np.array([0])
 
         # sort the infor in descent way,in the meanwhile record instance label pair
         for j in np.arange(self.n_samples):
             j_info = Infor[:, j]
             sort_index = np.argsort(j_info)
-            sort_index = sort_index[1: 40]
+            sort_index = sort_index[0: 40]
+            sort_index = sort_index[::-1]
             useless_index = np.where(Infor[sort_index][j] == -np.infty)
+            sort_index = sort_index[: 40 - len(useless_index)]
             
-             
+            instance_pair = np.row_stack((sort_index, np.ones(len(sort_index)) * j))
+            infor_value = np.append(infor_value, Infor[sort_index][j])
+            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
+        
+        max_value, select_result = self.select_Knapsack_01(infor_value, corresponding_cost, budget)
+        return max_value, instance_pair[np.where(select_result!=0)[0]]
+
+        
+        
+    # def select_POSS(self, ins_lab_pair, con, costs=None, budget):
+    #     """
+    #     """
+    #     if costs is None:
+    #         costs = np.ones(self.n_classes)
+    #     else:
+    #         assert(self.n_classes == len(costs))
+    #         costs = costs
+    
+    def select_Knapsack_01(self, infor_value, costs, capacity):
+        """
+        Returns: 
+        max_value: float
+            result
+        select_index:[insta]
+            results 1d-array,1 selected,0 not
+        """
+        assert(len(infor_value) == len(costs))
+        num = len(infor_value)
+        dp = np.zeros((num + 1, capacity + 1))
+        flag = np.zeros(num)
+        for i in np.arange(num):
+            for j in np.arange(capacity+1):
+                if (j - costs[i]) < 0:
+                    dp[i+1][j] = dp[i][j]
+                else:
+                    dp[i+1][j] = max(dp[i][j], dp[i][j - costs[i]] + infor_value[i])
+        j = capacity
+        for i in np.arange(num - 1, 0, -1):
+            if (j - costs[i] >= 0) and (dp[i+1][j] == (dp[i][j - costs[i]] + infor_value[i])):
+                flag[i] = 1
+                j -= costs[i]
+        return dp[num][capacity], flag
 
 
 
@@ -364,3 +405,47 @@ class QueryRandom(interface.BaseQueryStrategy):
 #     def select_by_prediction_mat(self, unlabel_index, predict, batch_size=1):
         
 #         pass
+
+
+def select_Knapsack_01(infor_value, costs, capacity):
+    """
+    Returns: 
+    max_value: float
+        result
+    select_index:[insta]
+        results 1d-array,1 selected,0 not
+    """
+    assert(len(infor_value) == len(costs))
+    num = len(infor_value)
+    dp = np.zeros((num + 1, capacity + 1))
+    flag = np.zeros(num)
+    for i in np.arange(num):
+        for j in np.arange(capacity+1):
+            if (j - costs[i]) < 0:
+                dp[i+1][j] = dp[i][j]
+            else:
+                dp[i+1][j] = max(dp[i][j], dp[i][j - costs[i]] + infor_value[i])
+    j = capacity
+    for i in np.arange(num - 1, 0, -1):
+        if (j - costs[i] >= 0) and (dp[i+1][j] == (dp[i][j - costs[i]] + infor_value[i])):
+            flag[i] = 1
+            j -= costs[i]
+    return dp[num][capacity], flag
+
+
+
+if __name__ == "__main__":
+    # a = [1, 1, 1, 1, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 15]
+    # c = [90, 75, 83, 32, 56, 31, 21, 43, 14, 65, 12, 24, 42, 17, 60]
+    # b = 50
+    b = 20
+    w = [1, 2, 5, 6, 7, 9]
+    v = [1, 6, 18, 22, 28, 36]
+    # t=select_Knapsack_01(v,w,b)
+    k, select=select_Knapsack_01(v,w,b)
+
+
+    # print(t)
+
+    print(k)
+    print(select)
