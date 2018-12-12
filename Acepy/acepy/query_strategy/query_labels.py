@@ -669,10 +669,10 @@ class QueryInstanceQUIRE(BaseIndexQuery):
 
     Parameters
     ----------
-    X: 2D array, optional (default=None)
+    X: 2D array
         Feature matrix of the whole dataset. It is a reference which will not use additional memory.
 
-    y: array-like, optional (default=None)
+    y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
 
     train_idx: array-like
@@ -699,14 +699,6 @@ class QueryInstanceQUIRE(BaseIndexQuery):
     coef0 : float, optional (default=1.)
         Independent term in kernel function.
         It is only significant in 'poly'.
-
-
-    Attributes
-    ----------
-
-    Examples
-    --------
-
 
     References
     ----------
@@ -754,7 +746,7 @@ class QueryInstanceQUIRE(BaseIndexQuery):
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
-    def select(self, label_index, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """Select indexes from the unlabel_index for querying.
 
         Parameters

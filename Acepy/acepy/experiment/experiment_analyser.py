@@ -15,8 +15,8 @@ import numpy as np
 import prettytable as pt
 from scipy import interpolate
 
-from acepy.utils.ace_warnings import *
-from acepy.utils.interface import BaseAnalyser
+from ..utils.ace_warnings import *
+from ..utils.interface import BaseAnalyser
 from .state_io import StateIO
 
 
