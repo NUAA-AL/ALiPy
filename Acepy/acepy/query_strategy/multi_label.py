@@ -83,7 +83,7 @@ class _LabelRankingModel:
         avg_begin = 10
         avg_size = 5
 
-        costs = 1. / np.arange(start=1, stop=n_class * 5 + 1)
+        costs = 1. / np.arange(start=1, stop=n_class * 5+1)
         for k in np.arange(start=1, stop=n_class * 5):
             costs[k] = costs[k - 1] + costs[k]
 
@@ -128,7 +128,7 @@ class _LabelRankingModel:
         tmpidx = 0
 
         for i in range(n):
-            train_pairs[tmpidx + 1: tmpidx + tmpnums[i]] = i
+            train_pairs[tmpidx: tmpidx + tmpnums[i]] = i
             tmpidx = tmpidx + tmpnums[i]
 
         targets = targets.T
@@ -155,7 +155,7 @@ class _LabelRankingModel:
                 idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], n_class-1))
             n_irr = len(idx_irr)
 
-            By = B[:, (idx_class - 1) * num_sub + 1: idx_class * num_sub]
+            By = B[:, (idx_class - 1) * num_sub: idx_class * num_sub]
             Vins = V.dot(xins)
             fy = np.max(By.T.dot(Vins), axis=0)
             idx_max_class = np.argmax(By.T.dot(Vins), axis=0)
@@ -163,12 +163,13 @@ class _LabelRankingModel:
             fyn = np.NINF
             for j in range(n_irr):
                 idx_pick = idx_irr[randperm(n_irr-1, 1)[0]]
-                Byn = B[:, idx_pick * num_sub + 1: (idx_pick+1) * num_sub]
+                Byn = B[:, idx_pick * num_sub: (idx_pick+1) * num_sub]
                 # [fyn, idx_max_pick] = max(Byn.T.dot(Vins),[],1)
                 # if Byn == []:
                 #     print(0)
-                fyn = np.max(Byn.T.dot(Vins), axis=0)
-                idx_max_pick = np.argmax(Byn.T.dot(Vins), axis=0)
+                tmp1 = Byn.T.dot(Vins)
+                fyn = np.max(tmp1, axis=0)
+                idx_max_pick = np.argmax(tmp1, axis=0)
 
                 if fyn > fy - 1:
                     break
