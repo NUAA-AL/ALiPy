@@ -9,15 +9,12 @@ There are 2 categories of methods.
 And the algorithm tries to obtain the accurate label for each instance.
 
 Implement method:
-1.1 ALC (ICML'11),
-1.2 CEAL (IJCAI'17)
+1: CEAL (IJCAI'17)
 2: IEthresh (KDD'09 Donmez)
 Baselines:
 Majority vote
 Query from all oracles and majority vote
 Random select an oracle
-Select the best oracle
-Select the oracle with lowest cost
 """
 # Authors: Ying-Peng Tang
 # License: BSD 3 clause
