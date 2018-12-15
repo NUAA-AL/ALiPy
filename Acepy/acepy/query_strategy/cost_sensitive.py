@@ -7,6 +7,7 @@ import collections
 import copy
 import warnings
 import queue
+import random
 # from decorators import memoized
 
 import numpy as np
@@ -40,6 +41,62 @@ def select_Knapsack_01(infor_value, costs, capacity):
             j -= costs[i]
     return dp[num][capacity], flag
 
+def select_POSS(infor_value, costs, budget):
+    """
+    Returns: 
+    max_value: float
+        result
+    select_index:[insta]
+        results 1d-array,1 selected,0 not
+    """
+    assert(len(infor_value) == len(costs))
+    num = len(infor_value)
+    population = np.zeros(num)
+
+    popSize = 1
+    fitness = np.zeros((1, 2))
+    fitness[0][0] = np.infty
+
+    fitness[0][1] = 0.
+    # repeat to improve the population; 
+    # the number of iterations is set as 2*e*k^2*n suggested by our theoretical analysis.
+    T = round(2 * np.e * np.power(budget, 2) * num)
+
+    for round in np.arange(T):
+        # randomly select a solution from the population and mutate it to generate a new solution.
+        offspring = abs(population(random.randint(0, popSize), :) - random)
+        # compute the fitness of the new solution.
+        offspringFit = np.array([0, 0])
+        offspringFit[1] = np.sum(offspring * costs)
+
+        if offspringFit[1] == 0 or offspringFit[1] >= 2 * budget:
+            offspringFit[0] = np.infty
+        else:
+            offspringFit[0] = np.sum(offspring * infor_value)
+        # use the new solution to update the current population.
+        if (fitness[0: popSize, 0] < offspringFit[0] and fitness[0: popSize, 1] <= offspringFit[1]) or (fitness[0: popSize, 0] <= offspringFit[0] and fitness[0: popSize, 1] < offspringFit[1]):
+            continue
+        else:
+            # deleteIndex = fitness[0: popSize, 0] >= offspringFit[0] * fitness[0: popSize, 1] >= offspringFit[1]
+            condi_1 = np.where(fitness[0: popSize, 0] < offspringFit[0])
+            condi_2 = np.where(fitness[0: popSize, 1] < offspringFit[1])
+            nodeleteIndex = [val for val in condi_1[0] if val in condi_2[0]]
+            
+        # ndelete: record the index of the solutions to be kept.
+        population = np.row_stack((population[nodeleteIndex, :], offspring))
+        fitness = np.row_stack((fitness[nodeleteIndex, :], offspringFit))
+        popSize = length(nodeleteIndex) + 1
+
+    temp = np.where(fitness[:, 1] <= budget)
+    max_info_indx = np.argmax(fitness[temp[0], 0])
+    max_infovalue = fitness[max_info_indx][0]
+    selectedVariables = population[max_info_indx, :]
+
+    return max_infovalue, selectedVariables
+    
+
+
+    # select the final solution according to the constraint k on the number of selected variables. 
 class HALC(BaseQueryStrategy):
     """
     Parameters
