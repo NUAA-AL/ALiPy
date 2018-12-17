@@ -280,7 +280,9 @@ class ToolBox:
             return OracleQueryFeatures(feature_mat=self._X, cost=cost_mat)
         elif self.query_type == 'AllLabels':
             if self._target_type == 'multilabel':
-                return OracleQueryMultiLabel(self._y) if not query_by_example else OracleQueryMultiLabel(self._y, examples=self._X, cost=cost_mat)
+                return OracleQueryMultiLabel(self._y) if not query_by_example else OracleQueryMultiLabel(self._y,
+                                                                                                         examples=self._X,
+                                                                                                         cost=cost_mat)
             else:
                 return Oracle(self._y) if not query_by_example else Oracle(self._y, examples=self._X, cost=cost_mat)
 
@@ -532,8 +534,18 @@ class ToolBox:
         f.close()
 
     def IndexCollection(self, array=None):
-        """Return an IndexCollection object initialized with array"""
+        """Return an IndexCollection object initialized with array."""
         return IndexCollection(array)
+
+    def MultiLabelIndexCollection(self, array, label_mat_shape=None):
+        """Return a MultiLabelIndexCollection object initialized with array.
+        The label_mat_shape is the shape of the provided label matrix by default."""
+        if isinstance(array[0], tuple):
+            return MultiLabelIndexCollection(data=array, label_size=self._y.shape[1] if label_mat_shape is None else
+            label_mat_shape[1])
+        else:
+            return MultiLabelIndexCollection.construct_by_1d_array(data=array,
+                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape)
 
     def State(self, select_index, performance, queried_label=None, cost=None):
         """Get a State object for storing information in one iteration of active learning.

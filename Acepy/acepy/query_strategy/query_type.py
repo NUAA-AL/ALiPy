@@ -56,6 +56,9 @@ class QueryTypeAURO(BaseMultiLabelQuery):
 
     The query type of this method is different with the normal active learning
     algorithms that always query labels.
+    To this end, the label matrix you provided can have the following additional information:
+    1. -1 means irrelevant.
+    2. A positive value means relevant, the larger, the more relevant.
 
      Parameters
     ----------
