@@ -221,7 +221,7 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
                                                            n_neighbors=kwargs.pop('n_neighbors', 10))
         # get the instance-oracle pair
         selected_pair = np.unravel_index(np.argmax(Q_table, axis=None), Q_table.shape)
-        return unlabel_index[selected_pair[1]], oracle_ind_name_dict[selected_pair[0]]
+        return [unlabel_index[selected_pair[1]]], oracle_ind_name_dict[selected_pair[0]]
 
     def _calc_Q_table(self, label_index, unlabel_index, oracles, pred_unlab, n_neighbors=10):
         """Query from oracles. Return the Q table and the oracle name/index of each row of Q_table.
@@ -364,7 +364,7 @@ class QueryNoisyOraclesSelectInstanceUncertainty(BaseNoisyOracleQuery, metaclass
         # select instance and oracle
         unc = QueryInstanceUncertainty(measure='least_confident')
         selected_instance = unc.select_by_prediction_mat(unlabel_index=unlabel_index, predict=predict, batch_size=1)[0]
-        return selected_instance, self.select_by_given_instance(selected_instance)
+        return [selected_instance], self.select_by_given_instance(selected_instance)
 
     @abstractmethod
     def select_by_given_instance(self, selected_instance):

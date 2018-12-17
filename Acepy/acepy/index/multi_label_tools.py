@@ -179,7 +179,7 @@ def get_labelmatrix_in_multilabel(index, data_matrix, unknown_element=0):
         data matrix given index
 
     index_arr: list
-        index of _examples correspond to the each row of Matrix_clip
+        index of examples correspond to the each row of Matrix_clip
     """
     # check validity
     index = check_index_multilabel(index)
@@ -235,12 +235,12 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
     Note:
     Each index should be a tuple, with the first element representing instance index.
     e.g.
-    queried_index = (1, [3,4])  # 1st instance, 3rd,4t _labels
-    queried_index = (1, [3])    # 1st instance, 3rd _labels
+    queried_index = (1, [3,4])  # 1st instance, 3rd,4th labels
+    queried_index = (1, [3])    # 1st instance, 3rd labels
     queried_index = (1, 3)
     queried_index = (1, (3))
     queried_index = (1, (3,4))
-    queried_index = (1, )   # query all _labels
+    queried_index = (1, )   # query all labels
 
     Parameters
     ----------
@@ -265,7 +265,10 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
     # check validity
     X = acepy.utils.misc.check_matrix(X)
     if not len(X) == len(y):
-        raise ValueError("Different length of instances and _labels found.")
+        raise ValueError("Different length of instances and labels found.")
 
     label_matrix, ins_index = get_labelmatrix_in_multilabel(index, y)
     return X[ins_index, :], label_matrix
+
+# np.unravel_index
+# np.ravel_multi_index

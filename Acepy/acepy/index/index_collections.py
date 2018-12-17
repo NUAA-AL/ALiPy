@@ -423,6 +423,33 @@ class MultiLabelIndexCollection(IndexCollection):
                 "contained. Otherwise, a tuple should be provided")
         return self
 
+    @property
+    def onedim_index(self):
+        return [tup[0]*self._label_size + tup[1] for tup in self._innercontainer]
+
+    @classmethod
+    def construct_by_1d_array(cls, array, label_mat_shape):
+        """Construct a MultiLabelIndexCollection object by providing a
+        1d array, and the number of classes.
+
+        Parameters
+        ----------
+        array: {list, np.ndarray}
+            An 1d array of indexes.
+
+        label_mat_shape: tuple of ints
+            The shape of label matrix. The 1st element is the number of instances,
+            and the 2nd element is the total classes.
+
+        Returns
+        -------
+        multi_ind: MultiLabelIndexCollection
+            The MultiLabelIndexCollection object.
+        """
+        assert len(label_mat_shape) == 2
+        row, col = np.unravel_index(array, dims=label_mat_shape)
+        return cls(data=[(row[i], col[i]) for i in range(len(row))], label_size=label_mat_shape[1])
+
 
 class FeatureIndexCollection(MultiLabelIndexCollection):
     """Container to store the indexes in feature querying scenario.
