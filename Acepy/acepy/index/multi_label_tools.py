@@ -2,7 +2,7 @@ import collections
 
 import numpy as np
 
-import acepy.utils.misc
+import acepy.utils
 
 
 def check_index_multilabel(index):
@@ -13,6 +13,8 @@ def check_index_multilabel(index):
     index: list or np.ndarray
         index of the data.
     """
+    if isinstance(index, acepy.utils.interface.BaseCollection):
+        return index
     if not isinstance(index, (list, np.ndarray)):
         index = [index]
     datatype = collections.Counter([type(i) for i in index])
@@ -163,7 +165,7 @@ def get_labelmatrix_in_multilabel(index, data_matrix, unknown_element=0):
 
     Parameters
     ----------
-    index: list, np.ndarray or tuple
+    index: {list, np.ndarray, tuple, MultiLabelIndexCollection}
         if only one index, a tuple is expected.
         Otherwise, it should be a list type with n tuples.
 
@@ -244,7 +246,7 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
 
     Parameters
     ----------
-    index: list, np.ndarray or tuple
+    index: {list, np.ndarray, tuple, MultiLabelIndexCollection}
         if only one index, a tuple is expected.
         Otherwise, it should be a list type with n tuples.
 
@@ -259,16 +261,22 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
 
     Returns
     -------
-    Matrix_clip: np.ndarray
-        data matrix given index
+    X_clip: np.ndarray
+        Data matrix of the retrieved data.
+
+    y_clip: np.ndarray
+        Label matrix of the retrieved data.
+
+    ins_index: np.ndarray
+        Index of each retrieved data.
     """
     # check validity
     X = acepy.utils.misc.check_matrix(X)
     if not len(X) == len(y):
         raise ValueError("Different length of instances and labels found.")
 
-    label_matrix, ins_index = get_labelmatrix_in_multilabel(index, y)
-    return X[ins_index, :], label_matrix
+    label_matrix, ins_index = get_labelmatrix_in_multilabel(index, y, unknown_element=unknown_element)
+    return X[ins_index, :], label_matrix, ins_index
 
 # np.unravel_index
 # np.ravel_multi_index

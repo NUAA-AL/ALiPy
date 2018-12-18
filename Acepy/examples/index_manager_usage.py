@@ -1,5 +1,3 @@
-from acepy.index import IndexCollection
-
 # ---------IndexCollection
 a = [1, 2, 3]
 # a_ind = acebox.IndexCollection(a)
@@ -52,7 +50,7 @@ from acepy.index import get_Xy_in_multilabel
 X = [[1, 1], [2, 2]]
 y = [[3, 3], [4, 4]]
 a_ind = [(0, 1), (1, 1)]
-X_lab, y_lab = get_Xy_in_multilabel(a_ind, X, y, unknown_element=-1)
+X_lab, y_lab, _ = get_Xy_in_multilabel(a_ind, X, y, unknown_element=-1)
 print(X_lab)
 print(y_lab)
 

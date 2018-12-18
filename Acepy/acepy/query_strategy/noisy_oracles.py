@@ -29,8 +29,8 @@ import scipy.stats
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import NearestNeighbors
 
-from .query_labels import QueryInstanceUncertainty
 from .base import BaseNoisyOracleQuery
+from .query_labels import QueryInstanceUncertainty
 from .query_labels import _get_proba_pred
 from ..oracle import Oracles, Oracle
 
@@ -142,7 +142,7 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
     def __init__(self, X, y, oracles, initial_labeled_indexes):
         super(QueryNoisyOraclesCEAL, self).__init__(X, y, oracles=oracles)
         # ytype = type_of_target(self.y)
-        # if ytype in ['multilabel-indicator', 'multilabel-sequences']:
+        # if 'multilabel' in ytype:
         #     warnings.warn("This query strategy does not support multi-label.",
         #                   category=FunctionWarning)
         assert (isinstance(initial_labeled_indexes, collections.Iterable))
