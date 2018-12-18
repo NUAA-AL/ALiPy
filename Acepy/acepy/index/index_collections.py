@@ -12,10 +12,11 @@ import copy
 
 import numpy as np
 
-from ..utils.misc import randperm
-from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index
+from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
+    integrate_multilabel_index
 from ..utils.ace_warnings import *
 from ..utils.interface import BaseCollection
+from ..utils.misc import randperm
 
 
 class IndexCollection(BaseCollection):
@@ -426,6 +427,62 @@ class MultiLabelIndexCollection(IndexCollection):
     @property
     def onedim_index(self):
         return [tup[0]*self._label_size + tup[1] for tup in self._innercontainer]
+
+    def get_instance_index(self):
+        """Get the index of instances contained in this object.
+        If it is a labeled set, it is equivalent to the indexes of fully and partially labeled instances.
+
+        Returns
+        -------
+        partlab: list
+            The indexes of partially labeled instances.
+        """
+        return np.unique([tp[0] for tp in self._innercontainer])
+
+    def _get_cond_instance(self, cond):
+        """Return the indexes of instances according to the cond.
+
+        cond = 0: return the instances which are unbroken.
+        cond = 1: return the instances which have missing entries.
+        """
+        tmp = integrate_multilabel_index(self.index, label_size=self._label_size, check_arr=False)
+        if cond == 0:
+            return [tp[0] for tp in tmp if len(tp) == 1]
+        else:
+            return [tp[0] for tp in tmp if len(tp) > 1]
+
+    def get_unbroken_instances(self):
+        """Return the indexes of unbroken instances whose entries are all known."""
+        return self._get_cond_instance(cond=0)
+
+    def get_break_instances(self):
+        """Return the indexes of break instances which have missing entries."""
+        return self._get_cond_instance(cond=1)
+
+    def get_label_mask(self, label_mat_shape, init_value=0, fill_value=1):
+        """Return an array which has the same shape with the label matrix.
+        If an entry is known, then, the corresponding value in the mask is 1, otherwise, 0.
+
+        Parameters
+        ----------
+        label_mat_shape: tuple
+            The shape of label matrix. [n_samples, n_classes]
+
+        init_value: int
+            The value to initialize the mask.
+
+        fill_value: int
+            The value filled in the mask when the entry is in the container.
+
+        Returns
+        -------
+        mask: np.ndarray
+            The mask of the label matrix.
+        """
+        mask = np.zeros(label_mat_shape) + init_value
+        for item in self._innercontainer:
+            mask[item] = fill_value
+        return mask
 
     @classmethod
     def construct_by_1d_array(cls, array, label_mat_shape):

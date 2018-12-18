@@ -15,11 +15,13 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-import numpy as np
 
+import numpy as np
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
 
 from .base import BaseMultiLabelQuery
+from ..index.index_collections import MultiLabelIndexCollection
+from ..index.multi_label_tools import get_Xy_in_multilabel
 from ..utils.misc import nsmallestarg, randperm
 
 
@@ -373,7 +375,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
             vals[i] = np.max((tmp0 + tmp1), (tmp0 + tmp2))
 
         idx_selected = nsmallestarg(vals, 1)[0]
-        return unlabel_index[idx_selected]
+        return [unlabel_index[idx_selected]]
 
 
 class QueryMultiLabelAUDI(BaseMultiLabelQuery):
@@ -390,12 +392,37 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
 
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
-    """
-    def __init__(self, X, y):
-        super(QueryMultiLabelAUDI, self).__init__(X, y)
-        if len(np.nonzero(self.y == 2.0)[0]) == 0:
-            self.y = np.hstack((self.y, 2 * np.ones((self.y.shape[0], 1))))
-        self.pairs=[]
 
-    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
-        pass
+    initial_labeled_indexes: {list, np.ndarray, IndexCollection}
+        The indexes of initially labeled samples. Used for initializing the LabelRanking model.
+    """
+
+    def __init__(self, X, y, initial_labeled_indexes):
+        super(QueryMultiLabelAUDI, self).__init__(X, y)
+        # if len(np.nonzero(self.y == 2.0)[0]) == 0:
+        #     self.y = np.hstack((self.y, 2 * np.ones((self.y.shape[0], 1))))
+        if isinstance(initial_labeled_indexes, MultiLabelIndexCollection):
+            initial_labeled_indexes = initial_labeled_indexes.get_unbroken_instances()
+        self._lr_model = LabelRankingModel(self.X[initial_labeled_indexes, :], self.y[initial_labeled_indexes, :])
+
+    def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
+        if len(unlabel_index) <= 1:
+            return unlabel_index
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        label_index = self._check_multi_label_ind(label_index)
+
+        # select instance by LCI
+        W = unlabel_index.get_label_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
+        pres, labels = self._lr_model.predict(lab_data)
+        avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
+        insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
+        selected_ins = np.argmin(insvals)
+        selected_ins = data_ind[selected_ins]
+
+        # last line in pres is the predict value of dummy label
+        # select label by calculating the distance between each label with dummy label
+        dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
+        selected_lab = np.argmin(dis)
+
+        return selected_ins, selected_lab

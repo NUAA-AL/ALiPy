@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABCMeta
 
 import numpy as np
-from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_X_y
 
 from ..index import MultiLabelIndexCollection
@@ -81,8 +80,9 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
 
     def _check_multi_label(self, matrix):
         """Check if the given matrix is multi label"""
-        ytype = type_of_target(matrix)
-        if not ytype in ['multilabel-indicator', 'multilabel-sequences']:
+        # ytype = type_of_target(matrix)
+        # if 'multilabel' not in ytype:
+        if len(np.shape(matrix)) != 2:
             raise ValueError("Please provide a multi-label matrix in y with the shape [n_samples, n_classes].")
 
     def __init__(self, X=None, y=None, **kwargs):
