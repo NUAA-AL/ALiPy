@@ -8,6 +8,7 @@ import copy
 import warnings
 import queue
 import random
+import matlab
 # from decorators import memoized
 
 import numpy as np
@@ -18,11 +19,23 @@ from acepy.utils.misc import randperm, nlargestarg, nsmallestarg
 
 def select_Knapsack_01(infor_value, costs, capacity):
     """
-    Returns: 
+    Knapsack-0/1 problem using dynamic porgramming.
+
+    Parameters:
+    -----------
+    infor_value: array-like
+        The value corresponding to each item.
+    costs: array-like
+        The cost corresponding to each item.
+    capacity: float
+        The capacity of the knapsack.
+    Returns:
+    -----------
     max_value: float
-        result
-    select_index:[insta]
-        results 1d-array,1 selected,0 not
+        The greatest value the knapsack can bring.
+    select_index: array-like
+        The result of whether to select the item or not,
+        1 reprent this item is selected,0 is not.
     """
     assert(len(infor_value) == len(costs))
     num = len(infor_value)
@@ -43,11 +56,30 @@ def select_Knapsack_01(infor_value, costs, capacity):
 
 def select_POSS(infor_value, costs, budget):
     """
-    Returns: 
+    POSS (Pareto Optimization for Subset Selection) method.
+    
+    Paremeters:
+    ----------
+    infor_value: array-like
+        The value corresponding to each item.
+    costs: array-like
+        The cost corresponding to each item.
+    Budget: float
+        the constraint on the cost of selected variables.
+    Returns:
+    ----------
     max_value: float
-        result
-    select_index:[insta]
-        results 1d-array,1 selected,0 not
+        The greatest infor-value.
+    select_index: array-like
+        The result of whether to select the item or not,
+        1 reprent this item is selected,0 is not.
+
+    References
+    ----------
+    [1] Chao Qian, Yang Yu, and Zhi-Hua Zhou.
+        Subset selection by pareto optimization. In Advances
+        in Neural Information Processing Systems, pages 1774–
+        1782, 2015.
     """
     assert(len(infor_value) == len(costs))
     num = len(infor_value)
@@ -60,11 +92,11 @@ def select_POSS(infor_value, costs, budget):
     fitness[0][1] = 0.
     # repeat to improve the population; 
     # the number of iterations is set as 2*e*k^2*n suggested by our theoretical analysis.
-    T = round(2 * np.e * np.power(budget, 2) * num)
+    T = 2 * np.e * np.power(budget, 2) * num
 
     for round in np.arange(T):
         # randomly select a solution from the population and mutate it to generate a new solution.
-        offspring = abs(population(random.randint(0, popSize), :) - random)
+        offspring = np.abs(population[np.random.randint(0, popSize), :] - np.random.choice([1, 0], size=(num), p=[1/num, 1 - 1/num]))
         # compute the fitness of the new solution.
         offspringFit = np.array([0, 0])
         offspringFit[1] = np.sum(offspring * costs)
@@ -85,7 +117,7 @@ def select_POSS(infor_value, costs, budget):
         # ndelete: record the index of the solutions to be kept.
         population = np.row_stack((population[nodeleteIndex, :], offspring))
         fitness = np.row_stack((fitness[nodeleteIndex, :], offspringFit))
-        popSize = length(nodeleteIndex) + 1
+        popSize = len(nodeleteIndex) + 1
 
     temp = np.where(fitness[:, 1] <= budget)
     max_info_indx = np.argmax(fitness[temp[0], 0])
@@ -94,9 +126,6 @@ def select_POSS(infor_value, costs, budget):
 
     return max_infovalue, selectedVariables
     
-
-
-    # select the final solution according to the constraint k on the number of selected variables. 
 class HALC(BaseQueryStrategy):
     """
     Parameters
@@ -503,7 +532,6 @@ if __name__ == "__main__":
     v = [1, 6, 18, 22, 28, 36]
     # t=select_Knapsack_01(v,w,b)
     k, select=select_Knapsack_01(v,w,b)
-
 
     # print(t)
 
