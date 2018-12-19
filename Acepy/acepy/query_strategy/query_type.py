@@ -89,12 +89,14 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
-        # label_index = self._check_multi_label_ind(label_index)
+        label_index = self._check_multi_label_ind(label_index)
 
         # select instance with least queries
         W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
-        lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
-        pres, labels = self._lr_model.predict(lab_data)
+        unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
+        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+        self._lr_model.fit(lab_data, lab_lab)
+        pres, labels = self._lr_model.predict(unlab_data)
         selected_ins = np.argmin(np.sum(W, axis=1))
 
         # last line in pres is the predict value of dummy label
