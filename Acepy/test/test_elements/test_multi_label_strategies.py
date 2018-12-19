@@ -26,4 +26,4 @@ for round in range(10):
         select_ind, y1, y2 = auro.select(label_ind, unlab_ind)
         print(select_ind)
         print(y1, y2)
-        pass
+        break

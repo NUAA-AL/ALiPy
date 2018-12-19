@@ -72,6 +72,6 @@ for round in range(split_count):
         select_ind, select_ora = rand.select(label_ind, unlab_ind)
         print(select_ind)
         print(select_ora)
-        pass
+        break
 
 

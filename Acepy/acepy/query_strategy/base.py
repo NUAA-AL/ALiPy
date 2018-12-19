@@ -73,9 +73,9 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
                 else:
                     container = MultiLabelIndexCollection.construct_by_1d_array(container, label_mat_shape=self.y.shape)
             except:
-                raise ValueError("Please pass a MultiLabelIndexCollection or a list of tuples with 2 elements or "
-                                 "a 1d index array. In which, the 1st element is the index of instance and the "
-                                 "2nd element is the index of label.")
+                raise ValueError("Please pass a 1d array of indexes or MultiLabelIndexCollection or a list "
+                                 "of tuples with 2 elements, in which, the 1st element is the index of instance "
+                                 "and the 2nd element is the index of label.")
         return container
 
     def _check_multi_label(self, matrix):

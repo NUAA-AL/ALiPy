@@ -72,7 +72,7 @@ def _type_of_data(result):
     """
     if isinstance(result[0], StateIO):
         return 0
-    elif isinstance(result[0], list):
+    elif isinstance(result[0], (list, np.ndarray)):
         if isinstance(result[0][0], collections.Iterable):
             if len(result[0][0]) > 1:
                 return 2

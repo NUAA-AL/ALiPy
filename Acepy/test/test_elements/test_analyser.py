@@ -116,8 +116,10 @@ def test_stateio_container1():
     analyser.plot_learning_curves(title='make_classification', std_area=True)
 
 def test_list_of_performance1():
-    radom_result = [[0.6, 0.7, 0.8, 0.9], [0.7, 0.7, 0.75, 0.85]]  # 2 folds, 4 queries for each fold.
-    uncertainty_result = [[0.7, 0.75, 0.85, 0.9], [0.73, 0.75, 0.88, 0.92]]
+    # radom_result = [[0.6, 0.7, 0.8, 0.9], [0.7, 0.7, 0.75, 0.85]]  # 2 folds, 4 queries for each fold.
+    # uncertainty_result = [[0.7, 0.75, 0.85, 0.9], [0.73, 0.75, 0.88, 0.92]]
+    radom_result = [[0.6, 0.7, 0.8, 0.9]]  # 1 folds, 4 queries for each fold.
+    uncertainty_result = [[0.7, 0.75, 0.85, 0.9]]
     analyser = acebox.get_experiment_analyser()
     analyser.add_method('random', radom_result)
     analyser.add_method('uncertainty', uncertainty_result)
@@ -150,4 +152,4 @@ def test_list_of_performance2():
     analyser.plot_learning_curves(title='make_classification', std_area=True)
     analyser.plot_learning_curves(title='make_classification', std_area=True, start_point=0.6)
 
-test_stateio_container2()
+test_list_of_performance1()

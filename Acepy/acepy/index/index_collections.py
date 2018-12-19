@@ -11,6 +11,7 @@ import collections
 import copy
 
 import numpy as np
+from scipy.sparse import bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix
 
 from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
     integrate_multilabel_index
@@ -459,7 +460,7 @@ class MultiLabelIndexCollection(IndexCollection):
         """Return the indexes of break instances which have missing entries."""
         return self._get_cond_instance(cond=1)
 
-    def get_label_mask(self, label_mat_shape, init_value=0, fill_value=1):
+    def get_matrix_mask(self, label_mat_shape, fill_value=1, sparse_format='lil_matrix'):
         """Return an array which has the same shape with the label matrix.
         If an entry is known, then, the corresponding value in the mask is 1, otherwise, 0.
 
@@ -468,18 +469,22 @@ class MultiLabelIndexCollection(IndexCollection):
         label_mat_shape: tuple
             The shape of label matrix. [n_samples, n_classes]
 
-        init_value: int
-            The value to initialize the mask.
-
         fill_value: int
             The value filled in the mask when the entry is in the container.
 
+        sparse_format: str
+            The format of the returned sparse matrix.
+            should be one onf [bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix].
+            Please refer to https://docs.scipy.org/doc/scipy-0.18.1/reference/sparse.html
+            for the definition of each sparse format.
+
         Returns
         -------
-        mask: np.ndarray
+        mask: {scipy.sparse.csr_matrix, scipy.sparse.csc_matrix}
             The mask of the label matrix.
         """
-        mask = np.zeros(label_mat_shape) + init_value
+        assert isinstance(label_mat_shape, tuple)
+        mask = eval(sparse_format + '(label_mat_shape)')
         for item in self._innercontainer:
             mask[item] = fill_value
         return mask
@@ -504,7 +509,7 @@ class MultiLabelIndexCollection(IndexCollection):
             The MultiLabelIndexCollection object.
         """
         assert len(label_mat_shape) == 2
-        row, col = np.unravel_index(array, dims=label_mat_shape)
+        row, col = np.unravel_index(array, dims=label_mat_shape, order='F')
         return cls(data=[(row[i], col[i]) for i in range(len(row))], label_size=label_mat_shape[1])
 
 
