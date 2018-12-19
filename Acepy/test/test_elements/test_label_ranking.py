@@ -4,7 +4,7 @@ Test the label ranking model
 
 import numpy as np
 import scipy.io as scio
-from acepy.query_strategy.multi_label import _LabelRankingModel_MatlabVer
+from acepy.query_strategy.multi_label import _LabelRankingModel_MatlabVer, LabelRankingModel
 from acepy.utils.misc import randperm
 
 # generate samples
@@ -24,16 +24,18 @@ init_labels = ld['init_labels']
 train_data = ld['train_data']
 train_targets = ld['train_targets']
 
+# lrmodel = _LabelRankingModel_MatlabVer(init_data, init_labels)
+# B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, \
+# lmbda, average_begin, average_size, n_repeat, max_query = lrmodel.init_model_train()
+# print(AB,AV,Anum)
+# BV=lrmodel.get_BV(AB, AV, Anum)
+# print(BV)
+# pres,labels=lrmodel.lr_predict(BV, train_data, num_sub)
+# print(pres.shape)
+# print(pres)
+# print(labels)
 
-lrmodel = _LabelRankingModel_MatlabVer(init_data, init_labels)
-B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, \
-lmbda, average_begin, average_size, n_repeat, max_query = lrmodel.init_model_train()
-# lrmodel.fit(train_data, train_targets, B, V, idxPs, idxNs, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds, lmbda,
-#             average_begin, average_size)
-print(AB,AV,Anum)
-BV=lrmodel.get_BV(AB, AV, Anum)
-print(BV)
-pres,labels=lrmodel.lr_predict(BV, train_data, num_sub)
-print(pres.shape)
-print(pres)
-print(labels)
+lr_model = LabelRankingModel(init_X=init_data, init_y=init_labels)
+lr_model.fit(train_data, train_targets)
+pres, lab = lr_model.predict(train_data)
+print(pres, lab)
