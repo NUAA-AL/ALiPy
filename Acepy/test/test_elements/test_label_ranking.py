@@ -4,7 +4,7 @@ Test the label ranking model
 
 import numpy as np
 import scipy.io as scio
-from acepy.query_strategy.multi_label import _LabelRankingModel
+from acepy.query_strategy.multi_label import _LabelRankingModel_MatlabVer
 from acepy.utils.misc import randperm
 
 # generate samples
@@ -25,7 +25,7 @@ train_data = ld['train_data']
 train_targets = ld['train_targets']
 
 
-lrmodel = _LabelRankingModel(init_data, init_labels)
+lrmodel = _LabelRankingModel_MatlabVer(init_data, init_labels)
 B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, \
 lmbda, average_begin, average_size, n_repeat, max_query = lrmodel.init_model_train()
 # lrmodel.fit(train_data, train_targets, B, V, idxPs, idxNs, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds, lmbda,
@@ -33,7 +33,7 @@ lmbda, average_begin, average_size, n_repeat, max_query = lrmodel.init_model_tra
 print(AB,AV,Anum)
 BV=lrmodel.get_BV(AB, AV, Anum)
 print(BV)
-pres,labels=lrmodel.predict(BV,train_data,num_sub)
+pres,labels=lrmodel.lr_predict(BV, train_data, num_sub)
 print(pres.shape)
 print(pres)
 print(labels)

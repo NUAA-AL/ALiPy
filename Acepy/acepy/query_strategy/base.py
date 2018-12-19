@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABCMeta
 
 import numpy as np
-from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_X_y
 
 from ..index import MultiLabelIndexCollection
@@ -63,24 +62,27 @@ class BaseNoisyOracleQuery(BaseQueryStrategy, metaclass=ABCMeta):
 
 class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
     """
-
     """
 
     def _check_multi_label_ind(self, container):
         """Check if the given array is an array of multi label indexes."""
         if not isinstance(container, MultiLabelIndexCollection):
             try:
-                container = MultiLabelIndexCollection(container)
+                if isinstance(container[0], tuple):
+                    container = MultiLabelIndexCollection(container, self.y.shape[1])
+                else:
+                    container = MultiLabelIndexCollection.construct_by_1d_array(container, label_mat_shape=self.y.shape)
             except:
-                raise ValueError("Please pass a MultiLabelIndexCollection or a list of tuples with 2 elements. "
-                                 "In which, the 1st element is the index of instance and the 2nd element "
-                                 "is the index of label.")
+                raise ValueError("Please pass a MultiLabelIndexCollection or a list of tuples with 2 elements or "
+                                 "a 1d index array. In which, the 1st element is the index of instance and the "
+                                 "2nd element is the index of label.")
         return container
 
     def _check_multi_label(self, matrix):
         """Check if the given matrix is multi label"""
-        ytype = type_of_target(y)
-        if not ytype in ['multilabel-indicator', 'multilabel-sequences']:
+        # ytype = type_of_target(matrix)
+        # if 'multilabel' not in ytype:
+        if len(np.shape(matrix)) != 2:
             raise ValueError("Please provide a multi-label matrix in y with the shape [n_samples, n_classes].")
 
     def __init__(self, X=None, y=None, **kwargs):

@@ -15,36 +15,30 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-import numpy as np
 
+import numpy as np
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
 
 from .base import BaseMultiLabelQuery
+from ..index.index_collections import MultiLabelIndexCollection
+from ..index.multi_label_tools import get_Xy_in_multilabel
 from ..utils.misc import nsmallestarg, randperm
 
 
-class _LabelRankingModel:
+class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.
     It combines label ranking with threshold learning, and use SGD to optimize.
 
-    It accept 3 types of labels:
-    1 : relevant
-    0.5 : less relevant
-    -1 : irrelevant
-
-    The labels in algorithms mean:
-    2 : dummy
-    0 : unknown (not use this label when updating)
-
-    This class is mainly used for AURO and AUDI method for multi label querying.
+    This class is implemented strictly according to the matlab code provided
+    by the author. So it's hard to use, but it guarantees correctness.
 
     Parameters
     ----------
-    X: 2D array
+    init_X: 2D array
         Feature matrix of the initial data for training.
         Shape is n*d, one row for an instance with d features.
 
-    y: 2D array
+    init_y: 2D array
         Label matrix of the initial data for training.
         Shape is n*n_classes, one row for an instance, -1 means irrelevant,
         a positive value means relevant, the larger, the more relevant.
@@ -58,8 +52,8 @@ class _LabelRankingModel:
 
         if len(np.nonzero(self._init_y == 2.0)[0]) == 0:
             self._init_y = np.hstack((self._init_y, 2 * np.ones((self._init_y.shape[0], 1))))
-        # B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, \
-        # max_query = self.init_model_train(self._init_X, self._init_y)
+            # B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, \
+            # max_query = self.init_model_train(self._init_X, self._init_y)
 
     def get_BV(self, AB, AV, Anum):
         return (AV / Anum).T.dot(AB / Anum)
@@ -83,7 +77,7 @@ class _LabelRankingModel:
         avg_begin = 10
         avg_size = 5
 
-        costs = 1. / np.arange(start=1, stop=n_class * 5+1)
+        costs = 1. / np.arange(start=1, stop=n_class * 5 + 1)
         for k in np.arange(start=1, stop=n_class * 5):
             costs[k] = costs[k - 1] + costs[k]
 
@@ -105,14 +99,15 @@ class _LabelRankingModel:
         trounds = 0
 
         for rr in range(n_repeat):
-            B, V, AB, AV, Anum, trounds = self.fit(init_data, init_targets, B, V, np.zeros((1, tar_sh[0])),
-                                                   np.zeros((1, tar_sh[0])), costs, norm_up, step_size0, num_sub,
-                                                   AB, AV, Anum, trounds, lmbda, avg_begin, avg_size)
+            B, V, AB, AV, Anum, trounds = self.train_model(init_data, init_targets, B, V, np.zeros((1, tar_sh[0])),
+                                                           np.zeros((1, tar_sh[0])), costs, norm_up, step_size0,
+                                                           num_sub,
+                                                           AB, AV, Anum, trounds, lmbda, avg_begin, avg_size)
 
         return B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, max_query
 
-    def fit(self, data, targets, B, V, idxPs, idxNs, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds, lmbda,
-            average_begin, average_size):
+    def train_model(self, data, targets, B, V, idxPs, idxNs, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds,
+                    lmbda, average_begin, average_size):
         """targets: 0 unlabeled, 1 positive, -1 negative, 2 dummy, 0.5 less positive"""
         targets = np.asarray(targets)
         # print(np.nonzero(targets == 2.0))
@@ -141,7 +136,7 @@ class _LabelRankingModel:
         targets = targets.T
 
         n = np.shape(train_pairs)[0]
-        random_idx = randperm(n-1)
+        random_idx = randperm(n - 1)
 
         for i in range(n):
             idx_ins = int(train_pairs[random_idx[i], 0])
@@ -150,9 +145,9 @@ class _LabelRankingModel:
             if idx_class == n_class:
                 idx_irr = np.nonzero(targets[idx_ins, :] == -1)[0]
             elif idx_class == idxPs[0, idx_ins]:
-                idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], idxNs[idx_ins], n_class-1))
+                idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], idxNs[idx_ins], n_class - 1))
             else:
-                idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], n_class-1))
+                idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], n_class - 1))
             n_irr = len(idx_irr)
 
             By = B[:, (idx_class - 1) * num_sub: idx_class * num_sub]
@@ -162,8 +157,8 @@ class _LabelRankingModel:
             By = By[:, idx_max_class]
             fyn = np.NINF
             for j in range(n_irr):
-                idx_pick = idx_irr[randperm(n_irr-1, 1)[0]]
-                Byn = B[:, idx_pick * num_sub: (idx_pick+1) * num_sub]
+                idx_pick = idx_irr[randperm(n_irr - 1, 1)[0]]
+                Byn = B[:, idx_pick * num_sub: (idx_pick + 1) * num_sub]
                 # [fyn, idx_max_pick] = max(Byn.T.dot(Vins),[],1)
                 # if Byn == []:
                 #     print(0)
@@ -178,7 +173,7 @@ class _LabelRankingModel:
                 step_size = step_size0 / (1 + lmbda * trounds * step_size0)
                 trounds = trounds + 1
                 Byn = B[:, idx_pick * num_sub + idx_max_pick]
-                loss = costs[math.floor(n_irr / (j+1))]
+                loss = costs[math.floor(n_irr / (j + 1))]
                 tmp1 = By + step_size * loss * Vins
                 tmp3 = np.linalg.norm(tmp1)
                 if tmp3 > norm_up:
@@ -206,7 +201,7 @@ class _LabelRankingModel:
 
         return B, V, AB, AV, Anum, trounds
 
-    def predict(self, BV, data, num_sub):
+    def lr_predict(self, BV, data, num_sub):
         BV = np.asarray(BV)
         data = np.asarray(data)
 
@@ -216,13 +211,59 @@ class _LabelRankingModel:
         pres = np.ones((n, n_class)) * np.NINF
         for j in range(num_sub):
             f = fs[:, j: fs.shape[1]: num_sub]
-            assert(np.all(f.shape == pres.shape))
+            assert (np.all(f.shape == pres.shape))
             pres = np.fmax(pres, f)
         labels = -np.ones((n, n_class - 1))
-        for line in range(n_class-1):
-            gt = np.nonzero(pres[:, line] > pres[:, n_class-1])[0]
+        for line in range(n_class - 1):
+            gt = np.nonzero(pres[:, line] > pres[:, n_class - 1])[0]
             labels[gt, line] = 1
         return pres, labels
+
+
+class LabelRankingModel(_LabelRankingModel_MatlabVer):
+    """Label ranking model is a classification model in multi-label setting.
+    It combines label ranking with threshold learning, and use SGD to optimize.
+    This class re-encapsulate the _LabelRankingModel_MatlabVer class for
+    better use.
+
+    It accept 3 types of labels:
+    1 : relevant
+    0.5 : less relevant
+    -1 : irrelevant
+
+    The labels in algorithms mean:
+    2 : dummy
+    0 : unknown (not use this label when updating)
+
+    This class is mainly used for AURO and AUDI method for multi label querying.
+
+    Parameters
+    ----------
+    init_X: 2D array
+        Feature matrix of the initial data for training.
+        Shape is n*d, one row for an instance with d features.
+
+    init_y: 2D array
+        Label matrix of the initial data for training.
+        Shape is n*n_classes, one row for an instance, -1 means irrelevant,
+        a positive value means relevant, the larger, the more relevant.
+    """
+
+    def __init__(self, init_X, init_y):
+        super(LabelRankingModel, self).__init__(init_X, init_y)
+        self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+        self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+        self._max_query = self.init_model_train(self._init_X, self._init_y)
+
+    def fit(self, X, y, idxPs, idxNs):
+        self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
+            X, y, self._B, self._V, idxPs, idxNs, self._costs, self._norm_up, \
+            self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
+            self._lmbda, self._avg_begin, self._avg_size)
+
+    def predict(self, X):
+        BV = self.get_BV(self._AB, self._AV, self._Anum)
+        return self.lr_predict(BV, X, self._num_sub)
 
 
 class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
@@ -295,7 +336,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
             raise TypeError('K should be an ndarray')
         if self.K.shape != (len(X), len(X)):
             raise ValueError(
-                'kernel should have size (%d, %d)' % (len(X), len(X)))
+                'Kernel should have size (%d, %d)' % (len(X), len(X)))
         self._nsamples, self._nclass = self.y.shape
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
@@ -334,7 +375,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
             vals[i] = np.max((tmp0 + tmp1), (tmp0 + tmp2))
 
         idx_selected = nsmallestarg(vals, 1)[0]
-        return unlabel_index[idx_selected]
+        return [unlabel_index[idx_selected]]
 
 
 class QueryMultiLabelAUDI(BaseMultiLabelQuery):
@@ -351,4 +392,37 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
 
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    initial_labeled_indexes: {list, np.ndarray, IndexCollection}
+        The indexes of initially labeled samples. Used for initializing the LabelRanking model.
     """
+
+    def __init__(self, X, y, initial_labeled_indexes):
+        super(QueryMultiLabelAUDI, self).__init__(X, y)
+        # if len(np.nonzero(self.y == 2.0)[0]) == 0:
+        #     self.y = np.hstack((self.y, 2 * np.ones((self.y.shape[0], 1))))
+        if isinstance(initial_labeled_indexes, MultiLabelIndexCollection):
+            initial_labeled_indexes = initial_labeled_indexes.get_unbroken_instances()
+        self._lr_model = LabelRankingModel(self.X[initial_labeled_indexes, :], self.y[initial_labeled_indexes, :])
+
+    def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
+        if len(unlabel_index) <= 1:
+            return unlabel_index
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        label_index = self._check_multi_label_ind(label_index)
+
+        # select instance by LCI
+        W = unlabel_index.get_label_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
+        pres, labels = self._lr_model.predict(lab_data)
+        avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
+        insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
+        selected_ins = np.argmin(insvals)
+        selected_ins = data_ind[selected_ins]
+
+        # last line in pres is the predict value of dummy label
+        # select label by calculating the distance between each label with dummy label
+        dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
+        selected_lab = np.argmin(dis)
+
+        return selected_ins, selected_lab

@@ -6,19 +6,18 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_array
 from sklearn.utils.multiclass import type_of_target, unique_labels
 
-from .metrics import performance
 from .data_manipulate.al_split import split, split_multi_label, split_features
 from .experiment.experiment_analyser import ExperimentAnalyser
 from .experiment.state import State
 from .experiment.state_io import StateIO
 from .experiment.stopping_criteria import StoppingCriteria
 from .index.index_collections import IndexCollection, MultiLabelIndexCollection, FeatureIndexCollection
+from .metrics import performance
 from .oracle.knowledge_repository import MatrixRepository, ElementRepository
 from .oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
-from .query_strategy.query_type import check_query_type
 from .query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, \
     QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE
-
+from .query_strategy.query_type import check_query_type
 from .utils.multi_thread import aceThreading
 
 
@@ -94,12 +93,17 @@ class ToolBox:
         # check and record parameters
         self._y = check_array(y, ensure_2d=False, dtype=None)
         ytype = type_of_target(y)
-        if ytype in ['multilabel-indicator', 'multilabel-sequences']:
+        if len(self._y.shape) == 2:
             self._target_type = 'multilabel'
         else:
             self._target_type = ytype
         self._index_len = len(self._y)
-        self._label_space = unique_labels(self._y)
+        if len(self._y.shape) == 1:
+            self._label_space = unique_labels(self._y)
+        elif len(self._y.shape) == 2:
+            self._label_space = list(range(self._y.shape[1]))
+        else:
+            raise ValueError("Label matrix should be 1d or 2d array.")
         self._label_num = len(self._label_space)
 
         self._instance_flag = False
@@ -280,7 +284,9 @@ class ToolBox:
             return OracleQueryFeatures(feature_mat=self._X, cost=cost_mat)
         elif self.query_type == 'AllLabels':
             if self._target_type == 'multilabel':
-                return OracleQueryMultiLabel(self._y) if not query_by_example else OracleQueryMultiLabel(self._y, examples=self._X, cost=cost_mat)
+                return OracleQueryMultiLabel(self._y) if not query_by_example else OracleQueryMultiLabel(self._y,
+                                                                                                         examples=self._X,
+                                                                                                         cost=cost_mat)
             else:
                 return Oracle(self._y) if not query_by_example else Oracle(self._y, examples=self._X, cost=cost_mat)
 
@@ -532,8 +538,18 @@ class ToolBox:
         f.close()
 
     def IndexCollection(self, array=None):
-        """Return an IndexCollection object initialized with array"""
+        """Return an IndexCollection object initialized with array."""
         return IndexCollection(array)
+
+    def MultiLabelIndexCollection(self, array, label_mat_shape=None):
+        """Return a MultiLabelIndexCollection object initialized with array.
+        The label_mat_shape is the shape of the provided label matrix by default."""
+        if isinstance(array[0], tuple):
+            return MultiLabelIndexCollection(data=array, label_size=self._y.shape[1] if label_mat_shape is None else
+            label_mat_shape[1])
+        else:
+            return MultiLabelIndexCollection.construct_by_1d_array(data=array,
+                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape)
 
     def State(self, select_index, performance, queried_label=None, cost=None):
         """Get a State object for storing information in one iteration of active learning.
