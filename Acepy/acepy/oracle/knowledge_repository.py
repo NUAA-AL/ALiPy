@@ -76,7 +76,7 @@ class ElementRepository(BaseRepository):
         self._indexes = list(indexes)
         self._instance_flag = False if examples is None else True
 
-        # several _indexes construct
+        # several indexes construct
         if self._instance_flag:
             examples = [tuple(vec) for vec in examples]
             self._exa2ind = dict(zip(examples, self._indexes))
