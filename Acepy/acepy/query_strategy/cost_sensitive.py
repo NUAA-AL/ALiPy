@@ -13,8 +13,8 @@ import matlab
 
 import numpy as np
 from sklearn.svm import SVC
-from acepy.utils import interface
-from acepy.utils.interface import BaseQueryStrategy 
+from acepy.index import MultiLabelIndexCollection
+from acepy.query_strategy.base import BaseMultiLabelQuery
 from acepy.utils.misc import randperm, nlargestarg, nsmallestarg
 
 def select_Knapsack_01(infor_value, costs, capacity):
@@ -48,7 +48,7 @@ def select_Knapsack_01(infor_value, costs, capacity):
             else:
                 dp[i+1][j] = max(dp[i][j], dp[i][j - costs[i]] + infor_value[i])
     j = capacity
-    for i in np.arange(num - 1, 0, -1):
+    for i in np.arange(num - 1, -1, -1):
         if (j - costs[i] >= 0) and (dp[i+1][j] == (dp[i][j - costs[i]] + infor_value[i])):
             flag[i] = 1
             j -= costs[i]
@@ -56,8 +56,10 @@ def select_Knapsack_01(infor_value, costs, capacity):
 
 def select_POSS(infor_value, costs, budget):
     """
-    POSS (Pareto Optimization for Subset Selection) method.
+    POSS (Pareto Optimization for Subset Selection) method.
 
+    infor-value is negative.
+    NOTE THAT we assume that function is to be minimized.
     Paremeters:
     ----------
     infor_value: array-like
@@ -83,7 +85,7 @@ def select_POSS(infor_value, costs, budget):
     """
     assert(len(infor_value) == len(costs))
     num = len(infor_value)
-    population = np.zeros(num)
+    population = np.zeros((1, num))
 
     popSize = 1
     fitness = np.zeros((1, 2))
@@ -97,36 +99,48 @@ def select_POSS(infor_value, costs, budget):
     for round in np.arange(T):
         # randomly select a solution from the population and mutate it to generate a new solution.
         offspring = np.abs(population[np.random.randint(0, popSize), :] - np.random.choice([1, 0], size=(num), p=[1/num, 1 - 1/num]))
+        # print('offspring:  ', offspring)
         # compute the fitness of the new solution.
-        offspringFit = np.array([0, 0])
+        offspringFit = np.array([0., 0.])
         offspringFit[1] = np.sum(offspring * costs)
 
-        if offspringFit[1] == 0 or offspringFit[1] >= 2 * budget:
+        if offspringFit[1] == 0 or offspringFit[1] > budget:
             offspringFit[0] = np.infty
         else:
             offspringFit[0] = np.sum(offspring * infor_value)
+
         # use the new solution to update the current population.
-        if (fitness[0: popSize, 0] < offspringFit[0] and fitness[0: popSize, 1] <= offspringFit[1]) or (fitness[0: popSize, 0] <= offspringFit[0] and fitness[0: popSize, 1] < offspringFit[1]):
+        judge1 = np.array(fitness[0: popSize, 0] < offspringFit[0]) & np.array(fitness[0: popSize, 1] <= offspringFit[1])
+        judge2 = np.array(fitness[0: popSize, 0] <= offspringFit[0]) & np.array(fitness[0: popSize, 1] < offspringFit[1])
+        # if (fitness[0: popSize, 0] < offspringFit[0] and fitness[0: popSize, 1] <= offspringFit[1]) or (fitness[0: popSize, 0] <= offspringFit[0] and fitness[0: popSize, 1] < offspringFit[1]):
+        c= judge1 | judge2
+        if c.any():
+            # print("no delete")
             continue
         else:
             # deleteIndex = fitness[0: popSize, 0] >= offspringFit[0] * fitness[0: popSize, 1] >= offspringFit[1]
-            condi_1 = np.where(fitness[0: popSize, 0] < offspringFit[0])
-            condi_2 = np.where(fitness[0: popSize, 1] < offspringFit[1])
-            nodeleteIndex = [val for val in condi_1[0] if val in condi_2[0]]
-            
+            index = [i for i in range(len(fitness))]
+            condi_1 = np.where(fitness[0: popSize, 0] >= offspringFit[0])
+            condi_2 = np.where(fitness[0: popSize, 1] >= offspringFit[1])
+            deleteIndex = [val for val in condi_1[0] if val in condi_2[0]]         
+            nodeleteIndex = [j for j in index if j not in deleteIndex]    
+       
         # ndelete: record the index of the solutions to be kept.
         population = np.row_stack((population[nodeleteIndex, :], offspring))
         fitness = np.row_stack((fitness[nodeleteIndex, :], offspringFit))
         popSize = len(nodeleteIndex) + 1
 
     temp = np.where(fitness[:, 1] <= budget)
-    max_info_indx = np.argmax(fitness[temp[0], 0])
-    max_infovalue = fitness[max_info_indx][0]
-    selectedVariables = population[max_info_indx, :]
+    # max_info_indx = np.argmax(fitness[temp[0], 0])
+    # max_infovalue = fitness[max_info_indx][0]
+    # selectedVariables = population[max_info_indx, :]
+    min_info_indx = np.argmin(fitness[temp[0], 0])
+    min_infovalue = fitness[min_info_indx][0]
+    selectedVariables = population[min_info_indx, :]
 
-    return max_infovalue, selectedVariables
+    return min_infovalue, selectedVariables
     
-class HALC(BaseQueryStrategy):
+class HALC(BaseMultiLabelQuery):
     """
     Parameters
     ----------
@@ -157,16 +171,11 @@ class HALC(BaseQueryStrategy):
         the weights of each class.if not provide,it will all be 1 
 
     """
-    def __init__(self, X=None, y=None, label_index=None, weights=None, label_tree=None, base_model=None, models=None):
+    def __init__(self, X=None, y=None, weights=None, label_tree=None):
     
-        # super(costsSensitiveUncertainty, self).__init__(X, y)
-        assert(np.shape(X)[0] == np.shape(y)[0])
-        assert (isinstance(label_index, collections.Iterable))
-
-        self.X = X
-        self.y = y
+        super(HALC, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
-        self.label_index = label_index
+
         # self.Uncertainty = np.zeros([self.n_samples, self.n_classes])
        
         if weights is None:
@@ -174,58 +183,14 @@ class HALC(BaseQueryStrategy):
         else:
             assert(np.shape(y)[0] == len(weights))
             self.weights = weights
-        if base_model is None:    
-            self.base_model = SVC()
-        else:
-            assert(isinstance(base_model, SVC))
-            self.base_model = base_model
-        if models is None:
-            self.models = self.train_models()
-        else:
-            self.models = models
+        
         self.Distance = self._cal_Distance()
 
-        # the result of 
-        self.Train_Target = np.zeros((self.n_samples, self.n_classes))
+        # # the result of 
+        # self.Train_Target = np.zeros((self.n_samples, self.n_classes))
         # if node_i is the parent of node_j,then label_tree(i,j)==1
         self.label_tree = label_tree
-
-    def train_models(self):
-        """
-        Train the models for each class.
-        """
-        
-        train_X = self.X[self.label_index, :]
-        train_y = self.y[self.label_index, :]
-        models =[]
-        for i in np.arange(self.n_classes):       
-            i_y = train_y[:, i]
-            m = copy.deepcopy(self.base_model)
-            m.fit(train_X, i_y)
-            models.append(copy.deepcopy(m))   
-        return models
     
-    def cal_uncertainty(self):
-        """
-            calculate the uncertainty of instance xi on a label yj.
-        Returns: 2d-arrray-like, shape [n_samples, n_classes]
-        the uncertainty of instance xi on a label yj.
-        """
-        Uncertainty = np.zeros([self.n_samples, self.n_classes])
-        # unlabel_data = self.X[unlabel_index, :]
-        for j in np.arange(self.n_classes):
-            model = self.models[j]
-            j_target = self.Train_Target[:, j]
-            j_label = np.where(j_target != 0)
-            j_unlabel = np.where(j_target == 0)
-            for i in j_unlabel[0]:
-                d_v = model.decision_values(self.X[i][j])
-                Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
-            Uncertainty[j_label, j] = -np.infty
-        
-        return Uncertainty
-
-     
     def _cal_Distance(self):
         """
         """
@@ -240,19 +205,73 @@ class HALC(BaseQueryStrategy):
         Distance = Distance + Distance.T
         return Distance
 
-    def cal_relevance(self, Xi_index, j_class, k=5):
+    def train_models(self, label_index, basemodel):
+        """
+        Train the models for each class.
+        """
+
+        if basemodel is None:
+            basemodel = SVC()
+        label_index = self._check_multi_label_ind(label_index)
+        train_traget = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        models =[]
+        for j in np.arange(self.n_classes):  
+            j_target = train_traget[:, j]
+            i_samples = np.where(j_target!=0)[0]
+            m = copy.deepcopy(basemodel)
+            m.fit(self.X[i_samples, :], self.y[i_samples, j])
+            models.append(m)   
+        return models
+    
+    # def cal_uncertainty(self):
+    #     """
+    #         calculate the uncertainty of instance xi on a label yj.
+    #     Returns: 2d-arrray-like, shape [n_samples, n_classes]
+    #     the uncertainty of instance xi on a label yj.
+    #     """
+    #     Uncertainty = np.zeros([self.n_samples, self.n_classes])
+    #     # unlabel_data = self.X[unlabel_index, :]
+    #     for j in np.arange(self.n_classes):
+    #         model = self.models[j]
+    #         j_target = self.Train_Target[:, j]
+    #         j_label = np.where(j_target != 0)
+    #         j_unlabel = np.where(j_target == 0)
+    #         for i in j_unlabel[0]:
+    #             d_v = model.decision_values(self.X[i][j])
+    #             Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
+    #         Uncertainty[j_label, j] = -np.infty
+        
+    #     return Uncertainty
+
+    def cal_uncertainty(self, label_index, unlabel_index, models):
+
+        Uncertainty = np.zeros((self.n_samples, self.n_classes))
+        # unlabel_data = self.X[unlabel_index, :]
+        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        for j in np.arange(self.n_classes):
+            model = models[j]
+            j_label = np.where(label_mat[:, j] == 1)
+            j_unlabel = np.where(unlabel_mat[:, j] == 1)
+            for i in j_unlabel[0]:
+                d_v = model.decision_values(self.X[i][j])
+                Uncertainty[i][j] = np.abs(1 / d_v)
+            Uncertainty[j_label, j] = -np.infty
+        return Uncertainty
+     
+    def cal_relevance(self, Xi_index, j_class, label_index, models, k=5):
         """
         """
-        label_index = np.where(self.Train_Target != 0)
-        Xi = self.X[Xi_index, :]
+        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        label_samples = np.where(label_mat[:, j_class] == 1)
         distance = self.Distance[Xi_index]
         KNN_index = nsmallestarg(distance, k)
         vote = []
         for i in KNN_index:
-            if i in label_index[0]:
+            if i in label_samples[0]:
                 g_j = self.y[i, j_class]
             else:
-                g_j = self.models[j_class].decision_values(self.X[i, :])
+                g_j = models[j_class].decision_values(self.X[i, :])
             vote.append(np.sign(g_j))       
         return np.sign(np.sum(vote)) 
     
@@ -272,7 +291,7 @@ class HALC(BaseQueryStrategy):
                 Udes += Uncertainty[xi_index][temp]
         return Udes
     
-    def cal_Informativeness(self):
+    def cal_Informativeness(self, label_index, unlabel_index, models):
         """
 
         Returns:
@@ -281,13 +300,15 @@ class HALC(BaseQueryStrategy):
         Informativeness of each unlabel samples
         """
         Infor = np.zeros((self.n_samples, self.n_classes))
-        Uncertainty = self.cal_uncertainty()
+        Uncertainty = self.cal_uncertainty(label_index, unlabel_index, models)
+        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+
         for j in np.arange(self.n_classes):
-            j_target = self.Train_Target[:, j]
-            j_label = np.where(j_target != 0)
-            j_unlabel = np.where(j_target == 0)
+            j_label = np.where(label_mat[:, j] == 1)
+            j_unlabel = np.where(unlabel_mat[:, j] == 1)
             for i in j_unlabel[0]:
-                flag = self.cal_relevance(i, j,k=5)
+                flag = self.cal_relevance(i, j, label_index, models, k=5)
                 if flag == 1:
                     Infor[i][j] = Uncertainty[i][j] * 2
                 elif flag == -1:
@@ -296,9 +317,15 @@ class HALC(BaseQueryStrategy):
 
         return Infor
         
-    def select(self, label_index, costs, budget):
+    def select(self, label_index, unlabel_index, costs, budget, base_model=None, models=None):
 
-        Infor = self.cal_Informativeness()
+        label_index = self._check_multi_label_ind(label_index)
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+
+        if models is None:
+            models = self.train_models(label_index, base_model)
+
+        Infor = self.cal_Informativeness(label_index, unlabel_index, models)
         instance_pair = np.array([0, 0])
         infor_value=np.array([0])
         corresponding_cost = np.array([0])
@@ -325,10 +352,16 @@ class HALC(BaseQueryStrategy):
         return max_value, instance_pair[np.where(select_result!=0)[0]]
         
 
-class QueryRandom(interface.BaseQueryStrategy):
+class MutlilabelQueryRandom(BaseMultiLabelQuery):
     """Randomly sample a batch of indexes from the unlabel indexes."""
 
-    def select(self, target, cost, budget=40):
+    def __init__(self, X, y):
+        """
+        """
+        super(MutlilabelQueryRandom, self).__init__(X, y)
+        self.n_samples, self.n_classes = np.shape(y) 
+
+    def select(self, unlabel_index, cost, batch_size=1, budget=40):
         """Select indexes randomly.
 
         Parameters
@@ -341,24 +374,30 @@ class QueryRandom(interface.BaseQueryStrategy):
 
         Returns
         -------
-        select_pair: 2d array-like, shape[query_instance, query_label]
+        select_pair: MultiLabelIndexCollection
             The selected indexes which is a subset of unlabel_index.
         """
-        n_samples, n_classes = np.shape(target)
-        instance_pair = np.array([0, 0])
+        assert(len(cost) == self.n_classes)   
+        unlabel_index = self._check_multi_label_ind(unlabel_index)     
+        instance_pair = MultiLabelIndexCollection(label_size=self.n_classes)
         costs = 0.
+        batch = 0
         while True:
-            ith_sample = np.random.randint(0, n_samples)   
-            jth_class = np.random.choice(np.where(target[ith_sample, :] == 0)[0])
-            costs += cost[ith_sample, jth_class]
-            if costs >= budget:
+            onedim_index = unlabel_index.onedim_index
+            od_ind = np.random.choice(onedim_index)
+            i_sample = od_ind // self.n_classes
+            j_class = od_ind % self.n_classes
+            costs += cost[i_sample, j_class]
+            batch += 1
+            if costs > budget or batch > batch_size:
                 break
-            instance_pair = np.row_stack((instance_pair, np.array([ith_sample, jth_class])))
+            instance_pair.update((i_sample, j_class))
+            unlabel_index.difference_update((i_sample, j_class))
 
-        return instance_pair[1:, ]
+        return instance_pair
 
                 
-class QueryUncertainty(BaseQueryStrategy):
+class QueryUncertainty(BaseMultiLabelQuery):
     """
     """
     def __init__(self, X=None, y=None):
@@ -366,8 +405,13 @@ class QueryUncertainty(BaseQueryStrategy):
         self.n_samples, self.n_classes = np.shape(y)
 
     
-    def select(self, label_index, costs, models, target, budget):
-    
+    def select(self, label_index, unlabel_index, batch_size=1, budget=40, basemodel=None, models=None):
+        
+        if models is None:
+            models = self.train_models(label_index, basemodel)
+
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        target = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         uncertainty = self.cal_uncertainty(target, models)
         instance_pair = np.array([0, 0])
         infor_value=np.array([0])
@@ -395,6 +439,23 @@ class QueryUncertainty(BaseQueryStrategy):
         # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
         return max_value, instance_pair[np.where(select_result!=0)[0]]
 
+    def train_models(self, label_index, basemodel):
+        """
+        Train the models for each class.
+        """
+        if basemodel is None:
+            basemodel = SVC()
+        label_index = self._check_multi_label_ind(label_index)
+        train_target = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        models =[]
+        for j in np.arange(self.n_classes):  
+            j_target = train_target[:, j]
+            i_samples = np.where(j_target!=0)[0]
+            m = copy.deepcopy(basemodel)
+            m.fit(self.X[i_samples, :], self.y[i_samples, j])
+            models.append(m)   
+        return models
+
     def cal_uncertainty(self, target, models):
         """
         """
@@ -403,8 +464,8 @@ class QueryUncertainty(BaseQueryStrategy):
         for j in np.arange(self.n_classes):
             model = models[j]
             j_target = target[:, j]
-            j_label = np.where(j_target != 0)
-            j_unlabel = np.where(j_target == 0)
+            j_label = np.where(j_target != 1)
+            j_unlabel = np.where(j_target == 1)
             for i in j_unlabel[0]:
                 d_v = model.decision_values(self.X[i][j])
                 Uncertainty[i][j] = np.abs(1 / d_v)
@@ -413,16 +474,17 @@ class QueryUncertainty(BaseQueryStrategy):
         return Uncertainty
 
 if __name__ == "__main__":
-    # a = [1, 1, 1, 1, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 15]
-    # c = [90, 75, 83, 32, 56, 31, 21, 43, 14, 65, 12, 24, 42, 17, 60]
-    # b = 50
     b = 20
     w = [1, 2, 5, 6, 7, 9]
-    v = [1, 6, 18, 22, 28, 36]
-    # t=select_Knapsack_01(v,w,b)
-    k, select=select_Knapsack_01(v,w,b)
-
-    # print(t)
-
+    v1 = [1, 6, 18, 22, 28, 36]
+    v = [-1, -6, -18, -22, -28, -36]
+    costs = [1, 2, 5]
+    value = [-3, -6, -8]
+    k, select=select_Knapsack_01(v1,w,20)
     print(k)
     print(select)
+    
+    x, y =select_POSS(v,w,20)
+
+    print(x)
+    print(y)
