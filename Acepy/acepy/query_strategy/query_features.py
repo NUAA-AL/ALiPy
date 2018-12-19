@@ -77,6 +77,17 @@ def AFASMC_mc(X, y, omega, **kwargs):
         lambda1  : The lambda1 trade-off parameter
         lambda2  : The lambda2 trade-off parameter
         max_iter : The maximal iterations of optimization
+
+    Returns
+    -------
+    X_mc: array
+        The completed matrix.
+
+    minObj: float
+        The value of objective function.
+
+    convergence: array
+        The array that records the values of objective function.
     """
     max_iter = kwargs.pop('max_iter', 100)
     lambda1 = kwargs.pop('lambda1', 1)
@@ -127,9 +138,9 @@ def AFASMC_mc(X, y, omega, **kwargs):
         ineqLtemp1 = Z1 * obrT
         ineqL = np.linalg.norm(ineqLtemp1 - X_obr, ord='fro') ** 2 / 2 + sum((Z1.dot(w) + b - y) ** 2) * lambda2
 
-        ineqRtemp = sum(sum(svd_obj_temp_temp ** 2)) / 2 + sum((Y.dot(w) + b - y) ** 2) * lambda2 - svd_obj_temp.dot(
+        ineqRtemp = sum(sum(svd_obj_temp_temp ** 2)) / 2 + sum((Y.dot(w) + b - y) ** 2) * lambda2 - svd_obj_temp.flatten().dot(
             Y.flatten())
-        ineqR = ineqRtemp + svd_obj_temp.dot(Z1.flatten()) + L / 2 * sum(sum((Z1 - Y) ** 2))
+        ineqR = ineqRtemp + svd_obj_temp.flatten().dot(Z1.flatten()) + L / 2 * sum(sum((Z1 - Y) ** 2))
 
         while ineqL > ineqR:
             L = L * 2
@@ -138,7 +149,7 @@ def AFASMC_mc(X, y, omega, **kwargs):
 
             ineqLtemp1 = Z1 * obrT
             ineqL = np.linalg.norm(ineqLtemp1 - X_obr, ord='fro') ** 2 / 2 + sum((Z1.dot(w) + b - y) ** 2) * lambda2
-            ineqR = ineqRtemp + svd_obj_temp.dot(Z1.flatten()) + L / 2 * sum(sum((Z1 - Y) ** 2))
+            ineqR = ineqRtemp + svd_obj_temp.flatten().dot(Z1.flatten()) + L / 2 * sum(sum((Z1 - Y) ** 2))
 
         theta0 = theta1
         theta1 = (np.sqrt(theta1 ** 4 + 4 * theta1 ** 2) - theta1 ** 2) / 2
@@ -158,3 +169,5 @@ def AFASMC_mc(X, y, omega, **kwargs):
                 break
 
     return X_mc, minObj, convergence
+
+

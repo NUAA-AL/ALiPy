@@ -77,12 +77,16 @@ class _LabelRankingModel_MatlabVer:
         avg_begin = 10
         avg_size = 5
 
-        costs = 1. / np.arange(start=1, stop=n_class * 5 + 1)
+        costs = 1.0 / np.arange(start=1, stop=n_class * 5 + 1)
         for k in np.arange(start=1, stop=n_class * 5):
             costs[k] = costs[k - 1] + costs[k]
 
         V = np.random.normal(0, 1 / np.sqrt(d), (D, d))
         B = np.random.normal(0, 1 / np.sqrt(d), (D, n_class * num_sub))
+        # import scipy.io as scio
+        # ld = scio.loadmat('C:\\Code\\acepy-additional-methods-source\\multi label\\AURO\\vb_rnd.mat')
+        # V = ld['V']
+        # B = ld['B']
 
         for k in range(d):
             tmp1 = V[:, k]
@@ -99,14 +103,12 @@ class _LabelRankingModel_MatlabVer:
         trounds = 0
 
         for rr in range(n_repeat):
-            B, V, AB, AV, Anum, trounds = self.train_model(init_data, init_targets, B, V, np.zeros((1, tar_sh[0])),
-                                                           np.zeros((1, tar_sh[0])), costs, norm_up, step_size0,
-                                                           num_sub,
-                                                           AB, AV, Anum, trounds, lmbda, avg_begin, avg_size)
+            B, V, AB, AV, Anum, trounds = self.train_model(init_data, init_targets, B, V, costs, norm_up, step_size0,
+                                                           num_sub, AB, AV, Anum, trounds, lmbda, avg_begin, avg_size)
 
         return B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, max_query
 
-    def train_model(self, data, targets, B, V, idxPs, idxNs, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds,
+    def train_model(self, data, targets, B, V, costs, norm_up, step_size0, num_sub, AB, AV, Anum, trounds,
                     lmbda, average_begin, average_size):
         """targets: 0 unlabeled, 1 positive, -1 negative, 2 dummy, 0.5 less positive"""
         targets = np.asarray(targets)
@@ -131,12 +133,16 @@ class _LabelRankingModel_MatlabVer:
         # print(tp[0])
         # print(len(tp[0]))
         train_pairs = np.hstack(
-            (train_pairs, np.reshape([nz % n_class for nz in np.nonzero(targets.flatten() >= 1)[0]], newshape=(-1, 1))))
-        train_pairs[np.nonzero(train_pairs[:, 1] == 0)[0], 1] = n_class
+            (train_pairs, np.reshape([nz % n_class for nz in np.nonzero(targets.flatten(order='F') >= 1)[0]], newshape=(-1, 1))))
+        # train_pairs[np.nonzero(train_pairs[:, 1] == 0)[0], 1] = n_class
         targets = targets.T
 
         n = np.shape(train_pairs)[0]
+
         random_idx = randperm(n - 1)
+        # import scipy.io as scio
+        # ld = scio.loadmat('C:\\Code\\acepy-additional-methods-source\\multi label\\AURO\\random_id.mat')
+        # random_idx = ld['random_idx'].flatten()-1
 
         for i in range(n):
             idx_ins = int(train_pairs[random_idx[i], 0])
@@ -144,13 +150,13 @@ class _LabelRankingModel_MatlabVer:
             idx_class = int(train_pairs[random_idx[i], 1])
             if idx_class == n_class:
                 idx_irr = np.nonzero(targets[idx_ins, :] == -1)[0]
-            elif idx_class == idxPs[0, idx_ins]:
-                idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], idxNs[idx_ins], n_class - 1))
+            # elif idx_class == idxPs[idx_ins]:
+            #     idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], int(idxNs[idx_ins]), n_class - 1))
             else:
                 idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], n_class - 1))
             n_irr = len(idx_irr)
 
-            By = B[:, (idx_class - 1) * num_sub: idx_class * num_sub]
+            By = B[:, idx_class * num_sub: (idx_class + 1) * num_sub]
             Vins = V.dot(xins)
             fy = np.max(By.T.dot(Vins), axis=0)
             idx_max_class = np.argmax(By.T.dot(Vins), axis=0)
@@ -158,6 +164,7 @@ class _LabelRankingModel_MatlabVer:
             fyn = np.NINF
             for j in range(n_irr):
                 idx_pick = idx_irr[randperm(n_irr - 1, 1)[0]]
+                # print(idx_irr, idx_pick)
                 Byn = B[:, idx_pick * num_sub: (idx_pick + 1) * num_sub]
                 # [fyn, idx_max_pick] = max(Byn.T.dot(Vins),[],1)
                 # if Byn == []:
@@ -173,7 +180,7 @@ class _LabelRankingModel_MatlabVer:
                 step_size = step_size0 / (1 + lmbda * trounds * step_size0)
                 trounds = trounds + 1
                 Byn = B[:, idx_pick * num_sub + idx_max_pick]
-                loss = costs[math.floor(n_irr / (j + 1))]
+                loss = costs[math.floor(n_irr / (j + 1))-1]
                 tmp1 = By + step_size * loss * Vins
                 tmp3 = np.linalg.norm(tmp1)
                 if tmp3 > norm_up:
@@ -183,12 +190,12 @@ class _LabelRankingModel_MatlabVer:
                 if tmp3 > norm_up:
                     tmp2 = tmp2 * norm_up / tmp3
                 V -= step_size * loss * (
-                    B[:, [idx_pick * num_sub + idx_max_pick, (idx_class - 1) * num_sub + idx_max_class]].dot(
+                    B[:, [idx_pick * num_sub + idx_max_pick, idx_class * num_sub + idx_max_class]].dot(
                         np.vstack((xins, -xins))))
                 # matrix norm, but the axis is not sure
                 norms = np.linalg.norm(V, axis=0)
                 idx_down = np.nonzero(norms > norm_up)[0]
-                B[:, (idx_class - 1) * num_sub + idx_max_class] = tmp1
+                B[:, idx_class * num_sub + idx_max_class] = tmp1
                 B[:, idx_pick * num_sub + idx_max_pick] = tmp2
                 if idx_down:
                     norms[norms <= norm_up] = []
@@ -255,11 +262,12 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
         self._max_query = self.init_model_train(self._init_X, self._init_y)
 
-    def fit(self, X, y, idxPs, idxNs):
-        self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
-            X, y, self._B, self._V, idxPs, idxNs, self._costs, self._norm_up, \
-            self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
-            self._lmbda, self._avg_begin, self._avg_size)
+    def fit(self, X, y, n_repeat=10):
+        for i in range(n_repeat):
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
+                X, y, self._B, self._V, self._costs, self._norm_up,
+                self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
+                self._lmbda, self._avg_begin, self._avg_size)
 
     def predict(self, X):
         BV = self.get_BV(self._AB, self._AV, self._Anum)
@@ -413,8 +421,10 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
 
         # select instance by LCI
         W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
-        lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
-        pres, labels = self._lr_model.predict(lab_data)
+        unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
+        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+        self._lr_model.fit(lab_data, lab_lab)
+        pres, labels = self._lr_model.predict(unlab_data)
         avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
         insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
         selected_ins = np.argmin(insvals)
