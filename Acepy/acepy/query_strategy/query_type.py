@@ -92,7 +92,7 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         # label_index = self._check_multi_label_ind(label_index)
 
         # select instance with least queries
-        W = unlabel_index.get_label_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
         lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
         pres, labels = self._lr_model.predict(lab_data)
         selected_ins = np.argmin(np.sum(W, axis=1))

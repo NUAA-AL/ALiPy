@@ -412,7 +412,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         label_index = self._check_multi_label_ind(label_index)
 
         # select instance by LCI
-        W = unlabel_index.get_label_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
         lab_data, lab, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
         pres, labels = self._lr_model.predict(lab_data)
         avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
@@ -425,4 +425,4 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
         selected_lab = np.argmin(dis)
 
-        return selected_ins, selected_lab
+        return [(selected_ins, selected_lab)]
