@@ -73,17 +73,16 @@ class QueryTypeAURO(BaseMultiLabelQuery):
 
     References
     ----------
-    [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
-        querying informative and representative examples. IEEE
-        Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+    [1] Huang S J , Chen S , Zhou Z H . Multi-label active
+        learning: query type matters[C]// Proceedings of
+        the 24th International Joint Conference on
+        Artificial Intelligence, pages 946-952, Buenos Aires,
+        Argentina, July 25-31, 2015
     """
 
-    def __init__(self, X, y, initial_labeled_indexes):
+    def __init__(self, X, y):
         super(QueryTypeAURO, self).__init__(X, y)
-        if isinstance(initial_labeled_indexes, MultiLabelIndexCollection):
-            initial_labeled_indexes = initial_labeled_indexes.get_unbroken_instances()
-        self._lr_model = LabelRankingModel(self.X[initial_labeled_indexes, :], self.y[initial_labeled_indexes, :])
+        self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, **kwargs):
         if len(unlabel_index) <= 1:
@@ -92,7 +91,7 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         label_index = self._check_multi_label_ind(label_index)
 
         # select instance with least queries
-        W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1)
         unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
         lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
         self._lr_model.fit(lab_data, lab_lab)

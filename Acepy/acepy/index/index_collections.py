@@ -425,9 +425,26 @@ class MultiLabelIndexCollection(IndexCollection):
                 "contained. Otherwise, a tuple should be provided")
         return self
 
-    @property
-    def onedim_index(self):
-        return [tup[0]*self._label_size + tup[1] for tup in self._innercontainer]
+    def get_onedim_index(self, order='C', ins_num=None):
+        """Get the 1d index.
+
+        Parameters
+        ----------
+        order : {'C', 'F'}, optional (default='C')
+            Determines whether the indices should be viewed as indexing in
+            row-major (C-style) or column-major (Matlab-style) order.
+
+        ins_num: int, optional
+            The total number of instance. Must be provided if the order is 'F'.
+        """
+        if order=='F':
+            if ins_num is None:
+                raise ValueError("The ins_num must be provided if the order is 'F'.")
+            return [tup[0] + tup[1] * ins_num for tup in self._innercontainer]
+        elif order=='C':
+            return [tup[0]*self._label_size + tup[1] for tup in self._innercontainer]
+        else:
+            raise ValueError("The value of order must be one of {'C', 'F'}")
 
     def get_instance_index(self):
         """Get the index of instances contained in this object.
@@ -460,13 +477,13 @@ class MultiLabelIndexCollection(IndexCollection):
         """Return the indexes of break instances which have missing entries."""
         return self._get_cond_instance(cond=1)
 
-    def get_matrix_mask(self, label_mat_shape, fill_value=1, sparse_format='lil_matrix'):
+    def get_matrix_mask(self, mat_shape, fill_value=1, sparse_format='lil_matrix'):
         """Return an array which has the same shape with the label matrix.
         If an entry is known, then, the corresponding value in the mask is 1, otherwise, 0.
 
         Parameters
         ----------
-        label_mat_shape: tuple
+        mat_shape: tuple
             The shape of label matrix. [n_samples, n_classes]
 
         fill_value: int
@@ -483,14 +500,14 @@ class MultiLabelIndexCollection(IndexCollection):
         mask: {scipy.sparse.csr_matrix, scipy.sparse.csc_matrix}
             The mask of the label matrix.
         """
-        assert isinstance(label_mat_shape, tuple)
-        mask = eval(sparse_format + '(label_mat_shape)')
+        assert isinstance(mat_shape, tuple)
+        mask = eval(sparse_format + '(mat_shape)')
         for item in self._innercontainer:
             mask[item] = fill_value
         return mask
 
     @classmethod
-    def construct_by_1d_array(cls, array, label_mat_shape):
+    def construct_by_1d_array(cls, array, label_mat_shape, order='F'):
         """Construct a MultiLabelIndexCollection object by providing a
         1d array, and the number of classes.
 
@@ -503,13 +520,17 @@ class MultiLabelIndexCollection(IndexCollection):
             The shape of label matrix. The 1st element is the number of instances,
             and the 2nd element is the total classes.
 
+        order : {'C', 'F'}, optional
+            Determines whether the indices should be viewed as indexing in
+            row-major (C-style) or column-major (Matlab-style) order.
+
         Returns
         -------
         multi_ind: MultiLabelIndexCollection
             The MultiLabelIndexCollection object.
         """
         assert len(label_mat_shape) == 2
-        row, col = np.unravel_index(array, dims=label_mat_shape, order='F')
+        row, col = np.unravel_index(array, dims=label_mat_shape, order=order)
         return cls(data=[(row[i], col[i]) for i in range(len(row))], label_size=label_mat_shape[1])
 
 
