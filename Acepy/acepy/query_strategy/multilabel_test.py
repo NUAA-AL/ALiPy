@@ -30,8 +30,6 @@ qs = MaximumLossReductionMaximalConfidence(X, y, random_state=1126)
 label_index = IndexCollection([0, 1, 2, 3, 4])
 unlabel_index = IndexCollection(list(range(5,1500)))
 
-
-
 selected_index = qs.select(label_index, unlabel_index)
 print(selected_index)
 
