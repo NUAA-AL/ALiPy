@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 from acepy.utils.misc import randperm
-from acepy.query_strategy.query_features import AFASMC_mc
+from acepy.query_strategy.query_features import AFASMC_mc, QueryFeatureAFASMC
 
 ld = scio.loadmat('C:\\Code\\acepy-additional-methods-source\\feature querying\\AFASMC_code\\data_file.mat')
 dataset = ld['dataset']
@@ -28,6 +28,8 @@ queryNum = 50
 m,n = data.shape
 mtr = math.floor(m*tr)
 
+afa = QueryFeatureAFASMC(X=data, y=target)
+
 for t in range(10):
     # trainI = randperm(m-1, mtr)
     testI = list(set(range(m)) - set(trainI))
@@ -41,5 +43,9 @@ for t in range(10):
     X_all = []
 
     for i in range (queryRound):
-        Xmc, model, dist = AFASMC_mc(Xtr, Ytr, Omega)
-        print(Xmc, model, dist)
+        # Xmc = AFASMC_mc(Xtr, Ytr, Omega)
+        # print(Xmc)
+        sh = data.shape
+        max_ind = sh[0]*sh[1]-1
+        sel = afa.select(observed_entries=randperm(max_ind, 100), unkonwn_entries=randperm(max_ind, 1000))
+        print(sel)

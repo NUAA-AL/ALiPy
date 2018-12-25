@@ -14,6 +14,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
 
 import math
 import copy
@@ -27,6 +29,9 @@ from acepy.index.index_collections import MultiLabelIndexCollection
 from acepy.index.multi_label_tools import get_Xy_in_multilabel
 from acepy.utils.misc import nsmallestarg, randperm
 from acepy.index import IndexCollection
+# from .base import BaseMultiLabelQuery
+from acepy.index.multi_label_tools import get_Xy_in_multilabel
+from acepy.utils.misc import randperm
 
 # from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
@@ -48,23 +53,33 @@ class _LabelRankingModel_MatlabVer:
         Label matrix of the initial data for training.
         Shape is n*n_classes, one row for an instance, -1 means irrelevant,
         a positive value means relevant, the larger, the more relevant.
+
+    References
+    ----------
+    [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
+        diversity for incremental multi-label learning. In Proceedings
+        of the 13th IEEE International Conference on Data Mining, pages
+        1079–1084, Dallas, TX, 2013.
     """
 
-    def __init__(self, init_X, init_y):
-        assert len(init_X) == len(init_y)
-        assert len(np.shape(init_y)) == 2
-        self._init_X = np.asarray(init_X)
-        self._init_y = np.asarray(init_y)
+    def __init__(self, init_X=None, init_y=None):
+        self._init_flag = False
+        if init_X is not None and init_y is not None:
+            assert len(init_X) == len(init_y)
+            assert len(np.shape(init_y)) == 2
+            self._init_X = np.asarray(init_X)
+            self._init_y = np.asarray(init_y)
 
-        if len(np.nonzero(self._init_y == 2.0)[0]) == 0:
-            self._init_y = np.hstack((self._init_y, 2 * np.ones((self._init_y.shape[0], 1))))
-            # B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, \
-            # max_query = self.init_model_train(self._init_X, self._init_y)
+            if len(np.nonzero(self._init_y == 2.0)[0]) == 0:
+                self._init_y = np.hstack((self._init_y, 2 * np.ones((self._init_y.shape[0], 1))))
+                # B, V, AB, AV, Anum, trounds, costs, norm_up, step_size0, num_sub, lmbda, avg_begin, avg_size, n_repeat, \
+                # max_query = self.init_model_train(self._init_X, self._init_y)
+            self._init_flag = True
 
     def get_BV(self, AB, AV, Anum):
         return (AV / Anum).T.dot(AB / Anum)
 
-    def init_model_train(self, init_data=None, init_targets=None):
+    def init_model_train(self, init_data=None, init_targets=None, n_repeat=10):
         if init_data is None:
             init_data = self._init_X
         if init_targets is None:
@@ -73,7 +88,7 @@ class _LabelRankingModel_MatlabVer:
         tar_sh = np.shape(init_targets)
         d = np.shape(init_data)[1]
         n_class = tar_sh[1]
-        n_repeat = 10
+        # n_repeat = 10
         max_query = math.floor(tar_sh[0] * (tar_sh[1] - 1) / 2)
         D = 200
         num_sub = 5
@@ -139,7 +154,8 @@ class _LabelRankingModel_MatlabVer:
         # print(tp[0])
         # print(len(tp[0]))
         train_pairs = np.hstack(
-            (train_pairs, np.reshape([nz % n_class for nz in np.nonzero(targets.flatten(order='F') >= 1)[0]], newshape=(-1, 1))))
+            (train_pairs,
+             np.reshape([nz % n_class for nz in np.nonzero(targets.flatten(order='F') >= 1)[0]], newshape=(-1, 1))))
         # train_pairs[np.nonzero(train_pairs[:, 1] == 0)[0], 1] = n_class
         targets = targets.T
 
@@ -186,7 +202,7 @@ class _LabelRankingModel_MatlabVer:
                 step_size = step_size0 / (1 + lmbda * trounds * step_size0)
                 trounds = trounds + 1
                 Byn = B[:, idx_pick * num_sub + idx_max_pick]
-                loss = costs[math.floor(n_irr / (j + 1))-1]
+                loss = costs[math.floor(n_irr / (j + 1)) - 1]
                 tmp1 = By + step_size * loss * Vins
                 tmp3 = np.linalg.norm(tmp1)
                 if tmp3 > norm_up:
@@ -260,20 +276,32 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         Label matrix of the initial data for training.
         Shape is n*n_classes, one row for an instance, -1 means irrelevant,
         a positive value means relevant, the larger, the more relevant.
+
+    References
+    ----------
+    [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
+        diversity for incremental multi-label learning. In Proceedings
+        of the 13th IEEE International Conference on Data Mining, pages
+        1079–1084, Dallas, TX, 2013.
     """
 
-    def __init__(self, init_X, init_y):
+    def __init__(self, init_X=None, init_y=None, **kwargs):
         super(LabelRankingModel, self).__init__(init_X, init_y)
-        self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
-        self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-        self._max_query = self.init_model_train(self._init_X, self._init_y)
+        if self._init_flag is True:
+            n_repeat = kwargs.pop('n_repeat', 10)
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+            self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+            self._max_query = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
 
     def fit(self, X, y, n_repeat=10):
-        for i in range(n_repeat):
-            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
-                X, y, self._B, self._V, self._costs, self._norm_up,
-                self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
-                self._lmbda, self._avg_begin, self._avg_size)
+        if self._init_flag is False:
+            self.__init__(init_X=X, init_y=y, n_repeat=n_repeat)
+        else:
+            for i in range(n_repeat):
+                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
+                    X, y, self._B, self._V, self._costs, self._norm_up,
+                    self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
+                    self._lmbda, self._avg_begin, self._avg_size)
 
     def predict(self, X):
         BV = self.get_BV(self._AB, self._AV, self._Anum)
@@ -330,7 +358,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
         # K: kernel matrix
         super(QueryMultiLabelQUIRE, self).__init__(X, y)
         self.lmbda = kwargs.pop('lambda', 1.)
-        self.kernel = kwargs.pop('kernel', 'rbf')
+        self.kernel = kwargs.pop('kernel', 'linear')
         if self.kernel == 'rbf':
             self.K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma', 1.))
         elif self.kernel == 'poly':
@@ -352,25 +380,37 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
             raise ValueError(
                 'Kernel should have size (%d, %d)' % (len(X), len(X)))
         self._nsamples, self._nclass = self.y.shape
-        self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
+        self.L = np.linalg.pinv(self.K + self.lmbda * np.eye(len(X)))
 
     def select(self, label_index, unlabel_index, **kwargs):
         if len(unlabel_index) <= 1:
             return unlabel_index
-        unlabel_index = list(self._check_multi_label_ind(unlabel_index))
-        label_index = list(self._check_multi_label_ind(label_index))
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        label_index = self._check_multi_label_ind(label_index)
 
+        L_kr = np.kron(np.eye(self.y.shape[1]),self.L)
         nU = len(unlabel_index)
         # Only use the 2nd element
-        Uidx = [uind[1] for uind in unlabel_index]
-        Sidx = [lind[1] for lind in label_index]
-        Ys = [self.y[mlab_ind] for mlab_ind in unlabel_index]
-        Luu = self.L[np.ix_(Uidx, Uidx)]
-        Lsu = self.L[np.ix_(Sidx, Uidx)]
-        LL = np.linalg.inv(Luu)
+        # Uidx_col = []
+        # Uidx_row = []
+        # for uind in unlabel_index_li:
+        #     Uidx_col.append(uind[1])
+        #     Uidx_row.append((uind[0] + uind[1] * self.X.shape[0]) % self.L.shape[0])
+        Uidx = unlabel_index.get_onedim_index(order='F', ins_num=self.X.shape[0])
+        Sidx = label_index.get_onedim_index(order='F', ins_num=self.X.shape[0])
+        Uidx = np.sort(Uidx)
+        Sidx = np.sort(Sidx)
+        Ys = [self.y[lind] for lind in label_index]
+        # for lind in label_index:
+        #     Sidx.append(lind[0])
+        #     Ys.append(self.y[lind])
+        Ys = np.asarray(Ys)
+        Luu = L_kr[np.ix_(Uidx, Uidx)]
+        Lsu = L_kr[np.ix_(Sidx, Uidx)]
+        LL = np.linalg.pinv(Luu)
         # calculate the evaluation value for each pair in U
-        vals = np.zeros(nU, 1)
-        YsLsu = np.dot(Ys, Lsu)
+        vals = np.zeros(nU)
+        YsLsu = Ys.dot(Lsu).T
         for i in range(nU):
             tmpidx = list(range(nU))
             tmpidx.remove(i)
@@ -380,16 +420,17 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
 
             b = -(LL[i, tmpidx])
             invLrr = LL[np.ix_(tmpidx, tmpidx)] - b.T.dot(b) / LL[i, i]
-            vt1 = YsLsu[:, tmpidx]
-            vt2 = 2 * YsLsu[:, i]
+            vt1 = YsLsu[tmpidx]
+            vt2 = 2 * YsLsu[i]
             tmp1 = vt1 + Lqr
             tmp1 = vt2 - tmp1.dot(invLrr).dot(tmp1.T)
             tmp2 = vt1 - Lqr
             tmp2 = -vt2 - tmp2.dot(invLrr).dot(tmp2.T)
-            vals[i] = np.max((tmp0 + tmp1), (tmp0 + tmp2))
+            vals[i] = np.fmax((tmp0 + tmp1), (tmp0 + tmp2))
 
-        idx_selected = nsmallestarg(vals, 1)[0]
-        return [unlabel_index[idx_selected]]
+        idx_selected = np.argmin(vals)
+        idx_ondim = Uidx[idx_selected]
+        return [(idx_ondim%self.X.shape[0], idx_ondim//self.X.shape[0])]
 
 
 class QueryMultiLabelAUDI(BaseMultiLabelQuery):
@@ -409,15 +450,20 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
 
     initial_labeled_indexes: {list, np.ndarray, IndexCollection}
         The indexes of initially labeled samples. Used for initializing the LabelRanking model.
+
+    References
+    ----------
+    [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
+        diversity for incremental multi-label learning. In Proceedings
+        of the 13th IEEE International Conference on Data Mining, pages
+        1079–1084, Dallas, TX, 2013.
     """
 
-    def __init__(self, X, y, initial_labeled_indexes):
+    def __init__(self, X, y):
         super(QueryMultiLabelAUDI, self).__init__(X, y)
         # if len(np.nonzero(self.y == 2.0)[0]) == 0:
         #     self.y = np.hstack((self.y, 2 * np.ones((self.y.shape[0], 1))))
-        if isinstance(initial_labeled_indexes, MultiLabelIndexCollection):
-            initial_labeled_indexes = initial_labeled_indexes.get_unbroken_instances()
-        self._lr_model = LabelRankingModel(self.X[initial_labeled_indexes, :], self.y[initial_labeled_indexes, :])
+        self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
         if len(unlabel_index) <= 1:
@@ -426,7 +472,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         label_index = self._check_multi_label_ind(label_index)
 
         # select instance by LCI
-        W = unlabel_index.get_matrix_mask(label_mat_shape=self.y.shape, init_value=0, fill_value=1)
+        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1)
         unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
         lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
         self._lr_model.fit(lab_data, lab_lab)
@@ -434,11 +480,11 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
         insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
         selected_ins = np.argmin(insvals)
-        selected_ins = data_ind[selected_ins]
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
         dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
+        selected_ins = data_ind[selected_ins]
         selected_lab = np.argmin(dis)
 
         return [(selected_ins, selected_lab)]
@@ -454,6 +500,32 @@ def seed_random_state(seed):
     raise ValueError("%r can not be used to generate numpy.random.RandomState"
                      " instance" % seed)
 
+class DummyClf():
+    """This classifier handles training sets with only 0s or 1s to unify the
+    interface.
+
+    """
+
+    def __init__(self):
+        self.classes_ = [0, 1]
+
+    def fit(self, X, y):
+        self.cls = int(y[0]) # 1 or 0
+
+    # def train(self, dataset):
+    #     _, y = zip(*dataset.get_labeled_entries())
+    #     self.cls = int(y[0])
+
+    def predict(self, X):
+        return self.cls * np.ones(len(X))
+
+    def predict_real(self, X):
+        return self.predict_proba(X) * 2 - 1
+
+    def predict_proba(self, X):
+        ret = np.zeros((len(X), 2))
+        ret[:, self.cls] = 1.
+        return ret
 
 class _BinaryRelevance():
     r"""Binary Relevance
@@ -472,7 +544,7 @@ class _BinaryRelevance():
         self.base_clf = copy.copy(base_clf)
         self.clfs_ = None
 
-    def train(self, X, y):
+    def train(self, X, Y):
         r"""Train model with given feature.
 
         Parameters
@@ -493,8 +565,8 @@ class _BinaryRelevance():
         self : object
             Retuen self.
         """
-        X = np.array(X)
-        Y = np.array(y)
+        # X = np.array(X)
+        # Y = np.array(y)
 
         self.n_labels_ = np.shape(Y)[1]
         self.n_features_ = np.shape(X)[1]
@@ -502,7 +574,10 @@ class _BinaryRelevance():
         self.clfs_ = []
         for i in range(self.n_labels_):
             # TODO should we handle it here or we should handle it before calling
-            clf = copy.deepcopy(self.base_clf)
+            if len(np.unique(Y[:, i])) == 1:
+                clf = DummyClf()
+            else:
+                clf = copy.deepcopy(self.base_clf)
             clf.fit(X, Y[:, i])
             self.clfs_.append(clf)
 
@@ -553,7 +628,23 @@ class _BinaryRelevance():
 
         pred = np.zeros((X.shape[0], self.n_labels_))
         for i in range(self.n_labels_):
-            pred[:, i] = self.clfs_[i].predict_real(X)[:, 1]
+            if isinstance(self.clfs_[i], DummyClf):
+                pred[:, i] = self.clfs_[i].predict_real(X)[:, 1]
+            elif isinstance(self.clfs_[i], SVC):
+                value = self.clfs_[i].decision_function(X)
+                if len(np.shape(value)) == 1:  # n_classes == 2
+                    pred_value = np.vstack((-value, value)).T
+                    pred[:, i] = pred_value[:, 1]
+                else:
+                    pred[:, i] = value[:, 1]
+            elif isinstance(self.clfs_[i], LogisticRegression):
+                value = self.clfs_[i].decision_function(X)
+                if len(np.shape(value)) == 1:  # n_classes == 2
+                    pred_value = np.vstack((-value, value)).T
+                    pred[:, i] = pred_value[:, 1]
+                else:
+                    pred[:, i] = value[:, 1]
+            # pred[:, i] = self.clfs_[i].predict_real(X)[:, 1]
         return pred
 
     def predict_proba(self, X):
@@ -616,7 +707,6 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
 
     def __init__(self, X, y, *args, **kwargs):
         super(MaximumLossReductionMaximalConfidence, self).__init__(X, y)
-        
         self.n_samples, self.n_labels = np.shape(self.y)
 
         random_state = kwargs.pop('random_state', None)
@@ -650,10 +740,10 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
         trnf = np.sort(trnf, axis=1)[:, ::-1]
         trnf /= np.tile(trnf.sum(axis=1).reshape(-1, 1), (1, trnf.shape[1]))
         if len(np.unique(self.y.sum(axis=1))) == 1:
-            lr = SVC()
+            lr = DummyClf()
         else:
             lr = self.logistic_regression_
-        lr.fit(trnf, self.y[label_index])
+        lr.fit(trnf, self.y[label_index].sum(axis=1))
 
         idx_poolf = np.argsort(poolf, axis=1)[:, ::-1]
         poolf = np.sort(poolf, axis=1)[:, ::-1]
@@ -718,9 +808,8 @@ class AdaptiveActiveLearning(BaseIndexQuery):
            Classification." IJCAI. 2013.
     """
 
-    def __init__(self, dataset, base_clf, betas=None, n_jobs=1,
-            random_state=None):
-        super(AdaptiveActiveLearning, self).__init__(dataset)
+    def __init__(self, X, y, base_clf, betas=None, random_state=None):
+        super(AdaptiveActiveLearning, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)
 
@@ -731,7 +820,6 @@ class AdaptiveActiveLearning(BaseIndexQuery):
         if self.betas is None:
             self.betas = [i/10. for i in range(0, 11)]
 
-        self.n_jobs = n_jobs
         self.random_state_ = seed_random_state(random_state)
 
     def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
