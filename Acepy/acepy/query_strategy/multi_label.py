@@ -30,6 +30,7 @@ from acepy.index import IndexCollection
 
 # from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
+
 class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.
     It combines label ranking with threshold learning, and use SGD to optimize.
