@@ -15,8 +15,9 @@ import inspect
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_X_y
 
-from ..query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, QueryRandom, QureyExpectedErrorReduction
-from acepy.Acepy.acepy.query_strategy import QueryInstanceQUIRE, QueryInstanceGraphDensity
+from acepy.query_strategy.query_labels import QueryInstanceQBC, QueryInstanceGraphDensity, \
+         QueryInstanceUncertainty, QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE, \
+          QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL
 from ..data_manipulate.al_split import split
 from .experiment_analyser import ExperimentAnalyser
 from .state import State
@@ -169,6 +170,20 @@ class AlExperiment:
                     self._query_function_need_train_ind = True
                     self._query_function_metric = kwargs.pop('metric', 'manhattan')
                     self._query_function_kwargs = kwargs
+                elif strategy == 'QueryInstanceBMDR':
+                    beta = kwargs.pop('beta', 1000)
+                    gamma = kwargs.pop('gamma', 0.1)
+                    rho = kwargs.pop('rho', 1)
+                    self._query_function = QueryInstanceBMDR(self._X, self._y, beta, gamma, rho, **kwargs)
+                elif: strategy == 'QueryInstanceSPAL':
+                    mu = kwargs.pop('mu',0.1)
+                    gamma = kwargs.pop('gamma',0.1)
+                    rho = kwargs.pop('rho',1)
+                    lambda_init = kwargs.pop('lambda_init',0.1)
+                    lambda_pace = kwargs.pop('lambda_pace',0.01)
+                    self._query_function = QueryInstanceSPAL(self._X, self_y, mu, gamma, rho, lambda_init, lambda_pace, **kwargs)
+
+
 
     def set_performance_metric(self, performance_metric='accuracy_score', **kwargs):
         """
