@@ -121,7 +121,7 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
         """
 
 
-class BaseFeatureQuery(BaseMultiLabelQuery, metaclass=ABCMeta):
+class BaseFeatureQuery(BaseIndexQuery, metaclass=ABCMeta):
     """Base query strategy for feature querying setting.
     Basically have the same api with multi label setting."""
 

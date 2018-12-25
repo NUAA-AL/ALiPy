@@ -41,11 +41,18 @@ for t in range(10):
 
     # Omega = randperm(mtr * n-1, math.floor(sr * mtr * n))
     X_all = []
+    sh = data.shape
+    max_ind = sh[0] * sh[1] - 1
+    obi = list(randperm(max_ind, 100))
+    unobi = list(randperm(max_ind, 100))
 
     for i in range (queryRound):
         # Xmc = AFASMC_mc(Xtr, Ytr, Omega)
         # print(Xmc)
-        sh = data.shape
-        max_ind = sh[0]*sh[1]-1
-        sel = afa.select(observed_entries=randperm(max_ind, 100), unkonwn_entries=randperm(max_ind, 1000))
+        sel = afa.select(observed_entries=obi, unkonwn_entries=unobi)
         print(sel)
+        # _1di = sel[0][0]+sel[0][1]*sh[0]
+        # print(_1di in obi)
+        # print(_1di in unobi)
+        # obi.append(_1di)
+        # unobi.remove(_1di)
