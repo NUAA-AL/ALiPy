@@ -3,9 +3,9 @@ from abc import abstractmethod, ABCMeta
 import numpy as np
 from sklearn.utils.validation import check_X_y
 
-from ..index import MultiLabelIndexCollection
-from ..oracle import Oracle, Oracles
-from ..utils.interface import BaseQueryStrategy
+from acepy.index import MultiLabelIndexCollection
+from acepy.oracle import Oracle, Oracles
+from acepy.utils.interface import BaseQueryStrategy
 
 
 class BaseIndexQuery(BaseQueryStrategy, metaclass=ABCMeta):
