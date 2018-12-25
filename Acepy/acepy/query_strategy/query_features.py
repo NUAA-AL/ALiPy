@@ -22,7 +22,7 @@ import numpy as np
 
 from .base import BaseFeatureQuery
 from ..index.index_collections import MultiLabelIndexCollection
-
+from ..utils.misc import randperm
 
 def _svd_threshold(svd_obj, lambdadL):
     svd_obj = np.asarray(svd_obj)
@@ -77,21 +77,17 @@ def AFASMC_mc(X, y, omega, **kwargs):
     kwargs:
         lambda1  : The lambda1 trade-off parameter
         lambda2  : The lambda2 trade-off parameter
-        max_iter : The maximal iterations of optimization
+        max_in_iter : The maximal iterations of inner optimization
+        max_out_iter : The maximal iterations of the outer optimization
 
     Returns
     -------
     Xmc: array
         The completed matrix.
     """
-    max_in_iter = kwargs.pop('max_in_iter', 100)
-    max_out_iter = kwargs.pop('max_out_iter', 10)
-    lambda1 = kwargs.pop('lambda1', 1)
-    lambda2 = kwargs.pop('lambda2', 1)
     X = np.asarray(X)
     y = np.asarray(y)
     n_samples, n_features = X.shape
-    lambda2 /= n_samples
 
     # X_obr = np.zeros(n_samples * n_features)
     # X_obr[omega] = X.flatten(order='F')[omega]
@@ -109,12 +105,58 @@ def AFASMC_mc(X, y, omega, **kwargs):
                              "and the 2nd element is the index of features.")
 
     obrT = np.asarray(omega.get_matrix_mask(mat_shape=X.shape, sparse_format='lil_matrix').todense())
-    # X_obr = np.ma.array(data=X, mask=obrT.todense(), fill_value=0)
-    # mask = (obrT == 1).todense()
-    # X_obr[mask == 1] = X[mask == 1]
+
+    return AFASMC_mask_mc(X=X, y=y, mask=obrT, check_para=False, **kwargs)
+
+
+def AFASMC_mask_mc(X, y, mask, **kwargs):
+    """Perform matrix completion method in AFASMC.
+    It will train a linear model to use the label information.
+
+    Parameters
+    ----------
+    X: array
+        The [n_samples, n_features] training matrix in which X_ij indicates j-th
+        feature of i-th instance. The unobserved entries can be anything.
+
+    y: array
+        The The [n_samples] label vector.
+
+    mask: {list, np.ndarray}
+        The mask matrix of labeled samples. the matrix should have the shape [n_train_idx, n_features].
+        There must be only 1 and 0 in the matrix, in which, 1 means the corresponding element is known,
+        otherwise, it will be cheated as an unknown element.
+
+    kwargs:
+        lambda1  : The lambda1 trade-off parameter
+        lambda2  : The lambda2 trade-off parameter
+        max_in_iter : The maximal iterations of inner optimization
+        max_out_iter : The maximal iterations of the outer optimization
+
+    Returns
+    -------
+    Xmc: array
+        The completed matrix.
+    """
+
+    max_in_iter = kwargs.pop('max_in_iter', 100)
+    max_out_iter = kwargs.pop('max_out_iter', 10)
+    lambda1 = kwargs.pop('lambda1', 1)
+    lambda2 = kwargs.pop('lambda2', 1)
+    check_para = kwargs.pop('check_para', True)
+        if check_para:
+            X = np.asarray(X)
+            y = np.asarray(y)
+            obrT = np.asarray(mask)
+            assert obrT.shape[0] == X.shape[0] and obrT.shape[1] == X.shape[1]
+            ue = np.unique(obrT)
+            assert len(ue) == 2
+            assert 0 in ue
+            assert 1 in ue
     X_obr = np.zeros((n_samples, n_features))
     X_obr += obrT * X
-
+    n_samples, n_features = X.shape
+    lambda2 /= n_samples
     theta0 = 1
     theta1 = 1
     Z0 = np.zeros((n_samples, n_features))
@@ -239,22 +281,71 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
         # map entries of the whole data to the training data
         tr_ob = []
         for entry in observed_entries:
-            if entry[0] in self._train_idx:
-                ind_in_train = np.where(self._train_idx == entry[0])[0][0]
-                tr_ob.append((ind_in_train, entry[1]))
-            else:
-                tr_ob.append(entry)
+            # if entry[0] in self._train_idx:
+            ind_in_train = np.where(self._train_idx == entry[0])[0][0]
+            tr_ob.append((ind_in_train, entry[1]))
+            # else:
+            #     tr_ob.append(entry)
         tr_ob = MultiLabelIndexCollection(tr_ob)
 
         # matrix completion
-        X_mc = AFASMC_mc(X=self.X[self._train_idx], y=self.y[self._train_idx], omega=tr_ob)
+        X_mc = AFASMC_mc(X=self.X[self._train_idx], y=self.y[self._train_idx], omega=tr_ob, **kwargs)
         self._feature_variance.append(X_mc)
         mc_sh = np.shape(X_mc)
         var_mat = np.zeros(mc_sh)
-        for i in range(mc_sh[0]):
-            for j in range(mc_sh[1]):
-                var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
+        if len(self._feature_variance) >= 2:
+            for i in range(mc_sh[0]):
+                for j in range(mc_sh[1]):
+                    var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
         var_mat *= 1-np.asarray(tr_ob.get_matrix_mask(mat_shape=mc_sh, sparse_format='lil_matrix').todense())
         selected_feature = np.argmax(var_mat)   # a 1d index in training set
 
-        return [(self._train_idx[selected_feature//self.X.shape[1]], selected_feature % self.X.shape[1])]
+        return [(self._train_idx[selected_feature//mc_sh[1]], selected_feature % mc_sh[1])]
+
+    def select_by_mask(self, observed_mask, **kwargs):
+        """Select a subset from the unlabeled set by providing the mask matrix, 
+        return the selected instance and feature.
+
+        Parameters
+        ----------
+        observed_mask: {list, np.ndarray}
+            The mask matrix of labeled samples. the matrix should have the shape [n_train_idx, n_features].
+            There must be only 1 and 0 in the matrix, in which, 1 means the corresponding element is known,
+            otherwise, it will be cheated as an unknown element.
+        """
+        if self._train_idx is None:
+            raise ValueError("Please pass the indexes of training data when initializing.")
+        observed_mask = np.asarray(observed_mask)
+        assert len(observed_mask.shape) == 2
+        assert observed_mask.shape[0] == len(self._train_idx)
+        assert observed_mask.shape[1] == self.X.shape[1]
+
+        X_mc = AFASMC_mask_mc(X=self.X[self._train_idx], y=self.y[self._train_idx], mask=observed_mask, check_para=False, **kwargs)
+        self._feature_variance.append(X_mc)
+        mc_sh = np.shape(X_mc)
+        var_mat = np.zeros(mc_sh)
+        if len(self._feature_variance) >= 2:
+            for i in range(mc_sh[0]):
+                for j in range(mc_sh[1]):
+                    var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
+        var_mat *= 1-np.asarray(tr_ob.get_matrix_mask(mat_shape=mc_sh, sparse_format='lil_matrix').todense())
+        selected_feature = np.argmax(var_mat)   # a 1d index in training set
+
+        return [(self._train_idx[selected_feature//mc_sh[1]], selected_feature % mc_sh[1])]
+
+
+class QueryFeatureRandom(BaseFeatureQuery):
+    """Randomly pick a missing feature to query."""
+    def __init__(self, X=None, y=None):
+        super(QueryFeatureRandom, self).__init__(X, y)
+
+    def select(self, observed_entries, unkonwn_entries, batch_size=1, **kwargs):
+        # build map from value to index
+        if len(unkonwn_entries) <= 1:
+            return unkonwn_entries
+        unkonwn_entries = self._check_feature_ind(unkonwn_entries)
+        perm = randperm(len(unkonwn_entries) - 1, batch_size)
+        tpl = list(unkonwn_entries.index)
+        return [tpl[i] for i in perm]
+
+
