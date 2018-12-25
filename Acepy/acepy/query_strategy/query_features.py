@@ -22,7 +22,7 @@ import numpy as np
 
 from .base import BaseFeatureQuery
 from ..index.index_collections import MultiLabelIndexCollection
-
+from ..utils.misc import randperm
 
 def _svd_threshold(svd_obj, lambdadL):
     svd_obj = np.asarray(svd_obj)
@@ -281,11 +281,11 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
         # map entries of the whole data to the training data
         tr_ob = []
         for entry in observed_entries:
-            if entry[0] in self._train_idx:
-                ind_in_train = np.where(self._train_idx == entry[0])[0][0]
-                tr_ob.append((ind_in_train, entry[1]))
-            else:
-                tr_ob.append(entry)
+            # if entry[0] in self._train_idx:
+            ind_in_train = np.where(self._train_idx == entry[0])[0][0]
+            tr_ob.append((ind_in_train, entry[1]))
+            # else:
+            #     tr_ob.append(entry)
         tr_ob = MultiLabelIndexCollection(tr_ob)
 
         # matrix completion
@@ -293,13 +293,14 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
         self._feature_variance.append(X_mc)
         mc_sh = np.shape(X_mc)
         var_mat = np.zeros(mc_sh)
-        for i in range(mc_sh[0]):
-            for j in range(mc_sh[1]):
-                var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
+        if len(self._feature_variance) >= 2:
+            for i in range(mc_sh[0]):
+                for j in range(mc_sh[1]):
+                    var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
         var_mat *= 1-np.asarray(tr_ob.get_matrix_mask(mat_shape=mc_sh, sparse_format='lil_matrix').todense())
         selected_feature = np.argmax(var_mat)   # a 1d index in training set
 
-        return [(self._train_idx[selected_feature//self.X.shape[1]], selected_feature % self.X.shape[1])]
+        return [(self._train_idx[selected_feature//mc_sh[1]], selected_feature % mc_sh[1])]
 
     def select_by_mask(self, observed_mask, **kwargs):
         """Select a subset from the unlabeled set by providing the mask matrix, 
@@ -323,13 +324,28 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
         self._feature_variance.append(X_mc)
         mc_sh = np.shape(X_mc)
         var_mat = np.zeros(mc_sh)
-        for i in range(mc_sh[0]):
-            for j in range(mc_sh[1]):
-                var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
+        if len(self._feature_variance) >= 2:
+            for i in range(mc_sh[0]):
+                for j in range(mc_sh[1]):
+                    var_mat[i, j] = np.var([mat[i][j] for mat in self._feature_variance])
         var_mat *= 1-np.asarray(tr_ob.get_matrix_mask(mat_shape=mc_sh, sparse_format='lil_matrix').todense())
         selected_feature = np.argmax(var_mat)   # a 1d index in training set
 
-        return [(self._train_idx[selected_feature//self.X.shape[1]], selected_feature % self.X.shape[1])]
+        return [(self._train_idx[selected_feature//mc_sh[1]], selected_feature % mc_sh[1])]
 
+
+class QueryFeatureRandom(BaseFeatureQuery):
+    """Randomly pick a missing feature to query."""
+    def __init__(self, X=None, y=None):
+        super(QueryFeatureRandom, self).__init__(X, y)
+
+    def select(self, observed_entries, unkonwn_entries, batch_size=1, **kwargs):
+        # build map from value to index
+        if len(unkonwn_entries) <= 1:
+            return unkonwn_entries
+        unkonwn_entries = self._check_feature_ind(unkonwn_entries)
+        perm = randperm(len(unkonwn_entries) - 1, batch_size)
+        tpl = list(unkonwn_entries.index)
+        return [tpl[i] for i in perm]
 
 
