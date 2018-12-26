@@ -8,8 +8,6 @@ import copy
 import warnings
 import queue
 import random
-import matlab
-# from decorators import memoized
 
 import numpy as np
 from sklearn.svm import SVC
@@ -176,18 +174,13 @@ class HALC(BaseMultiLabelQuery):
         super(HALC, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
 
-        # self.Uncertainty = np.zeros([self.n_samples, self.n_classes])
-       
+        
         if weights is None:
             self.weights = np.ones(self.n_classes)
         else:
             assert(np.shape(y)[0] == len(weights))
             self.weights = weights
-        
         self.Distance = self._cal_Distance()
-
-        # # the result of 
-        # self.Train_Target = np.zeros((self.n_samples, self.n_classes))
         # if node_i is the parent of node_j,then label_tree(i,j)==1
         self.label_tree = label_tree
     
@@ -222,26 +215,6 @@ class HALC(BaseMultiLabelQuery):
             m.fit(self.X[i_samples, :], self.y[i_samples, j])
             models.append(m)   
         return models
-    
-    # def cal_uncertainty(self):
-    #     """
-    #         calculate the uncertainty of instance xi on a label yj.
-    #     Returns: 2d-arrray-like, shape [n_samples, n_classes]
-    #     the uncertainty of instance xi on a label yj.
-    #     """
-    #     Uncertainty = np.zeros([self.n_samples, self.n_classes])
-    #     # unlabel_data = self.X[unlabel_index, :]
-    #     for j in np.arange(self.n_classes):
-    #         model = self.models[j]
-    #         j_target = self.Train_Target[:, j]
-    #         j_label = np.where(j_target != 0)
-    #         j_unlabel = np.where(j_target == 0)
-    #         for i in j_unlabel[0]:
-    #             d_v = model.decision_values(self.X[i][j])
-    #             Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
-    #         Uncertainty[j_label, j] = -np.infty
-        
-    #     return Uncertainty
 
     def cal_uncertainty(self, label_index, unlabel_index, models):
 
@@ -255,7 +228,7 @@ class HALC(BaseMultiLabelQuery):
             j_unlabel = np.where(unlabel_mat[:, j] == 1)
             for i in j_unlabel[0]:
                 d_v = model.decision_values(self.X[i][j])
-                Uncertainty[i][j] = np.abs(1 / d_v)
+                Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
             Uncertainty[j_label, j] = -np.infty
         return Uncertainty
      
