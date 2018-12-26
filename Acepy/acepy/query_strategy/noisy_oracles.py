@@ -1,5 +1,16 @@
 """
 Pre-defined query strategy for noisy oracles.
+
+In reality, the labels given by human is not always correct. For one hand,
+there are some inevitable noise comes from the instrumentation of experimental
+setting. On the other hand, people can become distracted or fatigued over time,
+introducing variability in the quality of their annotations.
+
+Acepy implements several strategies in noisy oracles settings.
+Some of then mainly evaluate the quality or expertise of each oracle,
+and the rest tries to obtain the accurate label for each instance
+whose labels are provided by several noisy oracles.
+
 There are 2 categories of methods.
 1. Query from a single selected oracle.
     1.1 Always query from the best oracle
@@ -525,9 +536,6 @@ class QueryNoisyOraclesAll(QueryNoisyOraclesSelectInstanceUncertainty):
 
 class QueryNoisyOraclesRandom(QueryNoisyOraclesSelectInstanceUncertainty):
     """Select a random oracle to query."""
-
-    def __init__(self, oracles, X=None, y=None):
-        super(QueryNoisyOraclesRandom, self).__init__(X=X, y=y, oracles=oracles)
 
     def select_by_given_instance(self, selected_instance):
         """Select oracle to query by providing the index of selected instance.
