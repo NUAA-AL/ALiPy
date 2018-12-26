@@ -477,7 +477,7 @@ class MultiLabelIndexCollection(IndexCollection):
         """Return the indexes of break instances which have missing entries."""
         return self._get_cond_instance(cond=1)
 
-    def get_matrix_mask(self, mat_shape, fill_value=1, sparse_format='lil_matrix'):
+    def get_matrix_mask(self, mat_shape, fill_value=1, sparse=True, sparse_format='lil_matrix'):
         """Return an array which has the same shape with the label matrix.
         If an entry is known, then, the corresponding value in the mask is 1, otherwise, 0.
 
@@ -489,8 +489,11 @@ class MultiLabelIndexCollection(IndexCollection):
         fill_value: int
             The value filled in the mask when the entry is in the container.
 
+        sparse: bool
+            Whether to return a sparse matrix or a dense matrix (numpy.ndarray).
+
         sparse_format: str
-            The format of the returned sparse matrix.
+            The format of the returned sparse matrix. Only available if sparse==True
             should be one onf [bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix].
             Please refer to https://docs.scipy.org/doc/scipy-0.18.1/reference/sparse.html
             for the definition of each sparse format.
@@ -501,7 +504,10 @@ class MultiLabelIndexCollection(IndexCollection):
             The mask of the label matrix.
         """
         assert isinstance(mat_shape, tuple)
-        mask = eval(sparse_format + '(mat_shape)')
+        if sparse:
+            mask = eval(sparse_format + '(mat_shape)')
+        else:
+            mask = np.zeros(mat_shape)
         for item in self._innercontainer:
             mask[item] = fill_value
         return mask
@@ -532,6 +538,31 @@ class MultiLabelIndexCollection(IndexCollection):
         assert len(label_mat_shape) == 2
         row, col = np.unravel_index(array, dims=label_mat_shape, order=order)
         return cls(data=[(row[i], col[i]) for i in range(len(row))], label_size=label_mat_shape[1])
+
+    @classmethod
+    def construct_by_element_mask(cls, mask):
+        """Construct a MultiLabelIndexCollection object by providing a
+        2d array whose shape should be the same as the matrix shape.
+
+        Parameters
+        ----------
+        mask: {list, np.ndarray}
+            The 2d mask matrix of elements.
+            There must be only 1 and 0 in the matrix, in which,
+            1 means the corresponding element is known, and will be
+            added to the MultiLabelIndexCollection container.
+            Otherwise, it will be cheated as an unknown element.
+        """
+        mask = np.asarray(mask)
+        ue = np.unique(mask)
+        if not (len(mask.shape) == 2 and len(ue) == 2 and 0 in ue and 1 in ue):
+            raise ValueError("The mask matrix should be a 2d array, and there must be only "
+                             "1 and 0 in the matrix, in which, 1 means the corresponding "
+                             "element is known, and will be added to the MultiLabelIndexCollection container.")
+
+        nz_row, nz_col = np.nonzero(mask)
+        return cls(data=[(nz_row[i], nz_col[i]) for i in range(len(nz_row))], label_size=mask.shape[1])
+
 
 
 class FeatureIndexCollection(MultiLabelIndexCollection):

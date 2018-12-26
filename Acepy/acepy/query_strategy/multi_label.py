@@ -371,6 +371,26 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
         self.L = np.linalg.pinv(self.K + self.lmbda * np.eye(len(X)))
 
     def select(self, label_index, unlabel_index, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        Returns
+        -------
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.
+        """
+
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
@@ -454,6 +474,28 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        epsilon: float, optional (default=0.5)
+            The threshold to avoid zero-division.
+
+        Returns
+        -------
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.
+        """
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)

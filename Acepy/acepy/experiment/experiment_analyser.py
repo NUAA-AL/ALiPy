@@ -492,7 +492,10 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         if saving_path is not None:
             saving_path = os.path.abspath(saving_path)
             if os.path.isdir(saving_path):
-                plt.savefig(os.path.join(saving_path, 'acepy_plotting.jpg'))
+                try:
+                    plt.savefig(os.path.join(saving_path, 'acepy_plotting.jpg'))
+                except:
+                    plt.savefig(os.path.join(saving_path, 'acepy_plotting.pdf'))
             else:
                 plt.savefig(saving_path)
         plt.show()
@@ -705,7 +708,10 @@ class _CostEffectiveAnalyser(BaseAnalyser):
         if saving_path is not None:
             saving_path = os.path.abspath(saving_path)
             if os.path.isdir(saving_path):
-                plt.savefig(os.path.join(saving_path, 'acepy_plotting.jpg'))
+                try:
+                    plt.savefig(os.path.join(saving_path, 'acepy_plotting.jpg'))
+                except:
+                    plt.savefig(os.path.join(saving_path, 'acepy_plotting.pdf'))
             else:
                 plt.savefig(saving_path)
         plt.show()
