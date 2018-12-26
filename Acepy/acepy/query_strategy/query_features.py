@@ -1,7 +1,14 @@
 """
 Query strategies for feature querying setting.
 
-We plan to implement the following strategies:
+Feature missing is a serious problem in many applications, which may
+lead to low quality of training data and further significantly
+degrade the learning performance. While feature acquisition usually
+involves special devices or complex processes, it is expensive to
+acquire all feature values for the whole dataset. Thus, some works
+try to solve this problem by active learning.
+
+To support the feature querying setting, acepy implements the following strategies:
 
 1. KDD'18: Active Feature Acquisition with Supervised Matrix Completion (AFASMC).
 2. ICDM'13: Active Matrix Completion using Committee Stability (Stability)
@@ -86,6 +93,13 @@ def AFASMC_mc(X, y, omega, **kwargs):
     -------
     Xmc: array
         The completed matrix.
+
+    References
+    ----------
+    [1] Active feature acquisition with supervised matrix completion.
+        Sheng-Jun Huang, Miao Xu, Ming-Kun Xie, Masashi Sugiyama, Gang Niu and Songcan Chen
+        In: Proceedings of the 24th ACM SIGKDD Conference on Knowledge Discovery and Data
+        Mining (KDD'18), 2018.
     """
     n_samples, n_features = np.shape(X)
 
@@ -137,6 +151,12 @@ def AFASMC_mask_mc(X, y, mask, **kwargs):
     -------
     Xmc: array
         The completed matrix.
+
+    References
+    ----------
+    [1] Active feature acquisition with supervised matrix completion.
+        Sheng-Jun Huang, Miao Xu, Ming-Kun Xie, Masashi Sugiyama, Gang Niu and Songcan Chen
+        In: Proceedings of the 24th ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD'18), 2018.
     """
     X = np.asarray(X)
     y = np.asarray(y)
@@ -239,7 +259,33 @@ def AFASMC_mask_mc(X, y, mask, **kwargs):
 class IterativeSVD_mc:
     """The SVD method for matrix completion.
     The implementation is refered to "fancyimpute"
-    whose github address is: https://github.com/iskandr/fancyimpute"""
+    whose github address is: https://github.com/iskandr/fancyimpute
+
+    Parameters
+    ----------
+    rank: int, optional (default=10)
+        The rank of the factorized matrix.
+
+    convergence_threshold: float, optional (default=0.00001)
+        The optimization precision.
+
+    max_iters: int, optional (default=200)
+        The max iteration of optimization.
+
+    gradual_rank_increase: bool, optional (default=True)
+        Whether to increase the value of rank gradually during the optimization procedure.
+
+    svd_algorithm: string, default = "arpack"
+        SVD solver to use. Either "arpack" for the ARPACK wrapper in SciPy
+        (scipy.sparse.linalg.svds), or "randomized" for the randomized
+        algorithm due to Halko (2009).
+
+    min_value: float, optional (default=None)
+        The min value constraints of the imputed value.
+
+    max_value: float, optional (default=None)
+        The max value constraints of the imputed value.
+    """
 
     def __init__(
             self,
@@ -248,11 +294,8 @@ class IterativeSVD_mc:
             max_iters=200,
             gradual_rank_increase=True,
             svd_algorithm="arpack",
-            init_fill_method="zero",
             min_value=None,
-            max_value=None,
-            verbose=True):
-        self.fill_method = init_fill_method
+            max_value=None):
         self.min_value = min_value
         self.max_value = max_value
         self.rank = rank
@@ -260,7 +303,6 @@ class IterativeSVD_mc:
         self.svd_algorithm = svd_algorithm
         self.convergence_threshold = convergence_threshold
         self.gradual_rank_increase = gradual_rank_increase
-        self.verbose = verbose
 
     def _converged(self, X_old, X_new, missing_mask):
         F32PREC = np.finfo(np.float32).eps
@@ -288,7 +330,7 @@ class IterativeSVD_mc:
             X[X > self.max_value] = self.max_value
         return X
 
-    def solve(self, X, observed_mask, check_para=True):
+    def impute(self, X, observed_mask, check_para=True):
         """Complete the matrix.
 
         Parameters
@@ -300,6 +342,11 @@ class IterativeSVD_mc:
             The mask matrix of X. the matrix should have the same shape with X.
             There must be only 1 and 0 in the matrix, in which, 1 means the corresponding element is known,
             otherwise, it will be cheated as an unknown element.
+
+        Returns
+        -------
+        X_filled: array
+            The completed matrix.
         """
         X = check_array(X, force_all_finite=False)
         if check_para:
@@ -352,10 +399,10 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
 
     References
     ----------
-    [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
-        querying informative and representative examples. IEEE
-        Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+    [1] Active feature acquisition with supervised matrix completion.
+        Sheng-Jun Huang, Miao Xu, Ming-Kun Xie, Masashi Sugiyama, Gang Niu
+        and Songcan Chen In: Proceedings of the 24th ACM SIGKDD Conference
+        on Knowledge Discovery and Data Mining (KDD'18), 2018.
 
     """
 
@@ -468,12 +515,8 @@ class QueryFeatureAFASMC(BaseFeatureQuery):
 class QueryFeatureRandom(BaseFeatureQuery):
     """Randomly pick a missing feature to query."""
 
-    def __init__(self, X=None, y=None):
-        super(QueryFeatureRandom, self).__init__(X, y)
-
     def select(self, observed_entries, unkonwn_entries, batch_size=1, **kwargs):
-        """Select a subset from the unlabeled set by providing the mask matrix,
-        return the selected instance and feature.
+        """Select a subset from the unlabeled set randomly.
 
         Parameters
         ----------
@@ -510,7 +553,7 @@ class QueryFeatureStability(BaseFeatureQuery):
     in ICDM'13: Active Matrix Completion.
     This method use different rank values in SVD matrix completion to construct committee.
     The uncertainty of prediction of each missing entry was computed as the variance of
-    the values from the committee members for that entry
+    the values from the committee members for that entry.
 
     Parameters
     ----------
@@ -529,10 +572,10 @@ class QueryFeatureStability(BaseFeatureQuery):
 
     References
     ----------
-    [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
-        querying informative and representative examples. IEEE
-        Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+    [1] Shayok Chakraborty, Jiayu Zhou, Vineeth Balasubramanian,
+        Sethuraman Panchanathan, Ian Davidson, and Jieping Ye. 2013.
+        Active matrix completion. In IEEE International Conference
+        on Data Mining. 81-90.
 
     """
 
@@ -618,7 +661,7 @@ class QueryFeatureStability(BaseFeatureQuery):
 
         X_mc_arr = []
         for comt in self._committee:
-            X_mc_arr.append(comt.solve(X=self.X[self._train_idx], observed_mask=observed_mask))
+            X_mc_arr.append(comt.impute(X=self.X[self._train_idx], observed_mask=observed_mask))
 
         mc_sh = observed_mask.shape
         if len(X_mc_arr) >= 2:

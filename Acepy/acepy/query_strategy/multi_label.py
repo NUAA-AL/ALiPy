@@ -7,7 +7,7 @@ There are 2 categories of methods.
 2. Query all labels of an instance: MMC (KDD’09), Adaptive (IJCAI’13), Random
 """
 
-# Authors: Ying-Peng Tang
+# Authors: Ying-Peng Tang and Guo-Xiang Li
 # License: BSD 3 clause
 
 from __future__ import absolute_import
@@ -25,15 +25,9 @@ from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kerne
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
-from acepy.index.index_collections import MultiLabelIndexCollection
-from acepy.index.multi_label_tools import get_Xy_in_multilabel
-from acepy.utils.misc import nsmallestarg, randperm
 from acepy.index import IndexCollection
-# from .base import BaseMultiLabelQuery
 from acepy.index.multi_label_tools import get_Xy_in_multilabel
 from acepy.utils.misc import randperm
-
-# from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 
 class _LabelRankingModel_MatlabVer:
@@ -268,11 +262,11 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
 
     Parameters
     ----------
-    init_X: 2D array
+    init_X: 2D array, optional (default=None)
         Feature matrix of the initial data for training.
         Shape is n*d, one row for an instance with d features.
 
-    init_y: 2D array
+    init_y: 2D array, optional (default=None)
         Label matrix of the initial data for training.
         Shape is n*n_classes, one row for an instance, -1 means irrelevant,
         a positive value means relevant, the larger, the more relevant.
@@ -294,6 +288,19 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
             self._max_query = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
 
     def fit(self, X, y, n_repeat=10):
+        """Train the model from X and y.
+
+        Parameters
+        ----------
+        X: 2D array, optional (default=None)
+            Feature matrix of the whole dataset.
+
+        y: 2D array, optional (default=None)
+            Label matrix of the whole dataset.
+
+        n_repeat: int, optional (default=10)
+            The number of optimization iterations.
+        """
         if self._init_flag is False:
             self.__init__(init_X=X, init_y=y, n_repeat=n_repeat)
         else:
@@ -921,3 +928,48 @@ class AdaptiveActiveLearning(BaseIndexQuery):
 
         return unlabel_index[ask_idx]
 
+
+class QueryMultiLabelRandom(BaseMultiLabelQuery):
+    """Select instance or instance-label pairs randomly."""
+
+    def select(self, label_index, unlabel_index, batch_size=1, select_type='ins-lab', **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: ignore
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        select_type: {'ins', 'ins-lab'}
+            The selection type.
+            ins: select a batch of instances to query all of their labels.
+            ins-lab: select a batch of instance-label pairs to query.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes. It is a list of tuples.
+        """
+        if select_type == 'ins':
+            if len(unlabel_index) <= batch_size:
+                return unlabel_index
+            unkonwn_entries = self._check_multi_label_ind(unlabel_index)
+            unkonwn_ins = unkonwn_entries.get_instance_index()
+            perm = randperm(len(unkonwn_ins) - 1, batch_size)
+            return [(unkonwn_ins[i],) for i in perm]
+        elif select_type == 'ins-lab':
+            if len(unlabel_index) <= batch_size:
+                return unlabel_index
+            unkonwn_entries = self._check_multi_label_ind(unlabel_index)
+            perm = randperm(len(unkonwn_entries) - 1, batch_size)
+            tpl = list(unkonwn_entries.index)
+            return [tpl[i] for i in perm]
+        else:
+            raise ValueError("select_type must be one of {'ins', 'ins-lab'}")
