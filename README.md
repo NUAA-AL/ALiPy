@@ -57,6 +57,7 @@ scipy
 scikit-learn
 matplotlib
 prettytable
+cvxpy
 ```
 
 ## Tools in acepy

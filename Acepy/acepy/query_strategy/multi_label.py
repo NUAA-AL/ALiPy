@@ -14,15 +14,27 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
+
 import math
-
+import copy
 import numpy as np
+
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 
-from .base import BaseMultiLabelQuery
-from ..index.multi_label_tools import get_Xy_in_multilabel
-from ..utils.misc import randperm
+from acepy.index.index_collections import MultiLabelIndexCollection
+from acepy.index.multi_label_tools import get_Xy_in_multilabel
+from acepy.utils.misc import nsmallestarg, randperm
+from acepy.index import IndexCollection
+# from .base import BaseMultiLabelQuery
+from acepy.index.multi_label_tools import get_Xy_in_multilabel
+from acepy.utils.misc import randperm
 
+# from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
+from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 
 class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.
@@ -518,3 +530,394 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         selected_lab = np.argmin(dis)
 
         return [(selected_ins, selected_lab)]
+
+
+def seed_random_state(seed):
+    """Turn seed into np.random.RandomState instance
+    """
+    if (seed is None) or (isinstance(seed, int)):
+        return np.random.RandomState(seed)
+    elif isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError("%r can not be used to generate numpy.random.RandomState"
+                     " instance" % seed)
+
+class DummyClf():
+    """This classifier handles training sets with only 0s or 1s to unify the
+    interface.
+
+    """
+
+    def __init__(self):
+        self.classes_ = [0, 1]
+
+    def fit(self, X, y):
+        self.cls = int(y[0]) # 1 or 0
+
+    # def train(self, dataset):
+    #     _, y = zip(*dataset.get_labeled_entries())
+    #     self.cls = int(y[0])
+
+    def predict(self, X):
+        return self.cls * np.ones(len(X))
+
+    def predict_real(self, X):
+        return self.predict_proba(X) * 2 - 1
+
+    def predict_proba(self, X):
+        ret = np.zeros((len(X), 2))
+        ret[:, self.cls] = 1.
+        return ret
+
+class _BinaryRelevance():
+    r"""Binary Relevance
+
+    base_clf : :py:mod:`libact.models` object instances
+        If wanting to use predict_proba, base_clf are required to support
+        predict_proba method.
+
+    References
+    ----------
+    .. [1] Tsoumakas, Grigorios, Ioannis Katakis, and Ioannis Vlahavas. "Mining
+           multi-label data." Data mining and knowledge discovery handbook.
+           Springer US, 2009. 667-685.
+    """
+    def __init__(self, base_clf):
+        self.base_clf = copy.copy(base_clf)
+        self.clfs_ = None
+
+    def train(self, X, Y):
+        r"""Train model with given feature.
+
+        Parameters
+        ----------
+        X : array-like, shape=(n_samples, n_features)
+            Train feature vector.
+
+        y : array-like, shape=(n_samples, n_labels)
+            Target labels.
+
+        Attributes
+        ----------
+        clfs\_ : list of :py:mod:`libact.models` object instances
+            Classifier instances.
+
+        Returns
+        -------
+        self : object
+            Retuen self.
+        """
+        # X = np.array(X)
+        # Y = np.array(y)
+
+        self.n_labels_ = np.shape(Y)[1]
+        self.n_features_ = np.shape(X)[1]
+
+        self.clfs_ = []
+        for i in range(self.n_labels_):
+            # TODO should we handle it here or we should handle it before calling
+            if len(np.unique(Y[:, i])) == 1:
+                clf = DummyClf()
+            else:
+                clf = copy.deepcopy(self.base_clf)
+            clf.fit(X, Y[:, i])
+            self.clfs_.append(clf)
+
+        return self
+
+    def predict(self, X):
+        r"""Predict labels.
+
+        Parameters
+        ----------
+        X : array-like, shape=(n_samples, n_features)
+            Feature vector.
+
+        Returns
+        -------
+        pred : numpy array, shape=(n_samples, n_labels)
+            Predicted labels of given feature vector.
+        """
+        X = np.asarray(X)
+        if self.clfs_ is None:
+            raise ValueError("Train before prediction")
+        if X.shape[1] != self.n_features_:
+            raise ValueError('Given feature size does not match')
+
+        pred = np.zeros((X.shape[0], self.n_labels_))
+        for i in range(self.n_labels_):
+            pred[:, i] = self.clfs_[i].predict(X)
+        return pred.astype(int)
+
+    def predict_real(self, X):
+        r"""Predict the probability of being 1 for each label.
+
+        Parameters
+        ----------
+        X : array-like, shape=(n_samples, n_features)
+            Feature vector.
+
+        Returns
+        -------
+        pred : numpy array, shape=(n_samples, n_labels)
+            Predicted probability of each label.
+        """
+        X = np.asarray(X)
+        if self.clfs_ is None:
+            raise ValueError("Train before prediction")
+        if X.shape[1] != self.n_features_:
+            raise ValueError('given feature size does not match')
+
+        pred = np.zeros((X.shape[0], self.n_labels_))
+        for i in range(self.n_labels_):
+            if isinstance(self.clfs_[i], DummyClf):
+                pred[:, i] = self.clfs_[i].predict_real(X)[:, 1]
+            elif isinstance(self.clfs_[i], SVC):
+                value = self.clfs_[i].decision_function(X)
+                if len(np.shape(value)) == 1:  # n_classes == 2
+                    pred_value = np.vstack((-value, value)).T
+                    pred[:, i] = pred_value[:, 1]
+                else:
+                    pred[:, i] = value[:, 1]
+            elif isinstance(self.clfs_[i], LogisticRegression):
+                value = self.clfs_[i].decision_function(X)
+                if len(np.shape(value)) == 1:  # n_classes == 2
+                    pred_value = np.vstack((-value, value)).T
+                    pred[:, i] = pred_value[:, 1]
+                else:
+                    pred[:, i] = value[:, 1]
+            # pred[:, i] = self.clfs_[i].predict_real(X)[:, 1]
+        return pred
+
+    def predict_proba(self, X):
+        r"""Predict the probability of being 1 for each label.
+
+        Parameters
+        ----------
+        X : array-like, shape=(n_samples, n_features)
+            Feature vector.
+
+        Returns
+        -------
+        pred : numpy array, shape=(n_samples, n_labels)
+            Predicted probability of each label.
+        """
+        X = np.asarray(X)
+        if self.clfs_ is None:
+            raise ValueError("Train before prediction")
+        if X.shape[1] != self.n_features_:
+            raise ValueError('given feature size does not match')
+
+        pred = np.zeros((X.shape[0], self.n_labels_))
+        for i in range(self.n_labels_):
+            pred[:, i] = self.clfs_[i].predict_proba(X)[:, 1]
+        return pred
+
+
+class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
+    """Maximum loss reduction with Maximal Confidence (MMC)
+    This algorithm is designed to use binary relavance with SVM as base model.
+
+    The implementation refers to the project: https://github.com/ntucllab/libact
+
+    Parameters
+    ----------
+    base_learner : :py:mod:`libact.query_strategies` object instance
+        The base learner for binary relavance, should support predict_proba
+
+    br_base : ProbabilisticModel object instance
+        The base learner for the binary relevance in MMC.
+        Should support predict_proba.
+
+    logreg_param : dict, optional (default={})
+        Setting the parameter for the logistic regression that are used to
+        predict the number of labels for a given feature vector. Parameter
+        detail please refer to:
+        http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
+
+    random_state : {int, np.random.RandomState instance, None}, optional (default=None)
+        If int or None, random_state is passed as parameter to generate
+        np.random.RandomState instance. if np.random.RandomState instance,
+        random_state is the random number generate.
+
+    References
+    ----------
+    .. [1] Yang, Bishan, et al. "Effective multi-label active learning for text
+		   classification." Proceedings of the 15th ACM SIGKDD international
+		   conference on Knowledge discovery and data mining. ACM, 2009.
+    """
+
+    def __init__(self, X, y, *args, **kwargs):
+        super(MaximumLossReductionMaximalConfidence, self).__init__(X, y)
+        self.n_samples, self.n_labels = np.shape(self.y)
+
+        random_state = kwargs.pop('random_state', None)
+        self.random_state_ = seed_random_state(random_state)
+
+        self.logreg_param = kwargs.pop('logreg_param',
+                {'multi_class': 'multinomial', 'solver': 'newton-cg',
+                 'random_state': random_state})
+        self.logistic_regression_ = LogisticRegression(**self.logreg_param)
+
+        self.br_base = kwargs.pop('br_base',
+              SVC(kernel='linear', probability=True,
+                                      random_state=random_state))
+
+    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+        assert(isinstance(label_index, IndexCollection))
+        assert(isinstance(unlabel_index, IndexCollection))
+        labeled_pool = self.X[label_index]
+        X_pool = self.X[unlabel_index]
+        
+        br = _BinaryRelevance(self.br_base)
+        br.train(self.X[label_index], self.y[label_index])
+
+        trnf = br.predict_proba(labeled_pool)
+        poolf = br.predict_proba(X_pool)
+        f = poolf * 2 - 1
+
+        trnf = np.sort(trnf, axis=1)[:, ::-1]
+        trnf /= np.tile(trnf.sum(axis=1).reshape(-1, 1), (1, trnf.shape[1]))
+        if len(np.unique(self.y.sum(axis=1))) == 1:
+            lr = DummyClf()
+        else:
+            lr = self.logistic_regression_
+        lr.fit(trnf, self.y[label_index].sum(axis=1))
+
+        idx_poolf = np.argsort(poolf, axis=1)[:, ::-1]
+        poolf = np.sort(poolf, axis=1)[:, ::-1]
+        poolf /= np.tile(poolf.sum(axis=1).reshape(-1, 1), (1, poolf.shape[1]))
+        pred_num_lbl = lr.predict(poolf).astype(int)
+
+        yhat = -1 * np.ones((len(X_pool), self.n_labels), dtype=int)
+        for i, p in enumerate(pred_num_lbl):
+            yhat[i, idx_poolf[i, :p]] = 1
+
+        score = ((1 - yhat * f) / 2).sum(axis=1)
+        ask_id = self.random_state_.choice(np.where(score == np.max(score))[0])
+        return unlabel_index[ask_id]
+
+
+class AdaptiveActiveLearning(BaseIndexQuery):
+    r"""Adaptive Active Learning
+
+    This approach combines Max Margin Uncertainty Sampling and Label
+    Cardinality Inconsistency.
+
+    Parameters
+    ----------
+    base_clf : ContinuousModel object instance
+        The base learner for binary relavance.
+
+    betas : list of float, 0 <= beta <= 1, default: [0., 0.1, ..., 0.9, 1.]
+        List of trade-off parameter that balances the relative importance
+        degrees of the two measures.
+
+    random_state : {int, np.random.RandomState instance, None}, optional (default=None)
+        If int or None, random_state is passed as parameter to generate
+        np.random.RandomState instance. if np.random.RandomState instance,
+        random_state is the random number generate.
+
+    n_jobs : int, optional, default: 1
+        The number of jobs to use for the computation. If -1 all CPUs are
+        used. If 1 is given, no parallel computing code is used at all, which is
+        useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
+        used. Thus for n_jobs = -2, all CPUs but one are used.
+
+    Attributes
+    ----------
+
+    Examples
+    --------
+    Here is an example of declaring a MMC query_strategy object:
+
+    .. code-block:: python
+
+       from libact.query_strategies.multilabel import AdaptiveActiveLearning
+       from sklearn.linear_model import LogisticRegression
+
+       qs = AdaptiveActiveLearning(
+           dataset, # Dataset object
+           base_clf=LogisticRegression()
+       )
+
+    References
+    ----------
+    .. [1] Li, Xin, and Yuhong Guo. "Active Learning with Multi-Label SVM
+           Classification." IJCAI. 2013.
+    """
+
+    def __init__(self, X, y, base_clf, betas=None, random_state=None):
+        super(AdaptiveActiveLearning, self).__init__(X, y)
+
+        self.n_samples, self.n_labels = np.shape(self.y)
+
+        self.base_clf = copy.deepcopy(base_clf)
+
+        # TODO check beta value
+        self.betas = betas
+        if self.betas is None:
+            self.betas = [i/10. for i in range(0, 11)]
+
+        self.random_state_ = seed_random_state(random_state)
+
+    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+        assert(isinstance(label_index, IndexCollection))
+        assert(isinstance(unlabel_index, IndexCollection))
+        X_pool = self.X[unlabel_index]
+
+        clf = _BinaryRelevance(self.base_clf)
+        clf.train(self.X[label_index], self.y[label_index])
+        real = clf.predict_real(X_pool)
+        pred = clf.predict(X_pool)
+
+        # Separation Margin
+        pos = np.copy(real)
+        pos[real<=0] = np.inf
+        neg = np.copy(real)
+        neg[real>=0] = -np.inf
+        separation_margin = pos.min(axis=1) - neg.max(axis=1)
+        uncertainty = 1. / separation_margin
+
+        # Label Cardinality Inconsistency
+        average_pos_lbl = self.y[label_index].mean(axis=0).sum()
+        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl)**2)
+
+        candidate_idx_set = set()
+        for b in self.betas:
+            # score shape = (len(X_pool), )
+            score = uncertainty**b * label_cardinality**(1.-b)
+            for idx in np.where(score == np.max(score))[0]:
+                candidate_idx_set.add(idx)
+
+        candidates = list(candidate_idx_set)
+
+        approx_err = []
+        for idx in candidates:
+           br = _BinaryRelevance(self.base_clf)
+           br.train(np.vstack((self.X[label_index], X_pool[idx])), np.vstack((self.y[label_index], pred[idx])))
+           br_real = br.predict_real(X_pool)
+
+           pos = np.copy(br_real)
+           pos[br_real<0] = 1
+           pos = np.max((1.-pos), axis=1)
+
+           neg = np.copy(br_real)
+           neg[br_real>0] = -1
+           neg = np.max((1.+neg), axis=1)
+
+           err = neg + pos
+
+           approx_err.append(np.sum(err))
+
+        choices = np.where(np.array(approx_err) == np.min(approx_err))[0]
+        ask_idx = candidates[self.random_state_.choice(choices)]
+
+        return unlabel_index[ask_idx]
+
