@@ -85,6 +85,28 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        Returns
+        -------
+        selected_ins: int
+            The index of selected instance.
+
+        y1, y2: int
+            The indexes of selected labels.
+        """
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)

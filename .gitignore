@@ -4,6 +4,7 @@ paper
 dataset
 __pycache__
 AL_result
+test
 abandoned_code.py
 *.pptx
 *.ppt
@@ -14,6 +15,7 @@ abandoned_code.py
 *.npy
 *.npz
 *.jpg
+*.pdf
 *.png
 gitcmd.txt
 .pytest_cache

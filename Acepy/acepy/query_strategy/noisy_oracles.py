@@ -524,10 +524,22 @@ class QueryNoisyOraclesAll(QueryNoisyOraclesSelectInstanceUncertainty):
 
 
 class QueryNoisyOraclesRandom(QueryNoisyOraclesSelectInstanceUncertainty):
-    """Select an instance based on uncertainty and a random oracle to query."""
+    """Select a random oracle to query."""
 
     def __init__(self, oracles, X=None, y=None):
         super(QueryNoisyOraclesRandom, self).__init__(X=X, y=y, oracles=oracles)
 
     def select_by_given_instance(self, selected_instance):
+        """Select oracle to query by providing the index of selected instance.
+
+        Parameters
+        ----------
+        selected_instance: int
+            The indexes of selected samples. Should be a member of unlabeled set.
+
+        Returns
+        -------
+        oracles_ind: list
+            The indexes of selected oracles.
+        """
         return self._oracle_ind_name_dict[np.random.randint(0, len(self._oracles), 1)[0]]
