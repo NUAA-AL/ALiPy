@@ -873,6 +873,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
         return select_index
 
+
 class QueryMultiLabelAdaptive(BaseIndexQuery):
     r"""Adaptive Active Learning
 
@@ -894,23 +895,6 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         If int or None, random_state is passed as parameter to generate
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
-
-    Attributes
-    ----------
-
-    Examples
-    --------
-    Here is an example of declaring a MMC query_strategy object:
-
-    .. code-block:: python
-
-       from libact.query_strategies.multilabel import AdaptiveActiveLearning
-       from sklearn.linear_model import LogisticRegression
-
-       qs = AdaptiveActiveLearning(
-           dataset, # Dataset object
-           base_clf=LogisticRegression()
-       )
 
     References
     ----------
@@ -1050,7 +1034,6 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         return select_index
         
-
 
 class QueryMultiLabelRandom(BaseMultiLabelQuery):
     """Select instance or instance-label pairs randomly."""
