@@ -10,14 +10,17 @@ from __future__ import division
 import collections
 import copy
 
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
+
 import numpy as np
 from scipy.sparse import bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix
 
-from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
+from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
     integrate_multilabel_index
-from ..utils.ace_warnings import *
-from ..utils.interface import BaseCollection
-from ..utils.misc import randperm
+from acepy.utils.ace_warnings import *
+from acepy.utils.interface import BaseCollection
+from acepy.utils.misc import randperm
 
 
 class IndexCollection(BaseCollection):
@@ -653,3 +656,11 @@ class FeatureIndexCollection(MultiLabelIndexCollection):
             super(FeatureIndexCollection, self).__init__(data=data, label_size=feature_size)
         except(Exception, ValueError):
             raise Exception("The inference of feature_size is failed, please set a specific value.")
+
+
+if __name__ == "__main__":
+    multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
+    q = multi_lab_ind1.get_unbroken_instances()
+    print(q)
+    a= multi_lab_ind1.get_break_instances()
+    print(a)
