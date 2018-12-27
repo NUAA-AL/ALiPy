@@ -26,15 +26,17 @@ quota = 10
 X = np.array(X)
 y = np.array(y)
 
-# MMC = MaximumLossReductionMaximalConfidence(X, y, random_state=1126)
+MMC = MaximumLossReductionMaximalConfidence(X, y, random_state=1126)
 
-# label_index = IndexCollection([0, 1, 2, 3, 4])
-# unlabel_index = IndexCollection(list(range(5,1500)))
-# for i in range(10):
-#     selected_index = MMC.select(label_index, unlabel_index)
-#     print(selected_index)
-#     label_index.add(selected_index)
-#     unlabel_index.discard(selected_index)
+label_index = IndexCollection([0, 1, 2, 3, 4])
+unlabel_index = IndexCollection(list(range(5,1500)))
+for i in range(10):
+    print(label_index)
+    selected_index = MMC.select(label_index, unlabel_index)
+    print(selected_index)
+    
+    label_index.add(selected_index)
+    unlabel_index.discard(selected_index)
 
 
 # [117, 655, 1350, 909, 1003, 1116, 546, 1055, 165, 1441]
@@ -42,14 +44,14 @@ y = np.array(y)
 
 
 
-AAL = AdaptiveActiveLearning(X, y, base_clf=LogisticRegression(), random_state=1126)
+# AAL = AdaptiveActiveLearning(X, y, base_clf=LogisticRegression(), random_state=1126)
 
-label_index = IndexCollection([0, 1, 2, 3, 4])
-unlabel_index = IndexCollection(list(range(5,1500)))
-for i in range(10):
-    selected_index = AAL.select(label_index, unlabel_index)
-    print(selected_index)
-    label_index.add(selected_index)
-    unlabel_index.discard(selected_index)
+# label_index = IndexCollection([0, 1, 2, 3, 4])
+# unlabel_index = IndexCollection(list(range(5,1500)))
+# for i in range(10):
+#     selected_index = AAL.select(label_index, unlabel_index)
+#     print(selected_index)
+#     label_index.add(selected_index)
+#     unlabel_index.discard(selected_index)
 
-[594, 827, 1128, 419, 1223, 484, 96, 833, 37, 367]
+# [594, 827, 1128, 419, 1223, 484, 96, 833, 37, 367]

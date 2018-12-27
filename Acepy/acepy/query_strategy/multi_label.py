@@ -503,7 +503,6 @@ def seed_random_state(seed):
 class DummyClf():
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
-
     """
 
     def __init__(self):
@@ -530,7 +529,7 @@ class DummyClf():
 class _BinaryRelevance():
     r"""Binary Relevance
 
-    base_clf : :py:mod:`libact.models` object instances
+    base_clf : base-classifier
         If wanting to use predict_proba, base_clf are required to support
         predict_proba method.
 
@@ -680,7 +679,7 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
 
     Parameters
     ----------
-    base_learner : :py:mod:`libact.query_strategies` object instance
+    base_learner :  object instance
         The base learner for binary relavance, should support predict_proba
 
     br_base : ProbabilisticModel object instance
@@ -779,12 +778,6 @@ class AdaptiveActiveLearning(BaseIndexQuery):
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
 
-    n_jobs : int, optional, default: 1
-        The number of jobs to use for the computation. If -1 all CPUs are
-        used. If 1 is given, no parallel computing code is used at all, which is
-        useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
-        used. Thus for n_jobs = -2, all CPUs but one are used.
-
     Attributes
     ----------
 
@@ -808,7 +801,7 @@ class AdaptiveActiveLearning(BaseIndexQuery):
            Classification." IJCAI. 2013.
     """
 
-    def __init__(self, X, y, base_clf, betas=None, random_state=None):
+    def __init__(self, X, y, base_clf=LogisticRegression(), betas=None, random_state=None):
         super(AdaptiveActiveLearning, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)
