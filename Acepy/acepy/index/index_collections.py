@@ -436,6 +436,17 @@ class MultiLabelIndexCollection(IndexCollection):
 
         ins_num: int, optional
             The total number of instance. Must be provided if the order is 'F'.
+
+        Examples
+        --------
+        >>> b = [1, 4, 11]
+        >>> mi = MultiLabelIndexCollection.construct_by_1d_array(array=b, label_mat_shape=(3, 4))
+        >>> print(mi)
+        {(1, 0), (2, 3), (1, 1)}
+        >>> print('col major:', mi.get_onedim_index(order='F', ins_num=3))
+        col major: [1, 11, 4]
+        >>> print('row major:', mi.get_onedim_index(order='C'))
+        row major: [4, 11, 5]
         """
         if order=='F':
             if ins_num is None:
@@ -507,7 +518,10 @@ class MultiLabelIndexCollection(IndexCollection):
         if sparse:
             mask = eval(sparse_format + '(mat_shape)')
         else:
-            mask = np.zeros(mat_shape)
+            if fill_value == 1:
+                mask = np.zeros(mat_shape, dtype=np.int32)
+            else:
+                mask = np.zeros(mat_shape)
         for item in self._innercontainer:
             mask[item] = fill_value
         return mask
@@ -534,6 +548,17 @@ class MultiLabelIndexCollection(IndexCollection):
         -------
         multi_ind: MultiLabelIndexCollection
             The MultiLabelIndexCollection object.
+
+        Examples
+        --------
+        >>> b = [1, 4, 11]
+        >>> mi = MultiLabelIndexCollection.construct_by_1d_array(array=b, label_mat_shape=(3, 4))
+        >>> print(mi)
+        {(1, 0), (2, 3), (1, 1)}
+        >>> print('col major:', mi.get_onedim_index(order='F', ins_num=3))
+        col major: [1, 11, 4]
+        >>> print('row major:', mi.get_onedim_index(order='C'))
+        row major: [4, 11, 5]
         """
         assert len(label_mat_shape) == 2
         row, col = np.unravel_index(array, dims=label_mat_shape, order=order)
@@ -552,6 +577,19 @@ class MultiLabelIndexCollection(IndexCollection):
             1 means the corresponding element is known, and will be
             added to the MultiLabelIndexCollection container.
             Otherwise, it will be cheated as an unknown element.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> mask = np.asarray([
+            [0, 1],
+            [1, 0],
+            [1, 0]
+        ]) # 3 rows, 2 lines
+        >>> mi = MultiLabelIndexCollection.construct_by_element_mask(mask=mask)
+        >>> print(mi)
+        {(0, 1), (2, 0), (1, 0)}
+
         """
         mask = np.asarray(mask)
         ue = np.unique(mask)

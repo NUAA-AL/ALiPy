@@ -14,8 +14,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-
 import math
 import copy
 import numpy as np
@@ -28,6 +26,7 @@ from acepy.index import IndexCollection
 from acepy.index.multi_label_tools import get_Xy_in_multilabel
 from acepy.utils.misc import randperm
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
+
 
 class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.
@@ -414,7 +413,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         label_index = self._check_multi_label_ind(label_index)
 
-        L_kr = np.kron(np.eye(self.y.shape[1]),self.L)
+        L_kr = np.kron(np.eye(self.y.shape[1]), self.L)
         nU = len(unlabel_index)
         # Only use the 2nd element
         # Uidx_col = []
@@ -456,7 +455,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
 
         idx_selected = np.argmin(vals)
         idx_ondim = Uidx[idx_selected]
-        return [(idx_ondim%self.X.shape[0], idx_ondim//self.X.shape[0])]
+        return [(idx_ondim % self.X.shape[0], idx_ondim // self.X.shape[0])]
 
 
 class QueryMultiLabelAUDI(BaseMultiLabelQuery):
@@ -548,6 +547,7 @@ def seed_random_state(seed):
     raise ValueError("%r can not be used to generate numpy.random.RandomState"
                      " instance" % seed)
 
+
 class DummyClf():
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
@@ -558,7 +558,7 @@ class DummyClf():
         self.classes_ = [0, 1]
 
     def fit(self, X, y):
-        self.cls = int(y[0]) # 1 or 0
+        self.cls = int(y[0])  # 1 or 0
 
     # def train(self, dataset):
     #     _, y = zip(*dataset.get_labeled_entries())
@@ -575,6 +575,7 @@ class DummyClf():
         ret[:, self.cls] = 1.
         return ret
 
+
 class _BinaryRelevance():
     r"""Binary Relevance
 
@@ -588,6 +589,7 @@ class _BinaryRelevance():
            multi-label data." Data mining and knowledge discovery handbook.
            Springer US, 2009. 667-685.
     """
+
     def __init__(self, base_clf):
         self.base_clf = copy.copy(base_clf)
         self.clfs_ = None
@@ -761,23 +763,23 @@ class QueryMultiLabelMMC(BaseIndexQuery):
         self.random_state_ = seed_random_state(random_state)
 
         self.logreg_param = kwargs.pop('logreg_param',
-                {'multi_class': 'multinomial', 'solver': 'newton-cg',
-                 'random_state': random_state})
+                                       {'multi_class': 'multinomial', 'solver': 'newton-cg',
+                                        'random_state': random_state})
         self.logistic_regression_ = LogisticRegression(**self.logreg_param)
 
         self.br_base = kwargs.pop('br_base',
-              SVC(kernel='linear', probability=True,
+                                  SVC(kernel='linear', probability=True,
                                       random_state=random_state))
 
     def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
 
         if len(unlabel_index) <= batch_size:
             return unlabel_index
-        assert(isinstance(label_index, IndexCollection))
-        assert(isinstance(unlabel_index, IndexCollection))
+        assert (isinstance(label_index, IndexCollection))
+        assert (isinstance(unlabel_index, IndexCollection))
         labeled_pool = self.X[label_index]
         X_pool = self.X[unlabel_index]
-        
+
         br = _BinaryRelevance(self.br_base)
         br.train(self.X[label_index], self.y[label_index])
 
@@ -813,6 +815,8 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
     This approach combines Max Margin Uncertainty Sampling and Label
     Cardinality Inconsistency.
 
+    The implementation refers to the project: https://github.com/ntucllab/libact
+
     Parameters
     ----------
     base_clf : ContinuousModel object instance
@@ -833,23 +837,6 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
         used. Thus for n_jobs = -2, all CPUs but one are used.
 
-    Attributes
-    ----------
-
-    Examples
-    --------
-    Here is an example of declaring a MMC query_strategy object:
-
-    .. code-block:: python
-
-       from libact.query_strategies.multilabel import AdaptiveActiveLearning
-       from sklearn.linear_model import LogisticRegression
-
-       qs = AdaptiveActiveLearning(
-           dataset, # Dataset object
-           base_clf=LogisticRegression()
-       )
-
     References
     ----------
     .. [1] Li, Xin, and Yuhong Guo. "Active Learning with Multi-Label SVM
@@ -866,7 +853,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         # TODO check beta value
         self.betas = betas
         if self.betas is None:
-            self.betas = [i/10. for i in range(0, 11)]
+            self.betas = [i / 10. for i in range(0, 11)]
 
         self.random_state_ = seed_random_state(random_state)
 
@@ -874,8 +861,8 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         if len(unlabel_index) <= batch_size:
             return unlabel_index
-        assert(isinstance(label_index, IndexCollection))
-        assert(isinstance(unlabel_index, IndexCollection))
+        assert (isinstance(label_index, IndexCollection))
+        assert (isinstance(unlabel_index, IndexCollection))
         X_pool = self.X[unlabel_index]
 
         clf = _BinaryRelevance(self.base_clf)
@@ -885,20 +872,20 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         # Separation Margin
         pos = np.copy(real)
-        pos[real<=0] = np.inf
+        pos[real <= 0] = np.inf
         neg = np.copy(real)
-        neg[real>=0] = -np.inf
+        neg[real >= 0] = -np.inf
         separation_margin = pos.min(axis=1) - neg.max(axis=1)
         uncertainty = 1. / separation_margin
 
         # Label Cardinality Inconsistency
         average_pos_lbl = self.y[label_index].mean(axis=0).sum()
-        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl)**2)
+        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl) ** 2)
 
         candidate_idx_set = set()
         for b in self.betas:
             # score shape = (len(X_pool), )
-            score = uncertainty**b * label_cardinality**(1.-b)
+            score = uncertainty ** b * label_cardinality ** (1. - b)
             for idx in np.where(score == np.max(score))[0]:
                 candidate_idx_set.add(idx)
 
@@ -906,21 +893,21 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         approx_err = []
         for idx in candidates:
-           br = _BinaryRelevance(self.base_clf)
-           br.train(np.vstack((self.X[label_index], X_pool[idx])), np.vstack((self.y[label_index], pred[idx])))
-           br_real = br.predict_real(X_pool)
+            br = _BinaryRelevance(self.base_clf)
+            br.train(np.vstack((self.X[label_index], X_pool[idx])), np.vstack((self.y[label_index], pred[idx])))
+            br_real = br.predict_real(X_pool)
 
-           pos = np.copy(br_real)
-           pos[br_real<0] = 1
-           pos = np.max((1.-pos), axis=1)
+            pos = np.copy(br_real)
+            pos[br_real < 0] = 1
+            pos = np.max((1. - pos), axis=1)
 
-           neg = np.copy(br_real)
-           neg[br_real>0] = -1
-           neg = np.max((1.+neg), axis=1)
+            neg = np.copy(br_real)
+            neg[br_real > 0] = -1
+            neg = np.max((1. + neg), axis=1)
 
-           err = neg + pos
+            err = neg + pos
 
-           approx_err.append(np.sum(err))
+            approx_err.append(np.sum(err))
 
         choices = np.where(np.array(approx_err) == np.min(approx_err))[0]
         ask_idx = candidates[self.random_state_.choice(choices)]
