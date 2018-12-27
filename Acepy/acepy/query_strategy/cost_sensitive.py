@@ -154,19 +154,24 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         The costs value of each class.shape [n_classes]
     
 
-
     model: object, optional (default=None)
         Current classification model, should have the 'predict_proba' method for probabilistic output.
         If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
 
-    batch_size: int, optional (default=1)
+    batch_size: int, optional (default=40)
         Selection batch size.
+
+    budget: int, optional (default=40)
+        The budget of the select cost.
 
     costs:np.array, (default=None), shape [1, n_classes] or [n_classes]
         the costs of querying each class.if not provide,it will all be 1 
 
     weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
         the weights of each class.if not provide,it will all be 1 
+
+    label_tree: 2D array
+        The hierarchical relationships among data features.
 
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
@@ -326,11 +331,12 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         
 
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
-    """Randomly sample a batch of indexes from the unlabel indexes."""
+    """Randomly sample a batch of indexes from the unlabel indexes.
+    
+    """
 
     def __init__(self, X, y):
-        """
-        """
+
         super(QueryCostSensitiveRandom, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y) 
 
@@ -372,6 +378,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
                 
 class QueryCostSensitivePerformance(BaseMultiLabelQuery):
     """
+
     """
     def __init__(self, X=None, y=None):
         super(QueryCostSensitivePerformance, self).__init__(X, y)
