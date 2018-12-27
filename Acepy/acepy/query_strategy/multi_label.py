@@ -15,7 +15,6 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
-sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
 
 import math
 import copy
@@ -721,7 +720,7 @@ class _BinaryRelevance():
         return pred
 
 
-class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
+class QueryMultiLabelMMC(BaseIndexQuery):
     """Maximum loss reduction with Maximal Confidence (MMC)
     This algorithm is designed to use binary relavance with SVM as base model.
 
@@ -755,7 +754,7 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
     """
 
     def __init__(self, X, y, *args, **kwargs):
-        super(MaximumLossReductionMaximalConfidence, self).__init__(X, y)
+        super(QueryMultiLabelMMC, self).__init__(X, y)
         self.n_samples, self.n_labels = np.shape(self.y)
 
         random_state = kwargs.pop('random_state', None)
@@ -808,7 +807,7 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
         return unlabel_index[ask_id]
 
 
-class AdaptiveActiveLearning(BaseIndexQuery):
+class QueryMultiLabelAdaptive(BaseIndexQuery):
     r"""Adaptive Active Learning
 
     This approach combines Max Margin Uncertainty Sampling and Label
@@ -858,7 +857,7 @@ class AdaptiveActiveLearning(BaseIndexQuery):
     """
 
     def __init__(self, X, y, base_clf, betas=None, random_state=None):
-        super(AdaptiveActiveLearning, self).__init__(X, y)
+        super(QueryMultiLabelAdaptive, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)
 

@@ -12,7 +12,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.linear_model import LogisticRegression
 
 from acepy.index import IndexCollection
-from acepy.query_strategy.multi_label import MaximumLossReductionMaximalConfidence, AdaptiveActiveLearning
+from acepy.query_strategy.multi_label import QueryMultiLabelMMC, QueryMultiLabelAdaptive
 
 
 dataset_filepath = os.path.join(
@@ -42,7 +42,7 @@ y = np.array(y)
 
 
 
-AAL = AdaptiveActiveLearning(X, y, base_clf=LogisticRegression(), random_state=1126)
+AAL = QueryMultiLabelAdaptive(X, y, base_clf=LogisticRegression(), random_state=1126)
 
 label_index = IndexCollection([0, 1, 2, 3, 4])
 unlabel_index = IndexCollection(list(range(5,1500)))
