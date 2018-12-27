@@ -138,7 +138,7 @@ def select_POSS(infor_value, costs, budget):
 
     return min_infovalue, selectedVariables
     
-class HALC(BaseMultiLabelQuery):
+class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     """
     Parameters
     ----------
@@ -171,7 +171,7 @@ class HALC(BaseMultiLabelQuery):
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
     
-        super(HALC, self).__init__(X, y)
+        super(QueryCostSensitiveHALC, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
 
         
@@ -325,13 +325,13 @@ class HALC(BaseMultiLabelQuery):
         return max_value, instance_pair[np.where(select_result!=0)[0]]
         
 
-class MutlilabelQueryRandom(BaseMultiLabelQuery):
+class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     """Randomly sample a batch of indexes from the unlabel indexes."""
 
     def __init__(self, X, y):
         """
         """
-        super(MutlilabelQueryRandom, self).__init__(X, y)
+        super(QueryCostSensitiveRandom, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y) 
 
     def select(self, unlabel_index, costs, batch_size=40, budget=40):
@@ -356,7 +356,7 @@ class MutlilabelQueryRandom(BaseMultiLabelQuery):
         cost = 0.
         batch = 0
         while True:
-            onedim_index = unlabel_index.onedim_index
+            onedim_index = unlabel_index.get_onedim_index()
             od_ind = np.random.choice(onedim_index)
             i_sample = od_ind // self.n_classes
             j_class = od_ind % self.n_classes
@@ -370,11 +370,11 @@ class MutlilabelQueryRandom(BaseMultiLabelQuery):
         return instance_pair
 
                 
-class QueryUncertainty(BaseMultiLabelQuery):
+class QueryCostSensitivePerformance(BaseMultiLabelQuery):
     """
     """
     def __init__(self, X=None, y=None):
-        super(QueryUncertainty, self).__init__(X, y)
+        super(QueryCostSensitivePerformance, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
 
     
