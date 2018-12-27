@@ -4,7 +4,7 @@ from sklearn.datasets import load_iris
 from acepy.data_manipulate.al_split import split
 from acepy.experiment import ExperimentAnalyser, State
 from acepy.index.index_collections import IndexCollection
-from acepy.query_strategy.query_strategy import (QueryInstanceQBC)
+from acepy.query_strategy import QueryInstanceQBC
 from acepy.utils.multi_thread import aceThreading
 
 X, y = load_iris(return_X_y=True)
