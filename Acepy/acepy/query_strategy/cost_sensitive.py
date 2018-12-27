@@ -334,7 +334,7 @@ class MutlilabelQueryRandom(BaseMultiLabelQuery):
         super(MutlilabelQueryRandom, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y) 
 
-    def select(self, unlabel_index, cost, batch_size=1, budget=40):
+    def select(self, unlabel_index, costs, batch_size=40, budget=40):
         """Select indexes randomly.
 
         Parameters
@@ -350,19 +350,19 @@ class MutlilabelQueryRandom(BaseMultiLabelQuery):
         select_pair: MultiLabelIndexCollection
             The selected indexes which is a subset of unlabel_index.
         """
-        assert(len(cost) == self.n_classes)   
+        assert(len(costs) == self.n_classes)   
         unlabel_index = self._check_multi_label_ind(unlabel_index)     
         instance_pair = MultiLabelIndexCollection(label_size=self.n_classes)
-        costs = 0.
+        cost = 0.
         batch = 0
         while True:
             onedim_index = unlabel_index.onedim_index
             od_ind = np.random.choice(onedim_index)
             i_sample = od_ind // self.n_classes
             j_class = od_ind % self.n_classes
-            costs += cost[i_sample, j_class]
+            cost += costs[i_sample, j_class]
             batch += 1
-            if costs > budget or batch > batch_size:
+            if cost > budget or batch > batch_size:
                 break
             instance_pair.update((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
@@ -378,7 +378,7 @@ class QueryUncertainty(BaseMultiLabelQuery):
         self.n_samples, self.n_classes = np.shape(y)
 
     
-    def select(self, label_index, unlabel_index, batch_size=1, budget=40, basemodel=None, models=None):
+    def select(self, label_index, unlabel_index, cost, batch_size=40, budget=40, basemodel=None, models=None):
         
         if models is None:
             models = self.train_models(label_index, basemodel)
@@ -402,7 +402,7 @@ class QueryUncertainty(BaseMultiLabelQuery):
             
             instance_pair = np.column_stack((sort_index, np.ones(len(sort_index)) * j))
             infor_value = np.append(infor_value, uncertainty[sort_index][j])
-            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
+            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * cost[j])
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
