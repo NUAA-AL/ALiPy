@@ -146,8 +146,9 @@ class AlExperiment:
             self._query_function = strategy(self._X, self._y, **kwargs)
         else:
             # a pre-defined strategy in Acepy
-            if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-                                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
+            if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', \
+                                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE', \
+                                'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL']:
                 raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
                                           'method name or privide a callable object.'.format(str(strategy)))
             else:
@@ -175,13 +176,21 @@ class AlExperiment:
                     gamma = kwargs.pop('gamma', 0.1)
                     rho = kwargs.pop('rho', 1)
                     self._query_function = QueryInstanceBMDR(self._X, self._y, beta, gamma, rho, **kwargs)
-                elif: strategy == 'QueryInstanceSPAL':
+                    self.qp_solver = kwargs.pop('qp_sover', 'ECOS')                      
+                elif strategy == 'QueryInstanceSPAL':
                     mu = kwargs.pop('mu',0.1)
                     gamma = kwargs.pop('gamma',0.1)
                     rho = kwargs.pop('rho',1)
                     lambda_init = kwargs.pop('lambda_init',0.1)
                     lambda_pace = kwargs.pop('lambda_pace',0.01)
-                    self._query_function = QueryInstanceSPAL(self._X, self_y, mu, gamma, rho, lambda_init, lambda_pace, **kwargs)
+                    self._query_function = QueryInstanceSPAL(self._X, self._y, mu, gamma, rho, lambda_init, lambda_pace, **kwargs)
+                    self.qp_solver = kwargs.pop('qp_sover', 'ECOS')
+                elif strategy == 'QueryInstanceLAL':
+                    mode = kwargs.pop('mode', 'LAL_iterative')
+                    data_path = kwargs.pop('data_path', '.')
+                    cls_est = kwargs.pop('cls_est', 50)
+                    train_slt = kwargs.pop('train_slt', True)
+                    self._query_function = QueryInstanceLAL(self._X, self._y, mode, data_path, cls_est, train_slt, **kwargs)
 
 
 
@@ -357,14 +366,13 @@ class AlExperiment:
             if self._query_function_name == 'QueryInstanceGraphDensity':
                 if self._query_function_metric is not None:
                     querfunction = QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
-                    # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceGraphDensity(self._X, self._y, train_id, self._query_function_metric)
                 else:
                     raise Exception(
                         "The QueryInstanceGraphDensity need metric.Please input metric in set_query_strategy().")
             elif self._query_function_name == 'QueryInstanceQUIRE':
                 querfunction = QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
-                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
-                # self._query_function = acepy.query_strategy.sota_strategy.QueryInstanceQUIRE(self._X, self._y, train_id)
+
+        
 
         # performance calc
         perf_result = self._performance_metric(pred, self._y[test_id])
@@ -383,6 +391,8 @@ class AlExperiment:
                 elif 'model' in inspect.getfullargspec(self._query_function.select)[0]:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
                                                              model=self._model)
+                elif self._query_function_name == 'QueryInstanceBMDR' or self._query_function_name == 'QueryInstanceSPAL':
+                    select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size, qp_solver=self.qp_solver)
                 else:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size)
             else:
