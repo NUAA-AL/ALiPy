@@ -18,11 +18,14 @@ import math
 import copy
 import numpy as np
 
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
+
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
-from acepy.index import IndexCollection
+from acepy.index import IndexCollection, MultiLabelIndexCollection
 from acepy.index.multi_label_tools import get_Xy_in_multilabel
 from acepy.utils.misc import randperm
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
@@ -551,7 +554,6 @@ def seed_random_state(seed):
 class DummyClf():
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
-
     """
 
     def __init__(self):
@@ -579,7 +581,7 @@ class DummyClf():
 class _BinaryRelevance():
     r"""Binary Relevance
 
-    base_clf : :py:mod:`libact.models` object instances
+    base_clf : base-classifier
         If wanting to use predict_proba, base_clf are required to support
         predict_proba method.
 
@@ -730,7 +732,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
     Parameters
     ----------
-    base_learner : :py:mod:`libact.query_strategies` object instance
+    base_learner :  object instance
         The base learner for binary relavance, should support predict_proba
 
     br_base : ProbabilisticModel object instance
@@ -770,13 +772,27 @@ class QueryMultiLabelMMC(BaseIndexQuery):
         self.br_base = kwargs.pop('br_base',
                                   SVC(kernel='linear', probability=True,
                                       random_state=random_state))
+    
+    def sequential_select(self, label_index, unlabel_index):
+        """
+            Select one unlabel-data at a time.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
 
-    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+        Returns
+        -------
+        selected_ind: int
+            The selected index.
+        """
 
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
-        assert (isinstance(label_index, IndexCollection))
-        assert (isinstance(unlabel_index, IndexCollection))
         labeled_pool = self.X[label_index]
         X_pool = self.X[unlabel_index]
 
@@ -806,7 +822,56 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
         score = ((1 - yhat * f) / 2).sum(axis=1)
         ask_id = self.random_state_.choice(np.where(score == np.max(score))[0])
+
         return unlabel_index[ask_id]
+        
+    def select(self, label_index, unlabel_index, batch_size=1):
+        """
+            Select the unlabel data in batch mode.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes.        
+        """
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= batch_size:
+            return list(unlabel_index)
+        
+        select_index = []
+        for i in range(batch_size):
+            selected = self.sequential_select(label_index, unlabel_index)
+            label_index.update(selected)
+            unlabel_index.difference_update(selected)
+            select_index.append(selected)
+
+        return select_index
 
 
 class QueryMultiLabelAdaptive(BaseIndexQuery):
@@ -831,12 +896,6 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
 
-    n_jobs : int, optional, default: 1
-        The number of jobs to use for the computation. If -1 all CPUs are
-        used. If 1 is given, no parallel computing code is used at all, which is
-        useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
-        used. Thus for n_jobs = -2, all CPUs but one are used.
-
     References
     ----------
     .. [1] Li, Xin, and Yuhong Guo. "Active Learning with Multi-Label SVM
@@ -857,12 +916,25 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         self.random_state_ = seed_random_state(random_state)
 
-    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+    def sequential_select(self, label_index, unlabel_index):
+        """
+            Select one unlabel-data at a time.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
 
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
-        assert (isinstance(label_index, IndexCollection))
-        assert (isinstance(unlabel_index, IndexCollection))
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+        Returns
+        -------
+        selected_ind: int
+            The selected index.
+        """
         X_pool = self.X[unlabel_index]
 
         clf = _BinaryRelevance(self.base_clf)
@@ -914,6 +986,54 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         return unlabel_index[ask_idx]
 
+    def select(self, label_index, unlabel_index, batch_size=1):
+        """
+            Select the unlabel data in batch mode.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes.
+        """
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= batch_size:
+            return list(unlabel_index)
+        
+        select_index = []
+        for i in range(batch_size):
+            selected = self.sequential_select(label_index, unlabel_index)
+            label_index.update(selected)
+            unlabel_index.difference_update(selected)
+            select_index.append(selected)
+
+        return select_index
+        
 
 class QueryMultiLabelRandom(BaseMultiLabelQuery):
     """Select instance or instance-label pairs randomly."""

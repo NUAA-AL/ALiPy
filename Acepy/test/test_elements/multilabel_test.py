@@ -26,12 +26,16 @@ quota = 10
 X = np.array(X)
 y = np.array(y)
 
-# MMC = MaximumLossReductionMaximalConfidence(X, y, random_state=1126)
+# MMC = QueryMultiLabelMMC(X, y, random_state=1126)
+
 
 # label_index = IndexCollection([0, 1, 2, 3, 4])
 # unlabel_index = IndexCollection(list(range(5,1500)))
+
+# print(MMC.select(label_index,unlabel_index,10))
 # for i in range(10):
-#     selected_index = MMC.select(label_index, unlabel_index)
+#     print(label_index)
+#     selected_index = MMC.sequential_select(label_index, unlabel_index)
 #     print(selected_index)
 #     label_index.add(selected_index)
 #     unlabel_index.discard(selected_index)
@@ -40,16 +44,17 @@ y = np.array(y)
 # [117, 655, 1350, 909, 1003, 1116, 546, 1055, 165, 1441]
 
 
-
-
 AAL = QueryMultiLabelAdaptive(X, y, base_clf=LogisticRegression(), random_state=1126)
+
 
 label_index = IndexCollection([0, 1, 2, 3, 4])
 unlabel_index = IndexCollection(list(range(5,1500)))
-for i in range(10):
-    selected_index = AAL.select(label_index, unlabel_index)
-    print(selected_index)
-    label_index.add(selected_index)
-    unlabel_index.discard(selected_index)
 
-[594, 827, 1128, 419, 1223, 484, 96, 833, 37, 367]
+# print(AAL.select(label_index,unlabel_index,10))
+# for i in range(10):
+#     selected_index = AAL.sequential_select(label_index, unlabel_index)
+#     print(selected_index)
+#     label_index.add(selected_index)
+#     unlabel_index.discard(selected_index)
+
+# [594, 827, 1128, 419, 1223, 484, 96, 833, 37, 367]

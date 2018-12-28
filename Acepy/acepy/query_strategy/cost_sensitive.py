@@ -154,19 +154,24 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         The costs value of each class.shape [n_classes]
     
 
-
     model: object, optional (default=None)
         Current classification model, should have the 'predict_proba' method for probabilistic output.
         If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
 
-    batch_size: int, optional (default=1)
+    batch_size: int, optional (default=40)
         Selection batch size.
+
+    budget: int, optional (default=40)
+        The budget of the select cost.
 
     costs:np.array, (default=None), shape [1, n_classes] or [n_classes]
         the costs of querying each class.if not provide,it will all be 1 
 
     weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
         the weights of each class.if not provide,it will all be 1 
+
+    label_tree: 2D array
+        The hierarchical relationships among data features.
 
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
@@ -326,15 +331,16 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         
 
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
-    """Randomly sample a batch of indexes from the unlabel indexes."""
+    """Randomly sample a batch of indexes from the unlabel indexes.
+    
+    """
 
     def __init__(self, X, y):
-        """
-        """
+
         super(QueryCostSensitiveRandom, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y) 
 
-    def select(self, unlabel_index, cost, batch_size=1, budget=40):
+    def select(self, unlabel_index, costs, batch_size=40, budget=40):
         """Select indexes randomly.
 
         Parameters
@@ -350,19 +356,19 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         select_pair: MultiLabelIndexCollection
             The selected indexes which is a subset of unlabel_index.
         """
-        assert(len(cost) == self.n_classes)   
+        assert(len(costs) == self.n_classes)   
         unlabel_index = self._check_multi_label_ind(unlabel_index)     
         instance_pair = MultiLabelIndexCollection(label_size=self.n_classes)
-        costs = 0.
+        cost = 0.
         batch = 0
         while True:
             onedim_index = unlabel_index.get_onedim_index()
             od_ind = np.random.choice(onedim_index)
             i_sample = od_ind // self.n_classes
             j_class = od_ind % self.n_classes
-            costs += cost[i_sample, j_class]
+            cost += costs[i_sample, j_class]
             batch += 1
-            if costs > budget or batch > batch_size:
+            if cost > budget or batch > batch_size:
                 break
             instance_pair.update((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
@@ -372,13 +378,14 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
                 
 class QueryCostSensitivePerformance(BaseMultiLabelQuery):
     """
+
     """
     def __init__(self, X=None, y=None):
         super(QueryCostSensitivePerformance, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
 
     
-    def select(self, label_index, unlabel_index, batch_size=1, budget=40, basemodel=None, models=None):
+    def select(self, label_index, unlabel_index, cost, batch_size=40, budget=40, basemodel=None, models=None):
         
         if models is None:
             models = self.train_models(label_index, basemodel)
@@ -402,7 +409,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             
             instance_pair = np.column_stack((sort_index, np.ones(len(sort_index)) * j))
             infor_value = np.append(infor_value, uncertainty[sort_index][j])
-            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
+            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * cost[j])
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
