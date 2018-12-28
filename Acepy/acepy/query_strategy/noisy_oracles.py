@@ -112,7 +112,7 @@ def get_majority_vote(selected_instance, oracles):
 
 
 class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
-    """Cost-Effective Active Learning from Diverse Labelers (CEAL) method assume
+    """Cost-Effective Active Learning from Diverse Labelers (CEAL) method assumes
     that different oracles have different expertise. Even the very noisy oracle
     may perform well on some kind of examples. The cost of a labeler is proportional
     to its overall labeling quality and it is thus necessary to query from the right oracle
