@@ -124,6 +124,14 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
 class BaseFeatureQuery(BaseIndexQuery, metaclass=ABCMeta):
     """Base query strategy for feature querying setting.
     Basically have the same api with multi label setting."""
+    def _check_mask(self, mask):
+        mask = np.asarray(mask)
+        ue = np.unique(mask)
+        if not (len(mask.shape) == 2 and len(ue) == 2 and 0 in ue and 1 in ue):
+            raise ValueError("The mask matrix should be a 2d array, and there must be only "
+                             "1 and 0 in the matrix, in which, 1 means the corresponding "
+                             "element is known, and will be added to the MultiLabelIndexCollection container.")
+        return mask
 
     def _check_feature_ind(self, container):
         if not isinstance(container, MultiLabelIndexCollection):

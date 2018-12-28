@@ -12,7 +12,6 @@ from __future__ import division
 
 import collections
 import copy
-import cvxpy
 import os
 
 import numpy as np
@@ -1012,6 +1011,14 @@ class QueryInstanceBMDR(BaseIndexQuery):
     """
 
     def __init__(self, X, y, beta=1000, gamma=0.1, rho=1, **kwargs):
+        try:
+            import cvxpy
+            self._cvxpy = cvxpy
+        except:
+            raise ImportError("This method need cvxpy to solve the QP problem."
+                              "Please refer to https://www.cvxpy.org/install/index.html "
+                              "install cvxpy manually before using.")
+
         # K: kernel matrix
         super(QueryInstanceBMDR, self).__init__(X, y)
         ul = unique_labels(self.y)
@@ -1076,6 +1083,7 @@ class QueryInstanceBMDR(BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
+        cvxpy = self._cvxpy
         assert (batch_size > 0)
         assert (isinstance(unlabel_index, collections.Iterable))
         assert (isinstance(label_index, collections.Iterable))
@@ -1124,7 +1132,8 @@ class QueryInstanceBMDR(BaseIndexQuery):
             # The optimal value for x is stored in `x.value`.
             # print(x.value)
             dr_weight = np.array(x.value)
-            dr_weight = dr_weight.T[0]
+            if len(np.shape(dr_weight)) == 2:
+                dr_weight = dr_weight.T[0]
             # end cvx
 
             # record selected indexes and judge convergence
@@ -1228,6 +1237,14 @@ class QueryInstanceSPAL(BaseIndexQuery):
     """
 
     def __init__(self, X, y, mu=0.1, gamma=0.1, rho=1, lambda_init=0.1, lambda_pace=0.01, **kwargs):
+        try:
+            import cvxpy
+            self._cvxpy = cvxpy
+        except:
+            raise ImportError("This method need cvxpy to solve the QP problem."
+                              "Please refer to https://www.cvxpy.org/install/index.html "
+                              "install cvxpy manually before using.")
+
         # K: kernel matrix
         super(QueryInstanceSPAL, self).__init__(X, y)
         ul = unique_labels(self.y)
@@ -1295,6 +1312,7 @@ class QueryInstanceSPAL(BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
+        cvxpy = self._cvxpy
         assert (batch_size > 0)
         assert (isinstance(unlabel_index, collections.Iterable))
         assert (isinstance(label_index, collections.Iterable))
@@ -1362,7 +1380,8 @@ class QueryInstanceSPAL(BaseIndexQuery):
             dr_weight = np.array(x.value)
             # print(dr_weight)
             # print(result)
-            dr_weight = dr_weight.T[0]
+            if len(np.shape(dr_weight)) == 2:
+                dr_weight = dr_weight.T[0]
             # end cvx
 
             # update easiness weight

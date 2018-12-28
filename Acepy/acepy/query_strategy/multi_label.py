@@ -7,34 +7,29 @@ There are 2 categories of methods.
 2. Query all labels of an instance: MMC (KDD’09), Adaptive (IJCAI’13), Random
 """
 
-# Authors: Ying-Peng Tang
+# Authors: Ying-Peng Tang and Guo-Xiang Li
 # License: BSD 3 clause
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
-
 import math
 import copy
 import numpy as np
+
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
 
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
-from acepy.index.index_collections import MultiLabelIndexCollection
-from acepy.index.multi_label_tools import get_Xy_in_multilabel
-from acepy.utils.misc import nsmallestarg, randperm
-from acepy.index import IndexCollection
-# from .base import BaseMultiLabelQuery
+from acepy.index import IndexCollection, MultiLabelIndexCollection
 from acepy.index.multi_label_tools import get_Xy_in_multilabel
 from acepy.utils.misc import randperm
-
-# from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
 from acepy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
+
 
 class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.
@@ -268,11 +263,11 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
 
     Parameters
     ----------
-    init_X: 2D array
+    init_X: 2D array, optional (default=None)
         Feature matrix of the initial data for training.
         Shape is n*d, one row for an instance with d features.
 
-    init_y: 2D array
+    init_y: 2D array, optional (default=None)
         Label matrix of the initial data for training.
         Shape is n*n_classes, one row for an instance, -1 means irrelevant,
         a positive value means relevant, the larger, the more relevant.
@@ -294,6 +289,19 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
             self._max_query = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
 
     def fit(self, X, y, n_repeat=10):
+        """Train the model from X and y.
+
+        Parameters
+        ----------
+        X: 2D array, optional (default=None)
+            Feature matrix of the whole dataset.
+
+        y: 2D array, optional (default=None)
+            Label matrix of the whole dataset.
+
+        n_repeat: int, optional (default=10)
+            The number of optimization iterations.
+        """
         if self._init_flag is False:
             self.__init__(init_X=X, init_y=y, n_repeat=n_repeat)
         else:
@@ -383,12 +391,32 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
         self.L = np.linalg.pinv(self.K + self.lmbda * np.eye(len(X)))
 
     def select(self, label_index, unlabel_index, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        Returns
+        -------
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.
+        """
+
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         label_index = self._check_multi_label_ind(label_index)
 
-        L_kr = np.kron(np.eye(self.y.shape[1]),self.L)
+        L_kr = np.kron(np.eye(self.y.shape[1]), self.L)
         nU = len(unlabel_index)
         # Only use the 2nd element
         # Uidx_col = []
@@ -430,7 +458,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
 
         idx_selected = np.argmin(vals)
         idx_ondim = Uidx[idx_selected]
-        return [(idx_ondim%self.X.shape[0], idx_ondim//self.X.shape[0])]
+        return [(idx_ondim % self.X.shape[0], idx_ondim // self.X.shape[0])]
 
 
 class QueryMultiLabelAUDI(BaseMultiLabelQuery):
@@ -466,6 +494,28 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        epsilon: float, optional (default=0.5)
+            The threshold to avoid zero-division.
+
+        Returns
+        -------
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.
+        """
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
@@ -500,17 +550,17 @@ def seed_random_state(seed):
     raise ValueError("%r can not be used to generate numpy.random.RandomState"
                      " instance" % seed)
 
+
 class DummyClf():
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
-
     """
 
     def __init__(self):
         self.classes_ = [0, 1]
 
     def fit(self, X, y):
-        self.cls = int(y[0]) # 1 or 0
+        self.cls = int(y[0])  # 1 or 0
 
     # def train(self, dataset):
     #     _, y = zip(*dataset.get_labeled_entries())
@@ -527,10 +577,11 @@ class DummyClf():
         ret[:, self.cls] = 1.
         return ret
 
+
 class _BinaryRelevance():
     r"""Binary Relevance
 
-    base_clf : :py:mod:`libact.models` object instances
+    base_clf : base-classifier
         If wanting to use predict_proba, base_clf are required to support
         predict_proba method.
 
@@ -540,6 +591,7 @@ class _BinaryRelevance():
            multi-label data." Data mining and knowledge discovery handbook.
            Springer US, 2009. 667-685.
     """
+
     def __init__(self, base_clf):
         self.base_clf = copy.copy(base_clf)
         self.clfs_ = None
@@ -672,7 +724,7 @@ class _BinaryRelevance():
         return pred
 
 
-class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
+class QueryMultiLabelMMC(BaseIndexQuery):
     """Maximum loss reduction with Maximal Confidence (MMC)
     This algorithm is designed to use binary relavance with SVM as base model.
 
@@ -680,7 +732,7 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
 
     Parameters
     ----------
-    base_learner : :py:mod:`libact.query_strategies` object instance
+    base_learner :  object instance
         The base learner for binary relavance, should support predict_proba
 
     br_base : ProbabilisticModel object instance
@@ -706,30 +758,44 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
     """
 
     def __init__(self, X, y, *args, **kwargs):
-        super(MaximumLossReductionMaximalConfidence, self).__init__(X, y)
+        super(QueryMultiLabelMMC, self).__init__(X, y)
         self.n_samples, self.n_labels = np.shape(self.y)
 
         random_state = kwargs.pop('random_state', None)
         self.random_state_ = seed_random_state(random_state)
 
         self.logreg_param = kwargs.pop('logreg_param',
-                {'multi_class': 'multinomial', 'solver': 'newton-cg',
-                 'random_state': random_state})
+                                       {'multi_class': 'multinomial', 'solver': 'newton-cg',
+                                        'random_state': random_state})
         self.logistic_regression_ = LogisticRegression(**self.logreg_param)
 
         self.br_base = kwargs.pop('br_base',
-              SVC(kernel='linear', probability=True,
+                                  SVC(kernel='linear', probability=True,
                                       random_state=random_state))
+    
+    def sequential_select(self, label_index, unlabel_index):
+        """
+            Select one unlabel-data at a time.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
 
-    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+        Returns
+        -------
+        selected_ind: int
+            The selected index.
+        """
 
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
-        assert(isinstance(label_index, IndexCollection))
-        assert(isinstance(unlabel_index, IndexCollection))
         labeled_pool = self.X[label_index]
         X_pool = self.X[unlabel_index]
-        
+
         br = _BinaryRelevance(self.br_base)
         br.train(self.X[label_index], self.y[label_index])
 
@@ -756,14 +822,65 @@ class MaximumLossReductionMaximalConfidence(BaseIndexQuery):
 
         score = ((1 - yhat * f) / 2).sum(axis=1)
         ask_id = self.random_state_.choice(np.where(score == np.max(score))[0])
+
         return unlabel_index[ask_id]
+        
+    def select(self, label_index, unlabel_index, batch_size=1):
+        """
+            Select the unlabel data in batch mode.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes.        
+        """
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= batch_size:
+            return list(unlabel_index)
+        
+        select_index = []
+        for i in range(batch_size):
+            selected = self.sequential_select(label_index, unlabel_index)
+            label_index.update(selected)
+            unlabel_index.difference_update(selected)
+            select_index.append(selected)
+
+        return select_index
 
 
-class AdaptiveActiveLearning(BaseIndexQuery):
+class QueryMultiLabelAdaptive(BaseIndexQuery):
     r"""Adaptive Active Learning
 
     This approach combines Max Margin Uncertainty Sampling and Label
     Cardinality Inconsistency.
+
+    The implementation refers to the project: https://github.com/ntucllab/libact
 
     Parameters
     ----------
@@ -779,29 +896,6 @@ class AdaptiveActiveLearning(BaseIndexQuery):
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
 
-    n_jobs : int, optional, default: 1
-        The number of jobs to use for the computation. If -1 all CPUs are
-        used. If 1 is given, no parallel computing code is used at all, which is
-        useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
-        used. Thus for n_jobs = -2, all CPUs but one are used.
-
-    Attributes
-    ----------
-
-    Examples
-    --------
-    Here is an example of declaring a MMC query_strategy object:
-
-    .. code-block:: python
-
-       from libact.query_strategies.multilabel import AdaptiveActiveLearning
-       from sklearn.linear_model import LogisticRegression
-
-       qs = AdaptiveActiveLearning(
-           dataset, # Dataset object
-           base_clf=LogisticRegression()
-       )
-
     References
     ----------
     .. [1] Li, Xin, and Yuhong Guo. "Active Learning with Multi-Label SVM
@@ -809,7 +903,7 @@ class AdaptiveActiveLearning(BaseIndexQuery):
     """
 
     def __init__(self, X, y, base_clf, betas=None, random_state=None):
-        super(AdaptiveActiveLearning, self).__init__(X, y)
+        super(QueryMultiLabelAdaptive, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)
 
@@ -818,16 +912,29 @@ class AdaptiveActiveLearning(BaseIndexQuery):
         # TODO check beta value
         self.betas = betas
         if self.betas is None:
-            self.betas = [i/10. for i in range(0, 11)]
+            self.betas = [i / 10. for i in range(0, 11)]
 
         self.random_state_ = seed_random_state(random_state)
 
-    def select(self, label_index, unlabel_index, models=None, batch_size=1, **kwargs):
+    def sequential_select(self, label_index, unlabel_index):
+        """
+            Select one unlabel-data at a time.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
 
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
-        assert(isinstance(label_index, IndexCollection))
-        assert(isinstance(unlabel_index, IndexCollection))
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+        Returns
+        -------
+        selected_ind: int
+            The selected index.
+        """
         X_pool = self.X[unlabel_index]
 
         clf = _BinaryRelevance(self.base_clf)
@@ -837,20 +944,20 @@ class AdaptiveActiveLearning(BaseIndexQuery):
 
         # Separation Margin
         pos = np.copy(real)
-        pos[real<=0] = np.inf
+        pos[real <= 0] = np.inf
         neg = np.copy(real)
-        neg[real>=0] = -np.inf
+        neg[real >= 0] = -np.inf
         separation_margin = pos.min(axis=1) - neg.max(axis=1)
         uncertainty = 1. / separation_margin
 
         # Label Cardinality Inconsistency
         average_pos_lbl = self.y[label_index].mean(axis=0).sum()
-        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl)**2)
+        label_cardinality = np.sqrt((pred.sum(axis=1) - average_pos_lbl) ** 2)
 
         candidate_idx_set = set()
         for b in self.betas:
             # score shape = (len(X_pool), )
-            score = uncertainty**b * label_cardinality**(1.-b)
+            score = uncertainty ** b * label_cardinality ** (1. - b)
             for idx in np.where(score == np.max(score))[0]:
                 candidate_idx_set.add(idx)
 
@@ -858,24 +965,117 @@ class AdaptiveActiveLearning(BaseIndexQuery):
 
         approx_err = []
         for idx in candidates:
-           br = _BinaryRelevance(self.base_clf)
-           br.train(np.vstack((self.X[label_index], X_pool[idx])), np.vstack((self.y[label_index], pred[idx])))
-           br_real = br.predict_real(X_pool)
+            br = _BinaryRelevance(self.base_clf)
+            br.train(np.vstack((self.X[label_index], X_pool[idx])), np.vstack((self.y[label_index], pred[idx])))
+            br_real = br.predict_real(X_pool)
 
-           pos = np.copy(br_real)
-           pos[br_real<0] = 1
-           pos = np.max((1.-pos), axis=1)
+            pos = np.copy(br_real)
+            pos[br_real < 0] = 1
+            pos = np.max((1. - pos), axis=1)
 
-           neg = np.copy(br_real)
-           neg[br_real>0] = -1
-           neg = np.max((1.+neg), axis=1)
+            neg = np.copy(br_real)
+            neg[br_real > 0] = -1
+            neg = np.max((1. + neg), axis=1)
 
-           err = neg + pos
+            err = neg + pos
 
-           approx_err.append(np.sum(err))
+            approx_err.append(np.sum(err))
 
         choices = np.where(np.array(approx_err) == np.min(approx_err))[0]
         ask_idx = candidates[self.random_state_.choice(choices)]
 
         return unlabel_index[ask_idx]
 
+    def select(self, label_index, unlabel_index, batch_size=1):
+        """
+            Select the unlabel data in batch mode.
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes.
+        """
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= batch_size:
+            return list(unlabel_index)
+        
+        select_index = []
+        for i in range(batch_size):
+            selected = self.sequential_select(label_index, unlabel_index)
+            label_index.update(selected)
+            unlabel_index.difference_update(selected)
+            select_index.append(selected)
+
+        return select_index
+        
+
+class QueryMultiLabelRandom(BaseMultiLabelQuery):
+    """Select instance or instance-label pairs randomly."""
+
+    def select(self, label_index, unlabel_index, batch_size=1, select_type='ins-lab', **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: ignore
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        select_type: {'ins', 'ins-lab'}
+            The selection type.
+            ins: select a batch of instances to query all of their labels.
+            ins-lab: select a batch of instance-label pairs to query.
+
+        Returns
+        -------
+        selected_ind: list
+            The selected indexes. It is a list of tuples.
+        """
+        if select_type == 'ins':
+            if len(unlabel_index) <= batch_size:
+                return unlabel_index
+            unkonwn_entries = self._check_multi_label_ind(unlabel_index)
+            unkonwn_ins = unkonwn_entries.get_instance_index()
+            perm = randperm(len(unkonwn_ins) - 1, batch_size)
+            return [(unkonwn_ins[i],) for i in perm]
+        elif select_type == 'ins-lab':
+            if len(unlabel_index) <= batch_size:
+                return unlabel_index
+            unkonwn_entries = self._check_multi_label_ind(unlabel_index)
+            perm = randperm(len(unkonwn_entries) - 1, batch_size)
+            tpl = list(unkonwn_entries.index)
+            return [tpl[i] for i in perm]
+        else:
+            raise ValueError("select_type must be one of {'ins', 'ins-lab'}")

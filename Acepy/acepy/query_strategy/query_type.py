@@ -1,5 +1,13 @@
 """
-Query type related functions
+Query type related functions.
+Acepy implements IJCAI'15 Multi-Label Active Learning:
+Query Type Matters (AURO) method which queries the relevance
+ordering of the 2 selected labels of an instance in multi label setting,
+i.e., ask the oracle which of the two labels is more relevant to the instance.
+
+Due to the less attention to this direction, we only implement AURO
+for query type. More strategies will be added when new advanced
+methods are proposed in the future.
 """
 
 # Authors: Ying-Peng Tang
@@ -9,7 +17,6 @@ import numpy as np
 
 from .base import BaseMultiLabelQuery
 from .multi_label import LabelRankingModel
-from ..index.index_collections import MultiLabelIndexCollection
 from ..index.multi_label_tools import get_Xy_in_multilabel
 
 def check_query_type(type):
@@ -85,6 +92,28 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         self._lr_model = LabelRankingModel()
 
     def select(self, label_index, unlabel_index, **kwargs):
+        """Select a subset from the unlabeled set, return the selected instance and label.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        Returns
+        -------
+        selected_ins: int
+            The index of selected instance.
+
+        y1, y2: int
+            The indexes of selected labels.
+        """
         if len(unlabel_index) <= 1:
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
