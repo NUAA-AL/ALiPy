@@ -51,8 +51,9 @@ for t in range(10):
         # print(Xmc)
         sel = afa.select(observed_entries=obi, unkonwn_entries=unobi)
         print(sel)
-        # _1di = sel[0][0]+sel[0][1]*sh[0]
+        _1di = sel[0][0]+sel[0][1]*sh[0]
         # print(_1di in obi)
         # print(_1di in unobi)
-        # obi.append(_1di)
-        # unobi.remove(_1di)
+        obi.append(_1di)
+        if _1di in unobi:
+            unobi.remove(_1di)

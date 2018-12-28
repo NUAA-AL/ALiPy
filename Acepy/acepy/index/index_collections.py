@@ -10,14 +10,17 @@ from __future__ import division
 import collections
 import copy
 
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
+
 import numpy as np
 from scipy.sparse import bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix
 
-from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
+from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
     integrate_multilabel_index
-from ..utils.ace_warnings import *
-from ..utils.interface import BaseCollection
-from ..utils.misc import randperm
+from acepy.utils.ace_warnings import *
+from acepy.utils.interface import BaseCollection
+from acepy.utils.misc import randperm
 
 
 class IndexCollection(BaseCollection):
@@ -436,6 +439,17 @@ class MultiLabelIndexCollection(IndexCollection):
 
         ins_num: int, optional
             The total number of instance. Must be provided if the order is 'F'.
+
+        Examples
+        --------
+        >>> b = [1, 4, 11]
+        >>> mi = MultiLabelIndexCollection.construct_by_1d_array(array=b, label_mat_shape=(3, 4))
+        >>> print(mi)
+        {(1, 0), (2, 3), (1, 1)}
+        >>> print('col major:', mi.get_onedim_index(order='F', ins_num=3))
+        col major: [1, 11, 4]
+        >>> print('row major:', mi.get_onedim_index(order='C'))
+        row major: [4, 11, 5]
         """
         if order=='F':
             if ins_num is None:
@@ -477,7 +491,7 @@ class MultiLabelIndexCollection(IndexCollection):
         """Return the indexes of break instances which have missing entries."""
         return self._get_cond_instance(cond=1)
 
-    def get_matrix_mask(self, mat_shape, fill_value=1, sparse_format='lil_matrix'):
+    def get_matrix_mask(self, mat_shape, fill_value=1, sparse=True, sparse_format='lil_matrix'):
         """Return an array which has the same shape with the label matrix.
         If an entry is known, then, the corresponding value in the mask is 1, otherwise, 0.
 
@@ -489,8 +503,11 @@ class MultiLabelIndexCollection(IndexCollection):
         fill_value: int
             The value filled in the mask when the entry is in the container.
 
+        sparse: bool
+            Whether to return a sparse matrix or a dense matrix (numpy.ndarray).
+
         sparse_format: str
-            The format of the returned sparse matrix.
+            The format of the returned sparse matrix. Only available if sparse==True
             should be one onf [bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix].
             Please refer to https://docs.scipy.org/doc/scipy-0.18.1/reference/sparse.html
             for the definition of each sparse format.
@@ -501,7 +518,13 @@ class MultiLabelIndexCollection(IndexCollection):
             The mask of the label matrix.
         """
         assert isinstance(mat_shape, tuple)
-        mask = eval(sparse_format + '(mat_shape)')
+        if sparse:
+            mask = eval(sparse_format + '(mat_shape)')
+        else:
+            if fill_value == 1:
+                mask = np.zeros(mat_shape, dtype=np.int32)
+            else:
+                mask = np.zeros(mat_shape)
         for item in self._innercontainer:
             mask[item] = fill_value
         return mask
@@ -528,10 +551,59 @@ class MultiLabelIndexCollection(IndexCollection):
         -------
         multi_ind: MultiLabelIndexCollection
             The MultiLabelIndexCollection object.
+
+        Examples
+        --------
+        >>> b = [1, 4, 11]
+        >>> mi = MultiLabelIndexCollection.construct_by_1d_array(array=b, label_mat_shape=(3, 4))
+        >>> print(mi)
+        {(1, 0), (2, 3), (1, 1)}
+        >>> print('col major:', mi.get_onedim_index(order='F', ins_num=3))
+        col major: [1, 11, 4]
+        >>> print('row major:', mi.get_onedim_index(order='C'))
+        row major: [4, 11, 5]
         """
         assert len(label_mat_shape) == 2
         row, col = np.unravel_index(array, dims=label_mat_shape, order=order)
         return cls(data=[(row[i], col[i]) for i in range(len(row))], label_size=label_mat_shape[1])
+
+    @classmethod
+    def construct_by_element_mask(cls, mask):
+        """Construct a MultiLabelIndexCollection object by providing a
+        2d array whose shape should be the same as the matrix shape.
+
+        Parameters
+        ----------
+        mask: {list, np.ndarray}
+            The 2d mask matrix of elements.
+            There must be only 1 and 0 in the matrix, in which,
+            1 means the corresponding element is known, and will be
+            added to the MultiLabelIndexCollection container.
+            Otherwise, it will be cheated as an unknown element.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> mask = np.asarray([
+            [0, 1],
+            [1, 0],
+            [1, 0]
+        ]) # 3 rows, 2 lines
+        >>> mi = MultiLabelIndexCollection.construct_by_element_mask(mask=mask)
+        >>> print(mi)
+        {(0, 1), (2, 0), (1, 0)}
+
+        """
+        mask = np.asarray(mask)
+        ue = np.unique(mask)
+        if not (len(mask.shape) == 2 and len(ue) == 2 and 0 in ue and 1 in ue):
+            raise ValueError("The mask matrix should be a 2d array, and there must be only "
+                             "1 and 0 in the matrix, in which, 1 means the corresponding "
+                             "element is known, and will be added to the MultiLabelIndexCollection container.")
+
+        nz_row, nz_col = np.nonzero(mask)
+        return cls(data=[(nz_row[i], nz_col[i]) for i in range(len(nz_row))], label_size=mask.shape[1])
+
 
 
 class FeatureIndexCollection(MultiLabelIndexCollection):
@@ -584,3 +656,11 @@ class FeatureIndexCollection(MultiLabelIndexCollection):
             super(FeatureIndexCollection, self).__init__(data=data, label_size=feature_size)
         except(Exception, ValueError):
             raise Exception("The inference of feature_size is failed, please set a specific value.")
+
+
+if __name__ == "__main__":
+    multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
+    q = multi_lab_ind1.get_unbroken_instances()
+    print(q)
+    a= multi_lab_ind1.get_break_instances()
+    print(a)

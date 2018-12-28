@@ -1,5 +1,16 @@
 """
 Pre-defined query strategy for noisy oracles.
+
+In reality, the labels given by human is not always correct. For one hand,
+there are some inevitable noise comes from the instrumentation of experimental
+setting. On the other hand, people can become distracted or fatigued over time,
+introducing variability in the quality of their annotations.
+
+Acepy implements several strategies in noisy oracles settings.
+Some of then mainly evaluate the quality or expertise of each oracle,
+and the rest tries to obtain the accurate label for each instance
+whose labels are provided by several noisy oracles.
+
 There are 2 categories of methods.
 1. Query from a single selected oracle.
     1.1 Always query from the best oracle
@@ -101,7 +112,7 @@ def get_majority_vote(selected_instance, oracles):
 
 
 class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
-    """Cost-Effective Active Learning from Diverse Labelers (CEAL) method assume
+    """Cost-Effective Active Learning from Diverse Labelers (CEAL) method assumes
     that different oracles have different expertise. Even the very noisy oracle
     may perform well on some kind of examples. The cost of a labeler is proportional
     to its overall labeling quality and it is thus necessary to query from the right oracle
@@ -524,10 +535,19 @@ class QueryNoisyOraclesAll(QueryNoisyOraclesSelectInstanceUncertainty):
 
 
 class QueryNoisyOraclesRandom(QueryNoisyOraclesSelectInstanceUncertainty):
-    """Select an instance based on uncertainty and a random oracle to query."""
-
-    def __init__(self, oracles, X=None, y=None):
-        super(QueryNoisyOraclesRandom, self).__init__(X=X, y=y, oracles=oracles)
+    """Select a random oracle to query."""
 
     def select_by_given_instance(self, selected_instance):
+        """Select oracle to query by providing the index of selected instance.
+
+        Parameters
+        ----------
+        selected_instance: int
+            The indexes of selected samples. Should be a member of unlabeled set.
+
+        Returns
+        -------
+        oracles_ind: list
+            The indexes of selected oracles.
+        """
         return self._oracle_ind_name_dict[np.random.randint(0, len(self._oracles), 1)[0]]
