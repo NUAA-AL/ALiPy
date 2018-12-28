@@ -349,6 +349,7 @@ class IterativeSVD_mc:
             The completed matrix.
         """
         X = check_array(X, force_all_finite=False)
+        observed_mask = np.asarray(observed_mask)
         if check_para:
             obrT = np.asarray(observed_mask)
             assert obrT.shape[0] == X.shape[0] and obrT.shape[1] == X.shape[1]
