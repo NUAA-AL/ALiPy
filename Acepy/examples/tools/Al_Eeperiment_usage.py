@@ -1,11 +1,14 @@
+import sys
+sys.path.append(r'D:\Al_tool\Acepy')
+
 from sklearn.datasets import load_iris
-from acepy.experiment import al_experiment
+from acepy.experiment import AlExperiment
 
 # Get the data
 X, y = load_iris(return_X_y=True)
 
 # init the AlExperiment
-al = al_experiment(X, y)
+al = AlExperiment(X, y)
 
 # split the data by using split_AL()
 al.split_AL()
@@ -19,7 +22,7 @@ al.set_data_split(train_idx=train, test_idx=test, label_idx=lab, unlabel_idx=unl
 
 # set the query strategy
 # using the a pre-defined strategy
-al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
+al.set_query_strategy(strategy="QueryInstanceSPAL")
 
 # or using your own query strategy
 # class my_qs_class:
