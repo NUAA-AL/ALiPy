@@ -7,6 +7,7 @@ AL_result
 test
 abandoned_code.py
 *.pptx
+*.mat
 *.ppt
 *.doc
 *.docx

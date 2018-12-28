@@ -1,3 +1,4 @@
+import numpy as np
 # ---------IndexCollection
 a = [1, 2, 3]
 # a_ind = acebox.IndexCollection(a)
@@ -23,6 +24,24 @@ multi_lab_ind1.update([(1, 2), (1, (3, 4))])
 multi_lab_ind1.update([(2,)])
 multi_lab_ind1.difference_update([(0,)])
 print(multi_lab_ind1)
+
+# matlab style 1d index supporting
+b = [1, 4, 11]
+mi = MultiLabelIndexCollection.construct_by_1d_array(array=b, label_mat_shape=(3, 4))
+print(mi)
+print('col major:', mi.get_onedim_index(order='F', ins_num=3))
+print('row major:', mi.get_onedim_index(order='C'))
+
+# mask supporting
+mask = np.asarray([
+    [0, 1],
+    [1, 0],
+    [1, 0]
+]) # 3 rows, 2 lines
+mi = MultiLabelIndexCollection.construct_by_element_mask(mask=mask)
+print(mi)
+mi = MultiLabelIndexCollection([(0, 1), (2, 0), (1, 0)], label_size=2)
+print(mi.get_matrix_mask(mat_shape=(3, 2), sparse=False))
 
 # ---------Multi-label tools------------------
 
