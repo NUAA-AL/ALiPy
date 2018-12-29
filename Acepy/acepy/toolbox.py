@@ -474,7 +474,7 @@ class ToolBox:
 
         Parameters
         ----------
-        x_axis: str, optional (default='num_of_queries')
+        x_axis: {'num_of_queries', 'cost'}, optional (default='num_of_queries')
             The x_axis when analysing the result.
             x_axis should be one of ['num_of_queries', 'cost'],
             if 'cost' is given, your experiment results must contains the
