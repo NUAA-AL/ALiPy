@@ -116,7 +116,7 @@ def nlargestarg(a, n):
     nlargestarg: list
         The n largest args in array a.
     """
-    assert(_is_arraylike(a))
+    assert (_is_arraylike(a))
     assert (n > 0)
     argret = np.argsort(a)
     # ascend
@@ -139,7 +139,7 @@ def nsmallestarg(a, n):
     nlargestarg: list
         The n smallest args in array a.
     """
-    assert(_is_arraylike(a))
+    assert (_is_arraylike(a))
     assert (n > 0)
     argret = np.argsort(a)
     # ascend
@@ -246,3 +246,4 @@ def unpack(*args):
         else:
             ret_args.append(arg)
     return tuple(ret_args)
+
