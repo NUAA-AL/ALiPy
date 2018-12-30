@@ -732,6 +732,12 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
     Parameters
     ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
     base_learner :  object instance
         The base learner for binary relavance, should support predict_proba
 
@@ -775,7 +781,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
     
     def sequential_select(self, label_index, unlabel_index):
         """
-            Select one unlabel-data at a time.
+            Select one unlabel-sample at a time.
         Parameters
         ----------
         label_index: {list, np.ndarray, IndexCollection}
@@ -792,6 +798,21 @@ class QueryMultiLabelMMC(BaseIndexQuery):
         selected_ind: int
             The selected index.
         """
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= 1:
+            return list(unlabel_index)
 
         labeled_pool = self.X[label_index]
         X_pool = self.X[unlabel_index]
@@ -884,6 +905,12 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
     Parameters
     ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+        
     base_clf : ContinuousModel object instance
         The base learner for binary relavance.
 
@@ -935,6 +962,23 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         selected_ind: int
             The selected index.
         """
+
+        if isinstance(label_index, (list, np.ndarray)):
+            label_index = IndexCollection(label_index)
+        elif isinstance(label_index, MultiLabelIndexCollection):
+            label_index = IndexCollection(label_index.get_unbroken_instances())
+        elif not isinstance(label_index,IndexCollection):
+            raise TypeError("index type error")
+        if isinstance(unlabel_index, (list, np.ndarray)):
+            unlabel_index = IndexCollection(unlabel_index)
+        elif isinstance(unlabel_index, MultiLabelIndexCollection):
+            unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
+        elif not isinstance(unlabel_index,IndexCollection):
+            raise TypeError("index type error")
+        
+        if len(unlabel_index) <= 1:
+            return list(unlabel_index)
+
         X_pool = self.X[unlabel_index]
 
         clf = _BinaryRelevance(self.base_clf)

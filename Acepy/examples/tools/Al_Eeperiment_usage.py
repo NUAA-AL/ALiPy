@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'D:\Al_tool\Acepy')
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
 
 from sklearn.datasets import load_iris
 from acepy.experiment import AlExperiment
@@ -22,7 +22,7 @@ al.set_data_split(train_idx=train, test_idx=test, label_idx=lab, unlabel_idx=unl
 
 # set the query strategy
 # using the a pre-defined strategy
-al.set_query_strategy(strategy="QueryInstanceSPAL")
+al.set_query_strategy(strategy="QueryInstanceUncertainty")
 
 # or using your own query strategy
 # class my_qs_class:
@@ -35,7 +35,7 @@ al.set_query_strategy(strategy="QueryInstanceSPAL")
 # al.set_query_strategy(strategy=my_qs_class(), **kwargs)
 
 # set the metric for experiment.
-al.set_performance_metric('roc_auc_score')
+al.set_performance_metric('accuracy_score')
 
 # by default,run in multi-thread.
 al.start_query(multi_thread=True)
@@ -46,4 +46,4 @@ al.start_query(multi_thread=True)
 stateIO = al.get_experiment_result()
 
 # get a brief description of the experiment
-al.plot_learning_curve(titile='Alexperiment result')
+al.plot_learning_curve(title='Alexperiment result')

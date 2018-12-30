@@ -14,6 +14,7 @@ from sklearn.svm import SVC
 from acepy.index import MultiLabelIndexCollection
 from acepy.query_strategy.base import BaseMultiLabelQuery
 from acepy.utils.misc import randperm, nlargestarg, nsmallestarg
+from acepy.oracle import Oracle
 
 def select_Knapsack_01(infor_value, costs, capacity):
     """
@@ -149,10 +150,6 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     y: 2D array, optional (default=None)
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
-    
-    costs: 1d array-like, or list 
-        The costs value of each class.shape [n_classes]
-    
 
     model: object, optional (default=None)
         Current classification model, should have the 'predict_proba' method for probabilistic output.
@@ -164,7 +161,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     budget: int, optional (default=40)
         The budget of the select cost.
 
-    costs:np.array, (default=None), shape [1, n_classes] or [n_classes]
+    costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
         the costs of querying each class.if not provide,it will all be 1 
 
     weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
@@ -172,6 +169,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
     label_tree: 2D array
         The hierarchical relationships among data features.
+        if node_i is the parent of node_j , then label_tree(i,j)=1
 
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
@@ -340,7 +338,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         super(QueryCostSensitiveRandom, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y) 
 
-    def select(self, unlabel_index, costs, batch_size=40, budget=40):
+    def select(self, unlabel_index, costs, budget=40):
         """Select indexes randomly.
 
         Parameters
@@ -360,7 +358,6 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         unlabel_index = self._check_multi_label_ind(unlabel_index)     
         instance_pair = MultiLabelIndexCollection(label_size=self.n_classes)
         cost = 0.
-        batch = 0
         while True:
             onedim_index = unlabel_index.get_onedim_index()
             od_ind = np.random.choice(onedim_index)
@@ -368,7 +365,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             j_class = od_ind % self.n_classes
             cost += costs[i_sample, j_class]
             batch += 1
-            if cost > budget or batch > batch_size:
+            if cost > budget
                 break
             instance_pair.update((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
@@ -378,15 +375,60 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
                 
 class QueryCostSensitivePerformance(BaseMultiLabelQuery):
     """
+        Select the unlabel data in batch mode.
+    Parameters
+    ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+
 
     """
     def __init__(self, X=None, y=None):
         super(QueryCostSensitivePerformance, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
+        # self.labels = np.unique(np.ravel(self.y))
+
 
     
-    def select(self, label_index, unlabel_index, cost, batch_size=40, budget=40, basemodel=None, models=None):
-        
+    def select(self, label_index, unlabel_index, cost, budget=40, basemodel=None, models=None):
+        """
+            Select the unlabel data in batch mode.
+        Parameters
+        ----------
+        label_index: MultiLabelIndexCollection
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: MultiLabelIndexCollection
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            the costs of querying each class.
+            if not provide,it will all be 1.it will be similar to batch_size 
+
+        batch_size: int, optional (default=40)
+            Selection batch size.
+
+        budget: float, optional (default=40)
+            Limitations on total cost of sample selection.
+            sum(instance_pair[i][j] * cost[j]) <= budget
+        Returns
+        -------
+        instance_pair: list
+            A list of array that contains the indexes of selected instance-label pairs.
+        """
+        # if cost is None:
+        #     if oracle is None:
+        #         raise ValueError('Please input the cost or corresponding Oracle')
+        #     else:
+        #         cost = oracle.query_by_index(self.labels)
         if models is None:
             models = self.train_models(label_index, basemodel)
 
@@ -394,6 +436,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         target = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         uncertainty = self.cal_uncertainty(target, models)
         instance_pair = np.array([0, 0])
+        
         infor_value=np.array([0])
         corresponding_cost = np.array([0])
 
@@ -415,9 +458,11 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         infor_value = infor_value[1:]
         corresponding_cost = corresponding_cost[1:]
 
-        max_value, select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
+        _ , select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
         # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
-        return max_value, instance_pair[np.where(select_result!=0)[0]]
+        return list(instance_pair[np.where(select_result!=0)[0]])
+        # multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
+        # return MultiLabelIndexCollection(multilabel_index, label_index=self.n_classes)
 
     def train_models(self, label_index, basemodel):
         """
@@ -464,7 +509,7 @@ if __name__ == "__main__":
     print(k)
     print(select)
     
-    x, y =select_POSS(v,w,20)
+    x, y = select_POSS(v,w,20)
 
     print(x)
     print(y)

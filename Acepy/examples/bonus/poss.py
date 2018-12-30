@@ -1,3 +1,5 @@
+import sys
+sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
 from acepy.query_strategy.cost_sensitive import select_POSS
 budget = 20
 costs = [1, 2, 5, 6, 7, 9]
