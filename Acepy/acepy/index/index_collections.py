@@ -659,7 +659,7 @@ class FeatureIndexCollection(MultiLabelIndexCollection):
 
 
 if __name__ == "__main__":
-    multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
+    multi_lab_ind1 = MultiLabelIndexCollection([[0, 1], [0, 2], [0, [3, 4]], [1, [0, 1]]], label_size=5)
     q = multi_lab_ind1.get_unbroken_instances()
     print(q)
     a= multi_lab_ind1.get_break_instances()

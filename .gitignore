@@ -20,3 +20,4 @@ abandoned_code.py
 gitcmd.txt
 .pytest_cache
 .history
+.test
