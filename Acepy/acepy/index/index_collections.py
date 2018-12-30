@@ -653,3 +653,55 @@ class FeatureIndexCollection(MultiLabelIndexCollection):
             super(FeatureIndexCollection, self).__init__(data=data, label_size=feature_size)
         except(Exception, ValueError):
             raise Exception("The inference of feature_size is failed, please set a specific value.")
+
+
+def map_whole_index_to_train(train_idx, index_in_whole):
+    """Map the indexes from whole dataset to training set.
+
+    Parameters
+    ----------
+    train_idx: {list, numpy.ndarray}
+        The training indexes.
+
+    index_in_whole: {IndexCollection, MultiLabelIndexCollection}
+        The indexes need to be mapped of the whole data.
+
+    Returns
+    -------
+    index_in_train: {IndexCollection, MultiLabelIndexCollection}
+        The mapped indexes.
+
+    Examples
+    --------
+    >>> train_idx = [231, 333, 423]
+    >>> index_in_whole = IndexCollection([333, 423])
+    >>> print(map_whole_index_to_train(train_idx, index_in_whole))
+    [1, 2]
+    """
+    if isinstance(index_in_whole, MultiLabelIndexCollection):
+        ind_type = 2
+    elif isinstance(index_in_whole, IndexCollection):
+        ind_type = 1
+    else:
+        raise TypeError("index_in_whole must be one of {IndexCollection, MultiLabelIndexCollection} type.")
+
+    tr_ob = []
+    for entry in index_in_whole:
+        if ind_type == 2:
+            assert entry[0] in train_idx
+            ind_in_train = np.argwhere(train_idx == entry[0])[0][0]
+            tr_ob.append((ind_in_train, entry[1]))
+        else:
+            assert entry in train_idx
+            tr_ob.append(np.argwhere(train_idx == entry)[0][0])
+    if ind_type == 2:
+        return MultiLabelIndexCollection(tr_ob)
+    else:
+        return IndexCollection(tr_ob)
+
+if __name__ == "__main__":
+    multi_lab_ind1 = MultiLabelIndexCollection([[0, 1], [0, 2], [0, [3, 4]], [1, [0, 1]]], label_size=5)
+    q = multi_lab_ind1.get_unbroken_instances()
+    print(q)
+    a= multi_lab_ind1.get_break_instances()
+    print(a)

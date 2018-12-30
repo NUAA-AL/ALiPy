@@ -1,6 +1,6 @@
 from sklearn.datasets import load_iris
 from acepy.data_manipulate import split
-from acepy.utils import aceThreading
+from acepy.utils.multi_thread import aceThreading
 from acepy.experiment import StateIO
 # Get the data
 X, y = load_iris(return_X_y=True)
