@@ -35,6 +35,7 @@ from __future__ import division
 import collections
 from abc import ABCMeta, abstractmethod
 
+import copy
 import numpy as np
 import scipy.stats
 from sklearn.linear_model import LogisticRegression
@@ -74,10 +75,57 @@ def majority_vote(labels, weight=None):
 
     vote_result = collections.Counter(labels)
     most_votes = vote_result.most_common(n=1)
-    return most_votes[0][0], most_votes[0][1]
+    return most_votes[0][1], most_votes[0][0]
 
 
-def get_majority_vote(selected_instance, oracles):
+def get_query_results(selected_instance, oracles, names=None):
+        """Get the query results from oracles of the selected instance.
+
+        Parameters
+        ----------
+        selected_instance: int
+            The indexes of selected samples. Should be a member of unlabeled set.
+
+        oracles: {list, acepy.oracle.Oracles}
+            An acepy.oracle.Oracle object that contains all the
+            available oracles or a list of oracles.
+            Each oracle should be a acepy.oracle.Oracle object.
+
+        names: list, optional (default=None)
+            A list of str which contains the names of oracles to query from.
+            If not provided, it will query from all oracles.
+            Each name should in oracles.names().
+
+        Returns
+        -------
+        query_labels: list
+            The queried labels.
+
+        query_costs: list
+            The total cost of query.
+        """
+        costs = []
+        if isinstance(oracles, list):
+            oracle_type = 'list'
+            for oracle in oracles:
+                assert isinstance(oracle, Oracle)
+        elif isinstance(oracles, Oracles):
+            oracle_type = 'oracles'
+        else:
+            raise TypeError("The type of parameter oracles must be a list or acepy.oracle.Oracles object.")
+        labeling_results = []
+        if oracle_type == 'list':
+            for i in oracles.names() if oracle_type == 'oracles' else range(len(oracles)):
+                lab, co = oracles[i].query_by_index(selected_instance)
+                labeling_results.append(lab[0])
+                costs.append(np.sum(co))
+        else:
+            results = oracles.query_from_s(selected_instance, oracles_name=names)
+            labeling_results = [res[0][0] for res in results]
+            costs = [np.sum(res[1]) for res in results]
+        return labeling_results, costs
+
+def get_majority_vote(selected_instance, oracles, names=None):
     """Get the majority vote results of the selected instance.
 
     Parameters
@@ -90,25 +138,26 @@ def get_majority_vote(selected_instance, oracles):
         available oracles or a list of oracles.
         Each oracle should be a acepy.oracle.Oracle object.
 
+    names: list, optional (default=None)
+        A list of str which contains the names of oracles to query from.
+        If not provided, it will query from all oracles.
+        Each name should in oracles.names().
+
     Returns
     -------
-    selected_instance: int
-        The index of selected instance. Selected by uncertainty.
+    vote_count: int
+        The number of votes.
+
+    vote_result: object
+        The label of the selected_instance, produced by majority voting
+        of the selected oracles.
+
+    query_costs: int
+        The total cost of query.
     """
-    if isinstance(oracles, list):
-        oracle_type = 'list'
-        for oracle in oracles:
-            assert isinstance(oracle, Oracle)
-    elif isinstance(oracles, Oracles):
-        oracle_type = 'oracles'
-    else:
-        raise TypeError("The type of parameter oracles must be a list or acepy.oracle.Oracles object.")
-    labeling_results = []
-    for i in oracles.names() if oracle_type == 'oracles' else range(len(oracles)):
-        lab, _ = oracles[i].query_by_index(selected_instance)
-        labeling_results.append(lab[0])
+    labeling_results, cost = get_query_results(selected_instance, oracles, names)
     majority_vote_result = majority_vote(labeling_results)
-    return majority_vote_result
+    return majority_vote_result[0], majority_vote_result[1], np.sum(cost)
 
 
 class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
@@ -162,7 +211,7 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
         self._nntree = NearestNeighbors(metric='euclidean')
         self._nntree.fit(self.X[self._ini_ind])
 
-    def select(self, label_index, unlabel_index, model=None, **kwargs):
+    def select(self, label_index, unlabel_index, eval_cost=False, model=None, **kwargs):
         """Query from oracles. Return the index of selected instance and oracle.
 
         Parameters
@@ -172,6 +221,9 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
 
         unlabel_index: {list, np.ndarray, IndexCollection}
             The indexes of unlabeled samples.
+
+        eval_cost: bool, optional (default=False)
+            To evaluate the cost of oracles or use the cost provided by oracles.
 
         model: object, optional (default=None)
             Current classification model, should have the 'predict_proba' method for probabilistic output.
@@ -197,8 +249,9 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
             model.fit(self.X[label_index], self.y[label_index])
         pred_unlab, _ = _get_proba_pred(self.X[unlabel_index], model)
 
+        n_neighbors = min(kwargs.pop('n_neighbors', 10), len(self._ini_ind) - 1)
         return self.select_by_prediction_mat(label_index, unlabel_index, pred_unlab,
-                                             n_neighbors=kwargs.pop('n_neighbors', 10))
+                                             n_neighbors=n_neighbors, eval_cost=eval_cost)
 
     def select_by_prediction_mat(self, label_index, unlabel_index, predict, **kwargs):
         """Query from oracles. Return the index of selected instance and oracle.
@@ -218,6 +271,9 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
             How many neighbors of the selected instance will be used
             to evaluate the oracles.
 
+        eval_cost: bool, optional (default=False)
+            To evaluate the cost of oracles or use the cost provided by oracles.
+
         Returns
         -------
         selected_instance: int
@@ -228,13 +284,18 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
             If a list is given, the index of oracle will be returned.
             If a Oracles object is given, the oracle name will be returned.
         """
+        n_neighbors = min(kwargs.pop('n_neighbors', 10), len(self._ini_ind)-1)
+        eval_cost = kwargs.pop('n_neighbors', False)
         Q_table, oracle_ind_name_dict = self._calc_Q_table(label_index, unlabel_index, self._oracles, predict,
-                                                           n_neighbors=kwargs.pop('n_neighbors', 10))
+                                                           n_neighbors=n_neighbors, eval_cost=eval_cost)
         # get the instance-oracle pair
         selected_pair = np.unravel_index(np.argmax(Q_table, axis=None), Q_table.shape)
-        return [unlabel_index[selected_pair[1]]], oracle_ind_name_dict[selected_pair[0]]
+        sel_ora = oracle_ind_name_dict[selected_pair[0]]
+        if not isinstance(sel_ora, list):
+            sel_ora = [sel_ora]
+        return [unlabel_index[selected_pair[1]]], sel_ora
 
-    def _calc_Q_table(self, label_index, unlabel_index, oracles, pred_unlab, n_neighbors=10):
+    def _calc_Q_table(self, label_index, unlabel_index, oracles, pred_unlab, n_neighbors=10, eval_cost=False):
         """Query from oracles. Return the Q table and the oracle name/index of each row of Q_table.
 
         Parameters
@@ -256,6 +317,9 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
         n_neighbors: int, optional (default=10)
             How many neighbors of the selected instance will be used
             to evaluate the oracles.
+
+        eval_cost: bool, optional (default=False)
+            To evaluate the cost of oracles or use the cost provided by oracles.
 
         Returns
         -------
@@ -281,7 +345,6 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
         # calc least_confident
         rx = np.partition(pred_unlab, spv[1] - 1, axis=1)
         rx = 1 - rx[:, spv[1] - 1]
-
         for unlab_ind, unlab_ins_ind in enumerate(unlabel_index):
             # evaluate oracles for each instance
             nn_dist, nn_of_selected_ins = self._nntree.kneighbors(X=self.X[unlab_ins_ind].reshape(1, -1),
@@ -291,18 +354,20 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
             nn_of_selected_ins = nn_of_selected_ins[0]
             nn_of_selected_ins = self._ini_ind[nn_of_selected_ins]  # map to the original population
             oracles_score = []
-            oracles_cost = []
             for ora_ind, ora_name in enumerate(self._oracles_iterset):
                 # calc q_i(x), expertise of this instance
                 oracle = oracles[ora_name]
                 labels, cost = oracle.query_by_index(nn_of_selected_ins)
                 oracles_score.append(sum([nn_dist[i] * (labels[i] == self.y[nn_of_selected_ins[i]]) for i in
                                           range(num_of_neighbors)]) / num_of_neighbors)
+
                 # calc c_i, cost of each labeler
                 labels, cost = oracle.query_by_index(label_index)
-                oracles_cost.append(
-                    sum([labels[i] == self.y[label_index[i]] for i in range(len(label_index))]) / len(label_index))
-                Q_table[ora_ind, unlab_ind] = oracles_score[ora_ind] * rx[unlab_ind] / oracles_cost[ora_ind]
+                if eval_cost:
+                    oracles_cost = sum([labels[i] == self.y[label_index[i]] for i in range(len(label_index))]) / len(label_index)
+                else:
+                    oracles_cost = cost[0]
+                Q_table[ora_ind, unlab_ind] = oracles_score[ora_ind] * rx[unlab_ind] / max(oracles_cost, 0.0001)
 
         return Q_table, self._oracle_ind_name_dict
 
@@ -421,12 +486,14 @@ class QueryNoisyOraclesIEthresh(QueryNoisyOraclesSelectInstanceUncertainty):
         super(QueryNoisyOraclesIEthresh, self).__init__(X, y, oracles=oracles)
         self._ini_ind = np.asarray(initial_labeled_indexes)
         # record the labeling history of each oracle
-        self._oracles_history = [dict()] * len(self._oracles_iterset)
+        self._oracles_history = dict()
+        for i in range(len(self._oracles_iterset)):
+            self._oracles_history[i] = dict()
         # record the results of majority vote
         self._majority_vote_results = dict()
         # calc initial QI(a) for each oracle a
         self._UI = np.ones(len(self._oracles_iterset))
-        self.epsilon = kwargs.pop('epsilon', 0.1)
+        self.epsilon = kwargs.pop('epsilon', 0.8)
 
     def _calc_uia(self, oracle_history, majority_vote_result, alpha=0.05):
         """Calculate the UI(a) by providing the labeling history and the majority vote results.
@@ -454,7 +521,7 @@ class QueryNoisyOraclesIEthresh(QueryNoisyOraclesSelectInstanceUncertainty):
         t_crit_val = scipy.stats.t.isf([alpha / 2], n - 1)[0]
         reward_arr = []
         for ind in oracle_history.keys():
-            if oracle_history[ind] == majority_vote_result[ind][1]:
+            if oracle_history[ind] == majority_vote_result[ind]:
                 reward_arr.append(1)
             else:
                 reward_arr.append(0)
@@ -476,7 +543,7 @@ class QueryNoisyOraclesIEthresh(QueryNoisyOraclesSelectInstanceUncertainty):
         selected_oracles: list
             The selected oracles for querying.
         """
-        selected_oracles = np.nonzero(self._UI > self.epsilon * np.max(self._UI))
+        selected_oracles = np.nonzero(self._UI >= self.epsilon * np.max(self._UI))
         selected_oracles = selected_oracles[0]
 
         # update UI(a) for each selected oracle
@@ -484,10 +551,10 @@ class QueryNoisyOraclesIEthresh(QueryNoisyOraclesSelectInstanceUncertainty):
         for i in selected_oracles:
             lab, _ = self._oracles[self._oracle_ind_name_dict[i]].query_by_index(selected_instance)
             labeling_results.append(lab[0])
-            self._oracles_history[i][selected_instance] = lab[0]
-        majority_vote_result = majority_vote(labeling_results)
+            self._oracles_history[i][selected_instance] = copy.copy(lab[0])
+        _, majority_vote_result = majority_vote(labeling_results)
         reward_arr = np.zeros(len(selected_oracles))
-        same_ind = np.nonzero(labeling_results == majority_vote_result)
+        same_ind = np.nonzero(labeling_results == majority_vote_result)[0]
         reward_arr[same_ind] = 1
         self._majority_vote_results[selected_instance] = majority_vote_result
         for i in selected_oracles:
@@ -550,4 +617,4 @@ class QueryNoisyOraclesRandom(QueryNoisyOraclesSelectInstanceUncertainty):
         oracles_ind: list
             The indexes of selected oracles.
         """
-        return self._oracle_ind_name_dict[np.random.randint(0, len(self._oracles), 1)[0]]
+        return [self._oracle_ind_name_dict[np.random.randint(0, len(self._oracles), 1)[0]]]

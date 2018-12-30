@@ -342,7 +342,7 @@ class ToolBox:
 
         """
         assert (0 <= round < self.split_count)
-        train_id, test_id, Ucollection, Lcollection = self.get_split(round)
+        train_id, test_id, Lcollection, Ucollection = self.get_split(round)
         if self.query_type == 'AllLabels':
             return MatrixRepository(labels=self._y[Lcollection.index],
                                     examples=self._X[Lcollection.index, :] if instance_flag else None,
@@ -474,7 +474,7 @@ class ToolBox:
 
         Parameters
         ----------
-        x_axis: str, optional (default='num_of_queries')
+        x_axis: {'num_of_queries', 'cost'}, optional (default='num_of_queries')
             The x_axis when analysing the result.
             x_axis should be one of ['num_of_queries', 'cost'],
             if 'cost' is given, your experiment results must contains the
