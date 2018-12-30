@@ -140,7 +140,12 @@ def select_POSS(infor_value, costs, budget):
     return min_infovalue, selectedVariables
     
 class QueryCostSensitiveHALC(BaseMultiLabelQuery):
-    """
+    """HALC exploit the label hierarchies for cost-effective queries and will selects a 
+    batch of instance-label pairs with most information and least cost.
+    Select some instance-label pairs based on the Informativeness for Hierarchical Labels
+    The definition of  Informativeness for Hierarchical Labels is
+            Infor(x,y)=I(y==1)*Uanc + I(y==-1)*Udec + Ux,y;   x is sample,y is label.
+
     Parameters
     ----------
     X: 2D array, optional (default=None)
@@ -155,14 +160,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         Current classification model, should have the 'predict_proba' method for probabilistic output.
         If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
 
-    batch_size: int, optional (default=40)
-        Selection batch size.
-
-    budget: int, optional (default=40)
-        The budget of the select cost.
-
     costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-        the costs of querying each class.if not provide,it will all be 1 
+        the costs of querying each class.if not provide,it will all be 1. 
 
     weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
         the weights of each class.if not provide,it will all be 1 
@@ -171,6 +170,9 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         The hierarchical relationships among data features.
         if node_i is the parent of node_j , then label_tree(i,j)=1
 
+    References
+    ----------
+    [1] 
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
     
@@ -293,8 +295,41 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
         return Infor
         
-    def select(self, label_index, unlabel_index, costs, budget, base_model=None, models=None):
+    def select(self, label_index, unlabel_index, costs, budget, models=None, base_model=None):
+        """ Selects a batch of instance-label pairs with most information and least cost.
 
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            the costs of querying each class.if not provide,it will all be 1. 
+
+        budget: int, optional (default=40)
+            The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
+
+        models: object, optional (default=None)
+            Current classification model, should have the 'predict_proba' method for probabilistic output.
+            If not provided,it will build the model based the base_model.
+        
+        base_model: object, optional(default=None)
+            The classification model for eatch label,if the models is not provided.It will build a classifi
+            -cation model for the multilabel taks.If not provided, SVM with default parameters implemented
+             by sklearn will be used.
+
+        Returns
+        -------
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.      
+        """
         label_index = self._check_multi_label_ind(label_index)
         unlabel_index = self._check_multi_label_ind(unlabel_index)
 
@@ -329,8 +364,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         
 
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
-    """Randomly sample a batch of indexes from the unlabel indexes.
-    
+    """Randomly selects a batch of instance-label pairs.
     """
 
     def __init__(self, X, y):
@@ -339,20 +373,26 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         self.n_samples, self.n_classes = np.shape(y) 
 
     def select(self, unlabel_index, costs, budget=40):
-        """Select indexes randomly.
+        """Randomly selects a batch of instance-label pairs under the 
+        constraints of meeting the budget conditions.
 
         Parameters
         ----------
-        unlabel_index: collections.Iterable
-            The indexes of unlabeled set.
+        unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+            The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
 
-        batch_size: int, optional (default=1)
-            Selection batch size.
+        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            the costs of querying each class.if not provide,it will all be 1. 
+
+        budget: int, optional (default=40)
+            The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
 
         Returns
         -------
-        select_pair: MultiLabelIndexCollection
-            The selected indexes which is a subset of unlabel_index.
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs.    
         """
         assert(len(costs) == self.n_classes)   
         unlabel_index = self._check_multi_label_ind(unlabel_index)     
@@ -364,12 +404,10 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             i_sample = od_ind // self.n_classes
             j_class = od_ind % self.n_classes
             cost += costs[i_sample, j_class]
-            batch += 1
-            if cost > budget
+            if cost > budget :
                 break
             instance_pair.update((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
-
         return instance_pair
 
                 
@@ -384,16 +422,12 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
 
-
-
     """
     def __init__(self, X=None, y=None):
         super(QueryCostSensitivePerformance, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
         # self.labels = np.unique(np.ravel(self.y))
 
-
-    
     def select(self, label_index, unlabel_index, cost, budget=40, basemodel=None, models=None):
         """
             Select the unlabel data in batch mode.
@@ -410,19 +444,24 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             the 1st element is the index of instance and the 2nd element is the index of labels.
 
         costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-            the costs of querying each class.
-            if not provide,it will all be 1.it will be similar to batch_size 
+            the costs of querying each class.if not provide,it will all be 1. 
 
-        batch_size: int, optional (default=40)
-            Selection batch size.
+        budget: int, optional (default=40)
+            The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
 
-        budget: float, optional (default=40)
-            Limitations on total cost of sample selection.
-            sum(instance_pair[i][j] * cost[j]) <= budget
+        models: object, optional (default=None)
+            Current classification model, should have the 'predict_proba' method for probabilistic output.
+            If not provided,it will build the model based the base_model.
+        
+        base_model: object, optional(default=None)
+            The classification model for eatch label,if the models is not provided.It will build a classifi
+            -cation model for the multilabel taks.If not provided, SVM with default parameters implemented
+             by sklearn will be used.
+
         Returns
         -------
-        instance_pair: list
-            A list of array that contains the indexes of selected instance-label pairs.
+        selected_ins_lab_pair: list
+            A list of tuples that contains the indexes of selected instance-label pairs. 
         """
         # if cost is None:
         #     if oracle is None:
