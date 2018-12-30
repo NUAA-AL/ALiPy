@@ -768,9 +768,9 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
     References
     ----------
-    .. [1] Yang, Bishan, et al. "Effective multi-label active learning for text
-		   classification." Proceedings of the 15th ACM SIGKDD international
-		   conference on Knowledge discovery and data mining. ACM, 2009.
+    [1] Yang, Bishan, et al. "Effective multi-label active learning for text
+        classification." Proceedings of the 15th ACM SIGKDD international
+        conference on Knowledge discovery and data mining. ACM, 2009.
     """
 
     def __init__(self, X, y, *args, **kwargs):
@@ -900,7 +900,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
             selected = self.sequential_select(label_index, unlabel_index)
             label_index.update(selected)
             unlabel_index.difference_update(selected)
-            select_index.append(selected)
+            select_index.append((selected, ))
 
         return select_index
 
@@ -1084,7 +1084,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
             selected = self.sequential_select(label_index, unlabel_index)
             label_index.update(selected)
             unlabel_index.difference_update(selected)
-            select_index.append(selected)
+            select_index.append((selected, ))
 
         return select_index
         
