@@ -138,7 +138,36 @@ def select_POSS(infor_value, costs, budget):
     selectedVariables = population[min_info_indx, :]
 
     return min_infovalue, selectedVariables
+
+def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
+    """"Complete instance-label information according to hierarchy in the label-tree.
     
+    Parameters
+    ----------
+    multilabel_index: {list, np.ndarray, MultiLabelIndexCollection}
+        The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+        MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+        the 1st element is the index of instance and the 2nd element is the index of labels.
+    """
+    assert(isinstance(multilabel_index, MultiLabelIndexCollection))
+    n_classes = multilabel_index._label_size
+    assert(np.shape(label_tree)[0] == n_classes and np.shape(label_tree)[1] == n_classes)
+
+    for instance_label_pair in multilabel_index:
+        i_instance = instance_label_pair[0]
+        j_label = instance_label_pair[1]
+        if y_true[instance_label_pair] == 1:           
+            for descent_label in label_tree[j_label]:
+                multilabel_index.update((i_instance, descent_label))
+        elif y_true[instance_label_pair] == -1:
+            for parent_label in label_tree[:, j_label]:
+                multilabel_index.update((i_instance, parent_label))
+    
+    return multilabel_index
+                
+
+
+
 class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     """HALC exploit the label hierarchies for cost-effective queries and will selects a 
     batch of instance-label pairs with most information and least cost.
@@ -374,6 +403,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     """Randomly selects a batch of instance-label pairs.
     """
+    def __init__(self, X=None, y=None):
+        super(QueryCostSensitiveRandom, self).__init__(X, y)
 
     def select(self, unlabel_index, oracle=None, cost=None, budget=40):
         """Randomly selects a batch of instance-label pairs under the 
