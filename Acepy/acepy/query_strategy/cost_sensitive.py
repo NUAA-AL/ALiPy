@@ -148,6 +148,9 @@ def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
         The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
         MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
         the 1st element is the index of instance and the 2nd element is the index of labels.
+    label_tree: np.ndarray
+
+    y_true: 
     """
     assert(isinstance(multilabel_index, MultiLabelIndexCollection))
     n_classes = multilabel_index._label_size
