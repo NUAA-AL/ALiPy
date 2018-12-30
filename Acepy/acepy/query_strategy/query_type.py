@@ -91,7 +91,7 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         super(QueryTypeAURO, self).__init__(X, y)
         self._lr_model = LabelRankingModel()
 
-    def select(self, label_index, unlabel_index, **kwargs):
+    def select(self, label_index, unlabel_index, y_mat=None, **kwargs):
         """Select a subset from the unlabeled set, return the selected instance and label.
 
         Parameters
@@ -106,6 +106,10 @@ class QueryTypeAURO(BaseMultiLabelQuery):
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
 
+        y_mat: array, optional (default=None)
+            The label matrix used for model training. Should have the same shape of y.
+            Use ground-truth if not given.
+
         Returns
         -------
         selected_ins: int
@@ -118,19 +122,33 @@ class QueryTypeAURO(BaseMultiLabelQuery):
             return unlabel_index
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         label_index = self._check_multi_label_ind(label_index)
+        if y_mat is None:
+            y_mat = self.y
 
         # select instance with least queries
-        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1)
-        unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
-        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1, sparse=False)
+        unlab_ins_ind = np.nonzero(np.sum(W, axis=1) > 1)[0]
+        unlab_data = self.X[unlab_ins_ind]
+        unlab_mask = W[unlab_ins_ind]
+        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=y_mat)
         self._lr_model.fit(lab_data, lab_lab)
         pres, labels = self._lr_model.predict(unlab_data)
-        selected_ins = np.argmin(np.sum(W, axis=1))
+        selected_ins = np.argmax(np.sum(unlab_mask, axis=1))
+
+        # map index from whole dataset to the unlabeled data
+        min_val = pres.min()
+        if min_val > 0:
+            min_val = -min_val
+        pres[:, 0:-1] = pres[:, 0:-1] + min_val*(1-unlab_mask)
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
         y1 = np.argmax(pres[selected_ins, 0:-1])
-        dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
-        y2 = np.argmin(dis)
+        dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
+        sort_dis = np.argsort(dis)
+        for dis_ind in sort_dis:
+            if dis_ind != y1:
+                y2 = dis_ind
+                break
 
-        return selected_ins, y1, y2
+        return unlab_ins_ind[selected_ins], y1, y2

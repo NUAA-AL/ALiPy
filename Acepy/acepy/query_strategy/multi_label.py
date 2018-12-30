@@ -79,6 +79,10 @@ class _LabelRankingModel_MatlabVer:
             init_data = self._init_X
         if init_targets is None:
             init_targets = self._init_y
+        init_data = np.asarray(init_data)
+        init_targets = np.asarray(init_targets)
+        if len(np.nonzero(init_targets == 2.0)[0]) == 0:
+            init_targets = np.hstack((init_targets, 2 * np.ones((init_targets.shape[0], 1))))
 
         tar_sh = np.shape(init_targets)
         d = np.shape(init_data)[1]
@@ -100,7 +104,7 @@ class _LabelRankingModel_MatlabVer:
         V = np.random.normal(0, 1 / np.sqrt(d), (D, d))
         B = np.random.normal(0, 1 / np.sqrt(d), (D, n_class * num_sub))
         # import scipy.io as scio
-        # ld = scio.loadmat('C:\\Code\\acepy-additional-methods-source\\multi label\\AURO\\vb_rnd.mat')
+        # ld = scio.loadmat('F:\\acepy_doc\\acepy-additional-methods-source\\multi label\\AURO\\BV_val.mat')
         # V = ld['V']
         # B = ld['B']
 
@@ -136,36 +140,39 @@ class _LabelRankingModel_MatlabVer:
         V = np.asarray(V)
 
         n, n_class = np.shape(targets)
-        tmpnums = np.sum(targets >= 1, axis=1)
-        train_pairs = np.zeros((sum(tmpnums), 1))
-        tmpidx = 0
+        row_ind, col_ind = np.nonzero(targets >= 1)
+        train_pairs = np.hstack((row_ind.reshape((-1,1)), col_ind.reshape((-1,1))))
 
-        for i in range(n):
-            train_pairs[tmpidx: tmpidx + tmpnums[i]] = i
-            tmpidx = tmpidx + tmpnums[i]
+        # tmpnums = np.sum(targets >= 1, axis=1)
+        # train_pairs = np.zeros((sum(tmpnums), 1))
+        # tmpidx = 0
 
-        targets = targets.T
-        # tp = np.nonzero(targets.flatten() >= 1)
-        # print(tp[0])
-        # print(len(tp[0]))
-        train_pairs = np.hstack(
-            (train_pairs,
-             np.reshape([nz % n_class for nz in np.nonzero(targets.flatten(order='F') >= 1)[0]], newshape=(-1, 1))))
-        # train_pairs[np.nonzero(train_pairs[:, 1] == 0)[0], 1] = n_class
-        targets = targets.T
+        # for i in range(n):
+        #     train_pairs[tmpidx: tmpidx + tmpnums[i]] = i+1
+        #     tmpidx = tmpidx + tmpnums[i]
+
+        # targets = targets.T
+        # # tp = np.nonzero(targets.flatten() >= 1)
+        # # print(tp[0])
+        # # print(len(tp[0]))
+        # train_pairs = np.hstack(
+        #     (train_pairs,
+        #      np.reshape([nz % n_class for nz in np.nonzero(targets.flatten(order='F') >= 1)[0]], newshape=(-1, 1))))
+        # # train_pairs[np.nonzero(train_pairs[:, 1] == 0)[0], 1] = n_class
+        # targets = targets.T
 
         n = np.shape(train_pairs)[0]
 
         random_idx = randperm(n - 1)
         # import scipy.io as scio
-        # ld = scio.loadmat('C:\\Code\\acepy-additional-methods-source\\multi label\\AURO\\random_id.mat')
+        # ld = scio.loadmat('F:\\acepy_doc\\acepy-additional-methods-source\\multi label\\AURO\\perm.mat')
         # random_idx = ld['random_idx'].flatten()-1
 
         for i in range(n):
             idx_ins = int(train_pairs[random_idx[i], 0])
             xins = data[int(idx_ins), :].T
             idx_class = int(train_pairs[random_idx[i], 1])
-            if idx_class == n_class:
+            if idx_class == n_class-1:
                 idx_irr = np.nonzero(targets[idx_ins, :] == -1)[0]
             # elif idx_class == idxPs[idx_ins]:
             #     idx_irr = np.hstack((np.nonzero(targets[idx_ins, :] == -1)[0], int(idxNs[idx_ins]), n_class - 1))
@@ -209,13 +216,13 @@ class _LabelRankingModel_MatlabVer:
                 V -= step_size * loss * (
                     B[:, [idx_pick * num_sub + idx_max_pick, idx_class * num_sub + idx_max_class]].dot(
                         np.vstack((xins, -xins))))
-                # matrix norm, but the axis is not sure
+
                 norms = np.linalg.norm(V, axis=0)
                 idx_down = np.nonzero(norms > norm_up)[0]
                 B[:, idx_class * num_sub + idx_max_class] = tmp1
                 B[:, idx_pick * num_sub + idx_max_pick] = tmp2
                 if idx_down:
-                    norms[norms <= norm_up] = []
+                    norms = norms[norms > norm_up]
                     for k in range(len(idx_down)):
                         V[:, idx_down[k]] = V[:, idx_down[k]] * norm_up / norms[k]
             if trounds > average_begin and i % average_size == 0:
@@ -303,7 +310,10 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
             The number of optimization iterations.
         """
         if self._init_flag is False:
-            self.__init__(init_X=X, init_y=y, n_repeat=n_repeat)
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+            self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+            self._max_query = self.init_model_train(X, y, n_repeat=n_repeat)
+            self._init_flag = True
         else:
             for i in range(n_repeat):
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(

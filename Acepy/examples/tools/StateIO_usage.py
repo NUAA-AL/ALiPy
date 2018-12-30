@@ -1,7 +1,5 @@
 import os
-import numpy as np
 from sklearn.datasets import load_iris
-
 from acepy.experiment import State, StateIO
 from acepy.toolbox import ToolBox
 

@@ -346,6 +346,8 @@ class MatrixRepository(BaseRepository):
         self._instance_flag = False if examples is None else True
         if self._instance_flag:
             self._X = check_array(examples, accept_sparse='csr', ensure_2d=True, order='C')
+        else:
+            self._X = None
 
         # record
         self.cost_inall = 0

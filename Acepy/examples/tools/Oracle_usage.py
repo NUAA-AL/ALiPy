@@ -38,6 +38,14 @@ labels, cost = oracle4.query_by_example(queried_examples=[1, 1, 1])
 labels, cost = oracle4.query_by_example(queried_examples=[4, 4, 4])
 print('444',labels, cost)
 
+# ------------Multi labe oracle-------------
+from acepy.oracle import OracleQueryMultiLabel
+mult_y = [[1, 1, 1], [0, 1, 1], [0, 1, 0]]
+moracle = OracleQueryMultiLabel(labels=mult_y)
+
+labels, cost = moracle.query_by_index((0, )) # query all labels of instance 0
+labels, cost = moracle.query_by_index((0, 1)) # query the 2nd label of 1st instance
+
 # ------------Multi oracles-------------
 from acepy.oracle import Oracles
 
