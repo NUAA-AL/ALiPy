@@ -144,7 +144,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     batch of instance-label pairs with most information and least cost.
     Select some instance-label pairs based on the Informativeness for Hierarchical Labels
     The definition of  Informativeness for Hierarchical Labels is
-            Infor(x,y)=I(y==1)*Uanc + I(y==-1)*Udec + Ux,y;   x is sample,y is label.
+            Infor(x,y)=I(y==1)*Uanc + I(y==-1)*Udec + Ux,y;   
+            where x is sample,y is label.
 
     Parameters
     ----------
@@ -156,13 +157,6 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
 
-    model: object, optional (default=None)
-        Current classification model, should have the 'predict_proba' method for probabilistic output.
-        If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
-
-    costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-        the costs of querying each class.if not provide,it will all be 1. 
-
     weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
         the weights of each class.if not provide,it will all be 1 
 
@@ -172,7 +166,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
     References
     ----------
-    [1] 
+    [1] Yan Y, Huang S J. Cost-Effective Active Learning for Hierarchical
+        Multi-Label Classification[C]//IJCAI. 2018: 2962-2968.
     """
     def __init__(self, X=None, y=None, weights=None, label_tree=None):
     
@@ -295,8 +290,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
         return Infor
         
-    def select(self, label_index, unlabel_index, costs, budget, models=None, base_model=None):
-        """ Selects a batch of instance-label pairs with most information and least cost.
+    def select(self, label_index, unlabel_index, oracle, cost, budget, models=None, base_model=None):
+        """ Selects a batch of instance-label pairs with most information and least cost.
 
         Parameters
         ----------
@@ -309,6 +304,12 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        oracle: Oracle,(default=None)
+            Oracle indicate the cost for each label.
+            Oracle in active learning whose role is to label the given query.And it can also give the cost of 
+            each corresponding label.The Oracle includes the label and cost information at least.
+            Oracle(labels=labels, cost=cost)
 
         costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
             the costs of querying each class.if not provide,it will all be 1. 
@@ -336,6 +337,13 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         if models is None:
             models = self.train_models(label_index, base_model)
 
+        if oracle is None and cost is None:
+            raise ValueError('There is no information about the cost of each laebl. \
+                            Please input Oracle or cost for the label at least.')
+        if not oracle:
+            _, costs = oracle.query_by_index(range(self.n_classes))
+        else:
+            costs = cost
         Infor = self.cal_Informativeness(label_index, unlabel_index, models)
         instance_pair = np.array([0, 0])
         infor_value=np.array([0])
@@ -367,12 +375,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     """Randomly selects a batch of instance-label pairs.
     """
 
-    def __init__(self, X, y):
-
-        super(QueryCostSensitiveRandom, self).__init__(X, y)
-        self.n_samples, self.n_classes = np.shape(y) 
-
-    def select(self, unlabel_index, costs, budget=40):
+    def select(self, unlabel_index, oracle=None, cost=None, budget=40):
         """Randomly selects a batch of instance-label pairs under the 
         constraints of meeting the budget conditions.
 
@@ -383,8 +386,14 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
 
-        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-            the costs of querying each class.if not provide,it will all be 1. 
+        oracle: Oracle,(default=None)
+            Oracle indicate the cost for each label.
+            Oracle in active learning whose role is to label the given query.And it can also give the cost of 
+            each corresponding label.The Oracle includes the label and cost information at least.
+            Oracle(labels=labels, cost=cost)
+
+        cost: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            The costs of querying each class.if not provide,it will all be 1. 
 
         budget: int, optional (default=40)
             The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
@@ -394,17 +403,27 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         selected_ins_lab_pair: list
             A list of tuples that contains the indexes of selected instance-label pairs.    
         """
-        assert(len(costs) == self.n_classes)   
-        unlabel_index = self._check_multi_label_ind(unlabel_index)     
-        instance_pair = MultiLabelIndexCollection(label_size=self.n_classes)
-        cost = 0.
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        n_classes = unlabel_index._label_size
+        assert(len(cost) == n_classes)   
+
+        if oracle is None and cost is None:
+            raise ValueError('There is no information about the cost of each laebl. \
+                            Please input Oracle or cost for the label at least.')
+        if not oracle:
+            _, costs = oracle.query_by_index(range(n_classes))
+        else:
+            costs = cost
+
+        instance_pair = MultiLabelIndexCollection(label_size=n_classes)
+        current_cost = 0.
         while True:
             onedim_index = unlabel_index.get_onedim_index()
             od_ind = np.random.choice(onedim_index)
-            i_sample = od_ind // self.n_classes
-            j_class = od_ind % self.n_classes
-            cost += costs[i_sample, j_class]
-            if cost > budget :
+            i_sample = od_ind // n_classes
+            j_class = od_ind % n_classes
+            current_cost += costs[i_sample, j_class]
+            if current_cost > budget :
                 break
             instance_pair.update((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
@@ -412,8 +431,9 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
 
                 
 class QueryCostSensitivePerformance(BaseMultiLabelQuery):
-    """
-        Select the unlabel data in batch mode.
+    """Selects the most uncertrainty instance-label pairs under the 
+    constraints of meeting the budget conditions.
+
     Parameters
     ----------
     X: 2D array
@@ -428,9 +448,10 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         self.n_samples, self.n_classes = np.shape(y)
         # self.labels = np.unique(np.ravel(self.y))
 
-    def select(self, label_index, unlabel_index, cost, budget=40, basemodel=None, models=None):
-        """
-            Select the unlabel data in batch mode.
+    def select(self, label_index, unlabel_index, oracle, cost, budget=40, basemodel=None, models=None):
+        """Selects the most uncertrainty instance-label pairs under the 
+        constraints of meeting the budget conditions.
+        
         Parameters
         ----------
         label_index: MultiLabelIndexCollection
@@ -442,6 +463,12 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        oracle: Oracle,(default=None)
+            Oracle indicate the cost for each label.
+            Oracle in active learning whose role is to label the given query.And it can also give the cost of 
+            each corresponding label.The Oracle includes the label and cost information at least.
+            Oracle(labels=labels, cost=cost)
 
         costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
             the costs of querying each class.if not provide,it will all be 1. 
@@ -463,11 +490,13 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         selected_ins_lab_pair: list
             A list of tuples that contains the indexes of selected instance-label pairs. 
         """
-        # if cost is None:
-        #     if oracle is None:
-        #         raise ValueError('Please input the cost or corresponding Oracle')
-        #     else:
-        #         cost = oracle.query_by_index(self.labels)
+        if oracle is None and cost is None:
+            raise ValueError('There is no information about the cost of each laebl. \
+                            Please input Oracle or cost for the label at least.')
+        if not oracle:
+            _, costs = oracle.query_by_index(range(self.n_classes))
+        else:
+            costs = cost
         if models is None:
             models = self.train_models(label_index, basemodel)
 
@@ -491,7 +520,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             
             instance_pair = np.column_stack((sort_index, np.ones(len(sort_index)) * j))
             infor_value = np.append(infor_value, uncertainty[sort_index][j])
-            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * cost[j])
+            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
