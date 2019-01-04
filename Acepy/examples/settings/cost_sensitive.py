@@ -92,7 +92,7 @@ def main_loop(acebox, strategy, round):
 
         # Save intermediate results to file
         # check_index_multilabel(select_ind)
-        st = acebox.State(select_index=select_ind, performance=accuracy)
+        st = acebox.State(select_index=select_ind.index, performance=accuracy)
         saver.add_state(st)
 
         # Passing the current progress to stopping criterion object

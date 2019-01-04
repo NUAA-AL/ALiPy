@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABCMeta
 
 import numpy as np
+import copy
 from sklearn.utils.validation import check_X_y
 
 from acepy.index import MultiLabelIndexCollection
@@ -77,7 +78,7 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
                     "start from 0) or a list "
                     "of tuples with 2 elements, in which, the 1st element is the index of instance "
                     "and the 2nd element is the index of label.")
-        return container
+        return copy.copy(container)
 
     def _check_multi_label(self, matrix):
         """Check if the given matrix is multi label"""

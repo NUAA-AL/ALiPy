@@ -25,7 +25,8 @@ import prettytable as pt
 
 from .state import State
 from ..utils.interface import BaseCollection
-from ..index.index_collections import IndexCollection
+from ..index.multi_label_tools import check_index_multilabel
+from ..index import IndexCollection, MultiLabelIndexCollection
 
 
 class StateIO:
@@ -91,8 +92,20 @@ class StateIO:
         self.round = round
         self.train_idx = copy.copy(train_idx)
         self.test_idx = copy.copy(test_idx)
-        self.init_U = copy.deepcopy(IndexCollection(init_U) if not isinstance(init_U, BaseCollection) else init_U)
-        self.init_L = copy.deepcopy(IndexCollection(init_L) if not isinstance(init_L, BaseCollection) else init_L)
+        if isinstance(init_U, BaseCollection) and isinstance(init_L, BaseCollection):
+            self.init_U = copy.deepcopy(init_U)
+            self.init_L = copy.deepcopy(init_L)
+        else:
+            try:
+                check_index_multilabel(init_L)
+                check_index_multilabel(init_U)
+                self.init_U = copy.deepcopy(MultiLabelIndexCollection(init_U))
+                self.init_L = copy.deepcopy(MultiLabelIndexCollection(init_L))
+            except TypeError:
+                self.init_U = copy.deepcopy(IndexCollection(init_U))
+                self.init_L = copy.deepcopy(IndexCollection(init_L))
+        # self.init_U = copy.deepcopy(IndexCollection(init_U) if not isinstance(init_U, BaseCollection) else init_U)
+        # self.init_L = copy.deepcopy(IndexCollection(init_L) if not isinstance(init_L, BaseCollection) else init_L)
         self.initial_point = initial_point
         self.batch_size = 0
         self.__state_list = []
