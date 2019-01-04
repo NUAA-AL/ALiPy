@@ -154,7 +154,21 @@ def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
     """
-    assert(isinstance(multilabel_index, MultiLabelIndexCollection))
+    # assert(isinstance(multilabel_index, MultiLabelIndexCollection))
+    # try to convert the indexes
+    if not isinstance(multilabel_index, MultiLabelIndexCollection):
+        try:
+            if isinstance(multilabel_index[0], tuple):
+                container = MultiLabelIndexCollection(multilabel_index, np.shape(y_true)[1])
+            else:
+                container = MultiLabelIndexCollection.construct_by_1d_array(multilabel_index, label_mat_shape=np.shape(y_true))
+        except:
+            raise ValueError(
+                "Please pass a 1d array of indexes or MultiLabelIndexCollection (column major, "
+                "start from 0) or a list "
+                "of tuples with 2 elements, in which, the 1st element is the index of instance "
+                "and the 2nd element is the index of label.")
+    multilabel_index = copy.copy(container)
     n_classes = multilabel_index._label_size
     assert(np.shape(label_tree)[0] == n_classes and np.shape(label_tree)[1] == n_classes)
 
@@ -454,7 +468,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         else:
             costs = cost
 
-        instance_pair = MultiLabelIndexCollection(label_size=n_classes)
+        # instance_pair = MultiLabelIndexCollection(label_size=n_classes)
+        instance_pair = []
         current_cost = 0.
         while True:
             onedim_index = unlabel_index.get_onedim_index()
@@ -464,7 +479,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             current_cost += costs[j_class]
             if current_cost > budget :
                 break
-            instance_pair.update((i_sample, j_class))
+            # instance_pair.update((i_sample, j_class))
+            instance_pair.append((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
         return instance_pair
 
@@ -487,7 +503,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         self.n_samples, self.n_classes = np.shape(y)
         # self.labels = np.unique(np.ravel(self.y))
 
-    def select(self, label_index, unlabel_index, oracle, cost, budget=40, basemodel=None, models=None):
+    def select(self, label_index, unlabel_index, oracle=None, cost=None, budget=40, basemodel=None, models=None):
         """Selects the most uncertrainty instance-label pairs under the 
         constraints of meeting the budget conditions.
         
@@ -532,7 +548,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         if oracle is None and cost is None:
             raise ValueError('There is no information about the cost of each laebl. \
                             Please input Oracle or cost for the label at least.')
-        if not oracle:
+        if oracle:
             _, costs = oracle.query_by_index(range(self.n_classes))
         else:
             costs = cost
@@ -540,7 +556,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             models = self.train_models(label_index, basemodel)
 
         unlabel_index = self._check_multi_label_ind(unlabel_index)
-        target = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        target = unlabel_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         uncertainty = self.cal_uncertainty(target, models)
         instance_pair = np.array([0, 0])
         
