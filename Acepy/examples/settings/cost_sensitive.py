@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'C:\Users\31236\Desktop\al_tools\acepy')
+sys.path.append(r'D:\Al_tool\Acepy')
 import numpy as np 
 # labels = [0, 1 , 0, 3]
 # print(np.unique(labels))
@@ -27,23 +27,26 @@ import numpy as np
 import copy
 from sklearn.datasets import make_multilabel_classification
 from sklearn.ensemble import RandomForestClassifier
+
 from acepy import ToolBox
+from acepy.index.multi_label_tools import get_Xy_in_multilabel, check_index_multilabel
 from acepy.query_strategy.cost_sensitive import QueryCostSensitiveHALC, QueryCostSensitivePerformance, QueryCostSensitiveRandom
+from acepy.query_strategy.cost_sensitive import hierarchical_multilabel_mark
+
 
 X, y = make_multilabel_classification(n_samples=100, n_features=20, n_classes=5,
                                    n_labels=3, length=50, allow_unlabeled=True,
                                    sparse=False, return_indicator='dense',
                                    return_distributions=False,
                                    random_state=None)
-
+y[y == 0] = -1
 cost = [1, 3, 3, 7, 10]
 label_tree = np.zeros((5,5),dtype=np.int)
-label_tree[0, 1] = 1
-label_tree[0, 2] = 1
+label_tree[0, ] = 1
 label_tree[1, 3] = 1
 label_tree[2, 4] = 1
 
-acebox = ToolBox(X=X, y=y, query_type='Partlabels', saving_path='.')
+acebox = ToolBox(X=X, y=y, query_type='PartLabels')
 
 # Split data
 acebox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
@@ -51,13 +54,18 @@ acebox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
 # Use the default Logistic Regression classifier
 model = RandomForestClassifier()
 
-# The cost budget is 50 times querying
+# The cost budget is 20 times querying
 stopping_criterion = acebox.get_stopping_criterion('num_of_queries', 20)
 
+# The budget of query
+budget = 20
 
 performance_result = []
 halc_result = []
 random_result = []
+
+
+
 
 def main_loop(acebox, strategy, round):
     # Get the data split of one fold experiment
@@ -67,18 +75,23 @@ def main_loop(acebox, strategy, round):
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
         # Passing model=None to use the default model for evaluating the committees' disagreement
-        select_ind = strategy.select(label_ind, unlab_ind, batch_size=1)
+        select_ind = strategy.select(label_ind, unlab_ind, cost=cost, budget=budget)
+        select_ind = hierarchical_multilabel_mark(select_ind, label_tree, y)
+        # print('select_ind type', type(select_ind))
         label_ind.update(select_ind)
         unlab_ind.difference_update(select_ind)
 
         # Update model and calc performance according to the model you are using
-        model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
+        X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=y)
+        model.fit(X_tr, y_tr)
+        # model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
         pred = model.predict(X[test_idx, :])
         accuracy = acebox.calc_performance_metric(y_true=y[test_idx],
                                                   y_pred=pred,
-                                                  performance_metric='accuracy_score')
+                                                  performance_metric='hamming_loss')
 
         # Save intermediate results to file
+        # check_index_multilabel(select_ind)
         st = acebox.State(select_index=select_ind, performance=accuracy)
         saver.add_state(st)
 

@@ -1,3 +1,5 @@
+import sys
+sys.path.append(r'D:\Al_tool\Acepy')
 import copy
 import numpy as np
 from sklearn.datasets import load_iris

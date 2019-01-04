@@ -11,6 +11,9 @@ import collections
 import copy
 import numpy as np
 
+import sys
+sys.path.append(r'D:\Al_tool\Acepy')
+
 from scipy.sparse import bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix
 
 from acepy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
@@ -18,6 +21,7 @@ from acepy.index.multi_label_tools import check_index_multilabel, infer_label_si
 from acepy.utils.ace_warnings import *
 from acepy.utils.interface import BaseCollection
 from acepy.utils.misc import randperm
+
 
 
 class IndexCollection(BaseCollection):
@@ -700,8 +704,19 @@ def map_whole_index_to_train(train_idx, index_in_whole):
         return IndexCollection(tr_ob)
 
 if __name__ == "__main__":
-    multi_lab_ind1 = MultiLabelIndexCollection([[0, 1], [0, 2], [0, [3, 4]], [1, [0, 1]]], label_size=5)
-    q = multi_lab_ind1.get_unbroken_instances()
-    print(q)
-    a= multi_lab_ind1.get_break_instances()
-    print(a)
+    multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
+    print(multi_lab_ind1)
+    print(flattern_multilabel_index(multi_lab_ind1))
+    a = MultiLabelIndexCollection([(1, 3), (1, 4)], label_size=5)
+
+    for i in a:
+        print(i)
+        print(type(i))
+        multi_lab_ind1.add(i)
+    print(multi_lab_ind1)
+    fl = flattern_multilabel_index(multi_lab_ind1, label_size=5)
+    print(fl)
+    # q = multi_lab_ind1.get_unbroken_instances()
+    # print(q)
+    # a= multi_lab_ind1.get_break_instances()
+    # print(a)

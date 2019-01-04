@@ -150,22 +150,27 @@ def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
         the 1st element is the index of instance and the 2nd element is the index of labels.
     label_tree: np.ndarray
 
-    y_true: 
+    y_true: 2D array, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+        shape [n_samples, n_classes]
     """
     assert(isinstance(multilabel_index, MultiLabelIndexCollection))
     n_classes = multilabel_index._label_size
     assert(np.shape(label_tree)[0] == n_classes and np.shape(label_tree)[1] == n_classes)
 
+    add_label_index = MultiLabelIndexCollection(label_size=n_classes)
     for instance_label_pair in multilabel_index:
         i_instance = instance_label_pair[0]
         j_label = instance_label_pair[1]
         if y_true[instance_label_pair] == 1:           
             for descent_label in label_tree[j_label]:
-                multilabel_index.update((i_instance, descent_label))
+                add_label_index.update((i_instance, descent_label))
         elif y_true[instance_label_pair] == -1:
             for parent_label in label_tree[:, j_label]:
-                multilabel_index.update((i_instance, parent_label))
-    
+                add_label_index.update((i_instance, parent_label))
+    for i in add_label_index:
+        # print(type(i))
+        multilabel_index.update(i)
     return multilabel_index
                 
 
@@ -456,7 +461,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             od_ind = np.random.choice(onedim_index)
             i_sample = od_ind // n_classes
             j_class = od_ind % n_classes
-            current_cost += costs[i_sample, j_class]
+            current_cost += costs[j_class]
             if current_cost > budget :
                 break
             instance_pair.update((i_sample, j_class))
