@@ -532,18 +532,25 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         label_index = self._check_multi_label_ind(label_index)
 
         # select instance by LCI
-        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1)
+        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1, sparse=False)
         unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
         lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
         self._lr_model.fit(lab_data, lab_lab)
         pres, labels = self._lr_model.predict(unlab_data)
-        avgP = np.mean(np.sum(self.y[label_index.get_instance_index(), :] == 1, axis=1))
+        avgP = np.mean(np.sum(self.y[label_index.get_unbroken_instances(), :] == 1, axis=1))
         insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
         selected_ins = np.argmin(insvals)
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
-        dis = np.abs(pres[selected_ins, :] - pres[selected_ins, -1])
+
+        # set the known entries to inf
+        pres_mask = np.asarray(1 - W[data_ind], dtype=bool)
+        pres_tmp = pres[:, 0:-1]
+        pres_tmp[pres_mask] = np.NINF
+        pres[:, 0:-1] = pres_tmp
+
+        dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
         selected_ins = data_ind[selected_ins]
         selected_lab = np.argmin(dis)
 

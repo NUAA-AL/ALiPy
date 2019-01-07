@@ -135,11 +135,11 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         pres, labels = self._lr_model.predict(unlab_data)
         selected_ins = np.argmax(np.sum(unlab_mask, axis=1))
 
-        # map index from whole dataset to the unlabeled data
-        min_val = pres.min()
-        if min_val > 0:
-            min_val = -min_val
-        pres[:, 0:-1] = pres[:, 0:-1] + min_val*(1-unlab_mask)
+        # set the known entries to -inf
+        pres_mask = np.asarray(1 - unlab_mask, dtype=bool)
+        pres_tmp = pres[:, 0:-1]
+        pres_tmp[pres_mask] = np.NINF
+        pres[:, 0:-1] = pres_tmp
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
