@@ -545,7 +545,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         # select label by calculating the distance between each label with dummy label
 
         # set the known entries to inf
-        pres_mask = np.asarray(1 - W[data_ind], dtype=bool)
+        pres_mask = 1 - W[data_ind]
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp

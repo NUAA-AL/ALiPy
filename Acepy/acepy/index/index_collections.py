@@ -523,7 +523,10 @@ class MultiLabelIndexCollection(IndexCollection):
             mask = eval(sparse_format + '(mat_shape)')
         else:
             if fill_value == 1:
-                mask = np.zeros(mat_shape, dtype=np.int32)
+                mask = np.zeros(mat_shape, dtype=bool)
+                for item in self._innercontainer:
+                    mask[item] = True
+                return mask
             else:
                 mask = np.zeros(mat_shape)
         for item in self._innercontainer:
