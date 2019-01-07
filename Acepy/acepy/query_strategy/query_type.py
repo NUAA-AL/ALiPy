@@ -136,7 +136,7 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         selected_ins = np.argmax(np.sum(unlab_mask, axis=1))
 
         # set the known entries to -inf
-        pres_mask = np.asarray(1 - unlab_mask, dtype=bool)
+        pres_mask = 1 - unlab_mask
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp
