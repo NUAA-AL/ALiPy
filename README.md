@@ -1,12 +1,12 @@
-# acepy: ACtive lEarning toolbox for PYthon
+# alipy: ACtive lEarning toolbox for PYthon
 
 Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.cn/huangsj)
 
 ## Introduction
 
-Acepy is a python package for experimenting with different active learning settings and algorithms. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
+ALiPy is a python package for experimenting with different active learning settings and algorithms. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
 
-Features of acepy include:
+Features of alipy include:
 
 * Model independent
 	- There is no limitation of the model. You may use SVM in sklearn or deep model in tensorflow as you need.
@@ -25,24 +25,24 @@ Features of acepy include:
 	- Parallel the k-folds experiment.
 	- Gathering, process and visualize the experiment results.
 
-For more detailed introduction and tutorial, please refer to the [website of acepy]() (Coming soon).
+For more detailed introduction and tutorial, please refer to the [website of alipy]() (Coming soon).
 
 ## Setup
 
-You can get acepy simply by:
+You can get alipy simply by:
 
 ```
-pip install acepy
+pip install alipy
 ```
 
-Or clone acepy source code to your local directory and build from source:
+Or clone alipy source code to your local directory and build from source:
 
 ```
-cd Acepy
+cd ALiPy
 python setup.py install
 ```
 
-The dependencies of acepy are:
+The dependencies of alipy are:
 1. Python dependency
 
 ```
@@ -60,37 +60,37 @@ prettytable
 cvxpy
 ```
 
-## Tools in acepy
+## Tools in alipy
 
-The tool classes provided by acepy cover as many components in active learning as possible. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
+The tool classes provided by alipy cover as many components in active learning as possible. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
 
-* Using `acepy.data_manipulate` to preprocess and split your data sets for experiments.
+* Using `alipy.data_manipulate` to preprocess and split your data sets for experiments.
 
-* Using `acepy.query_strategy` to invoke traditional and state-of-the-art methods.
+* Using `alipy.query_strategy` to invoke traditional and state-of-the-art methods.
 
-* Using `acepy.index.IndexCollection` to manage your labeled indexes and unlabeled indexes.
+* Using `alipy.index.IndexCollection` to manage your labeled indexes and unlabeled indexes.
 
-* Using `acepy.metric` to calculate your model performances.
+* Using `alipy.metric` to calculate your model performances.
 
-* Using `acepy.experiment.state` and `acepy.experiment.state_io` to save the intermediate results after each query and recover the program from the breakpoints.
+* Using `alipy.experiment.state` and `alipy.experiment.state_io` to save the intermediate results after each query and recover the program from the breakpoints.
 
-* Using `acepy.experiment.stopping_criteria` to get some example stopping criteria.
+* Using `alipy.experiment.stopping_criteria` to get some example stopping criteria.
 
-* Using `acepy.experiment.experiment_analyser` to gathering, process and visualize your experiment results.
+* Using `alipy.experiment.experiment_analyser` to gathering, process and visualize your experiment results.
 
-* Using `acepy.oracle` to implement clean, noisy, cost-sensitive oracles.
+* Using `alipy.oracle` to implement clean, noisy, cost-sensitive oracles.
 
-* Using `acepy.utils.multi_thread` to parallel your k-fold experiment.
+* Using `alipy.utils.multi_thread` to parallel your k-fold experiment.
 
 ### Why independent tools?
 
 In active learning experiment, the settings in active learning are plentiful. It is very hard to write a unified class to consider every special setting. Besides, the implementation way can also be plentiful. Different users have different customs in programming.
 
-In order to adapt various users, acepy provides multifarious independent tool classes corresponding to each module in the unified framework of active learning. In this way, the code between different parts can be implemented without limitation. Also, each independent module can be replaced by users' own implementation (without inheriting). Because the modules in acepy will not influence each other and thus can be substituted freely.
+In order to adapt various users, alipy provides multifarious independent tool classes corresponding to each module in the unified framework of active learning. In this way, the code between different parts can be implemented without limitation. Also, each independent module can be replaced by users' own implementation (without inheriting). Because the modules in alipy will not influence each other and thus can be substituted freely.
 
 ### The implemented query strategies
 
-Acepy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
+ALiPy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
 
 + Informative: 
 	1. Uncertainty (support ['least_confident', 'margin', 'entropy', 'distance_to_boundary'])
@@ -111,7 +111,7 @@ Acepy provide several commonly used strategies for now, and new algorithms will 
 
 ### Implement your own algorithm
 
-In acepy, there is no limitation for your implementation. All you need is ensure the returned selected index is a subset of unlabeled indexes.
+In alipy, there is no limitation for your implementation. All you need is ensure the returned selected index is a subset of unlabeled indexes.
 
 ```
 select_ind = my_query(unlab_ind, **my_parameters)
@@ -120,34 +120,34 @@ assert set(select_ind) < set(unlab_ind)
 	
 ## Usage
 
-There are 2 ways to use acepy. Acepy provides independent tools to ensure the scalability, thus it is recommended to follow the examples provided in the tutorial in acepy main page and pick the tools according to your usage to customize your experiment. In this way, on one hand, the logic of your program is absolutely clear to you and thus easy to debug. On the other hand, some parts in your active learning process can be substituted by your own implementation for special usage.
+There are 2 ways to use alipy. ALiPy provides independent tools to ensure the scalability, thus it is recommended to follow the examples provided in the tutorial in alipy main page and pick the tools according to your usage to customize your experiment. In this way, on one hand, the logic of your program is absolutely clear to you and thus easy to debug. On the other hand, some parts in your active learning process can be substituted by your own implementation for special usage.
 
 ```
 import copy
 from sklearn.datasets import load_iris
-from acepy.utils.toolbox import ToolBox
+from alipy.utils.toolbox import ToolBox
 
 X, y = load_iris(return_X_y=True)
-acebox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')
+alibox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')
 
 # Split data
-acebox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
+alibox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
 
 # Use the default Logistic Regression classifier
-model = acebox.get_default_model()
+model = alibox.get_default_model()
 
 # The cost budget is 50 times querying
-stopping_criterion = acebox.get_stopping_criterion('num_of_queries', 50)
+stopping_criterion = alibox.get_stopping_criterion('num_of_queries', 50)
 
 # Use pre-defined strategy
-QBCStrategy = acebox.get_query_strategy(strategy_name='QueryInstanceQBC')
+QBCStrategy = alibox.get_query_strategy(strategy_name='QueryInstanceQBC')
 QBC_result = []
 
 for round in range(10):
     # Get the data split of one fold experiment
-    train_idx, test_idx, label_ind, unlab_ind = acebox.get_split(round)
+    train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
-    saver = acebox.get_stateio(round)
+    saver = alibox.get_stateio(round)
 
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
@@ -159,12 +159,12 @@ for round in range(10):
         # Update model and calc performance according to the model you are using
         model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
         pred = model.predict(X[test_idx, :])
-        accuracy = acebox.calc_performance_metric(y_true=y[test_idx],
+        accuracy = alibox.calc_performance_metric(y_true=y[test_idx],
                                                   y_pred=pred,
                                                   performance_metric='accuracy_score')
 
         # Save intermediate results to file
-        st = acebox.State(select_index=select_ind, performance=accuracy)
+        st = alibox.State(select_index=select_ind, performance=accuracy)
         saver.add_state(st)
         saver.save()
 
@@ -174,17 +174,17 @@ for round in range(10):
     stopping_criterion.reset()
     QBC_result.append(copy.deepcopy(saver))
 
-analyser = acebox.get_experiment_analyser(x_axis='num_of_queries')
+analyser = alibox.get_experiment_analyser(x_axis='num_of_queries')
 analyser.add_method(method_name='QBC', method_results=QBC_result)
 print(analyser)
 analyser.plot_learning_curves(title='Example of AL', std_area=True)
 ```
 
-However, some users may also need a high level encapsulation which is eaiser to use. Luckily, acepy also provides a class which has encapsulated various tools and implemented the main loop of active learning, namely acepy.experiment.AlExperiment. Note that, AlExperiment only support the most commonly used scenario - query all labels of an instance. You can run the experiments with only a few lines of codes by this class. All you need is to specify the various options, the query process will be run in multi-threaded.
+However, some users may also need a high level encapsulation which is eaiser to use. Luckily, alipy also provides a class which has encapsulated various tools and implemented the main loop of active learning, namely alipy.experiment.AlExperiment. Note that, AlExperiment only support the most commonly used scenario - query all labels of an instance. You can run the experiments with only a few lines of codes by this class. All you need is to specify the various options, the query process will be run in multi-threaded.
 
 ```
 from sklearn.datasets import load_iris
-from acepy.experiment.al_experiment import AlExperiment
+from alipy.experiment.al_experiment import AlExperiment
 
 X, y = load_iris(return_X_y=True)
 al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50,)
