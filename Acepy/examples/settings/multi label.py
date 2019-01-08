@@ -1,5 +1,5 @@
-import sys
-sys.path.append(r'D:\Al_tool\Acepy')
+import copy
+import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.preprocessing import OneHotEncoder
 from acepy.query_strategy.multi_label import *
