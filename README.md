@@ -1,4 +1,4 @@
-# alipy: ACtive lEarning toolbox for PYthon
+# ALiPy: Active Learning in Python
 
 Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.cn/huangsj)
 
