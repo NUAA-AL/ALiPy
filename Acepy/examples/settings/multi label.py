@@ -1,7 +1,5 @@
 import sys
 sys.path.append(r'D:\Al_tool\Acepy')
-import copy
-import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.preprocessing import OneHotEncoder
 from acepy.query_strategy.multi_label import *
@@ -16,13 +14,6 @@ mult_y[mult_y == 0] = -1
 
 acebox = ToolBox(X=X, y=mult_y, query_type='PartLabels')
 acebox.split_AL(test_ratio=0.2, initial_label_rate=0.05, all_class=False)
-
-AUDI_result = []
-QUIRE_result = []
-MMC_result = []
-Adaptive_result = []
-Random_result = []
-
 
 def main_loop(acebox, round, strategy):
     train_idx, test_idx, label_ind, unlab_ind = acebox.get_split(round)

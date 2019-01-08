@@ -18,6 +18,7 @@ abandoned_code.py
 *.jpg
 *.pdf
 *.png
+*.npz
 gitcmd.txt
 .pytest_cache
 .history
