@@ -19,7 +19,6 @@ def main_loop(alibox, round, strategy):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
-    query_y = mult_y.copy()
     # base model
     model = LabelRankingModel()
 
@@ -57,20 +56,20 @@ for round in range(5):
     # init strategies
     audi = QueryMultiLabelAUDI(X, mult_y)
     quire = QueryMultiLabelQUIRE(X, mult_y)
-    # mmc = QueryMultiLabelMMC(X, mult_y)
-    # adaptive = QueryMultiLabelAdaptive(X, mult_y)
+    mmc = QueryMultiLabelMMC(X, mult_y)
+    adaptive = QueryMultiLabelAdaptive(X, mult_y)
     random = QueryMultiLabelRandom()
 
     audi_result.append(main_loop(alibox, round, strategy=audi))
     quire_result.append(main_loop(alibox, round, strategy=quire))
-    # mmc_result.append(main_loop(alibox, round, strategy=mmc))
-    # adaptive_result.append(main_loop(alibox, round, strategy=adaptive))
+    mmc_result.append(main_loop(alibox, round, strategy=mmc))
+    adaptive_result.append(main_loop(alibox, round, strategy=adaptive))
     random_result.append(main_loop(alibox, round, strategy=random))
 
 analyser = alibox.get_experiment_analyser(x_axis='cost')
 analyser.add_method(method_name='AUDI', method_results=audi_result)
 analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='RANDOM', method_results=random_result)
-# analyser.add_method(method_name='MMC', method_results=mmc_result)
-# analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
+analyser.add_method(method_name='MMC', method_results=mmc_result)
+analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
 analyser.plot_learning_curves()
