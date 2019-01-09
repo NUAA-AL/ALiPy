@@ -64,6 +64,14 @@ prettytable
 cvxpy
 ```
 
+3. Optional dependencies
+
+```
+cvxpy
+```
+
+Note that, the basic dependencies must be installed, and the optional dependencies are required only if users need to involke KDD'13 BMDR and AAAI'19 SPAL methods in alipy. (cvxpy will not be installed through pip. Cvxpy is an optimization package used to solve the QP problem in alipy. However, this package needs VC++ 14 environment which may not be installed for all users.
+
 ## Tools in alipy
 
 The tool classes provided by alipy cover as many components in active learning as possible. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
@@ -96,22 +104,19 @@ In order to adapt various users, alipy provides multifarious independent tool cl
 
 ALiPy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
 
-+ Informative: 
-	1. Uncertainty (support ['least_confident', 'margin', 'entropy', 'distance_to_boundary'])
-	2. Query_By_Committee (support ['vote_entropy', 'KL_divergence'], using a bagging method to construct committee by default.)
-	3. Expected_Error_Reduction
+Query Instance: Uncertainty , Graph Density (CVPR 2012) , QUIRE (TPAMI 2014) , SPAL (AAAI 2019), Query By Committee , Random , BMDR (KDD 2013), LAL (NIPS 2017), Expected Error Reduction
 
-+ Representative:
-	1. Graph_Density (CVPR 2012 RALF: A reinforced active learning formulation for object class recognition)
-	2. Random
+Query Multi Label: AUDI (ICDM 2013) , QUIRE (TPAMI 2014) , Random, MMC (KDD 2009), Adaptive (IJCAI 2013)
 
-+ Informative and Representative:
-	1. QUIRE (TPAMI 2014 Active learning by querying informative and representative examples)
-	2. (In Progress) BMDR (SIGKDD 2013 Querying Discriminative and Representative Samples for Batch Mode Active Learning)
-	
-+ Meta acitve learning methods:
-	1. (In Progress) ALBL (AAAI 2015 Active Learning by Learning)
-	2. (In Progress) LAL (NIPS 2017 Learning Active Learning from Data)
+Query Features: AFASMC (KDD 2018) , Stability (ICDM 2013) , Random
+
+Cost Effective: HALC (IJCAI 2018) , Random , Cost performance
+
+Noisy Oracles: CEAL (IJCAI 2017) , IEthresh (KDD 2009) , All, Random
+
+Query types: AURO (IJCAI 2015)
+
+Large Scale Active Learning: Subsampling
 
 ### Implement your own algorithm
 
@@ -124,12 +129,27 @@ assert set(select_ind) < set(unlab_ind)
 	
 ## Usage
 
-There are 2 ways to use alipy. ALiPy provides independent tools to ensure the scalability, thus it is recommended to follow the examples provided in the tutorial in alipy main page and pick the tools according to your usage to customize your experiment. In this way, on one hand, the logic of your program is absolutely clear to you and thus easy to debug. On the other hand, some parts in your active learning process can be substituted by your own implementation for special usage.
+There are 2 ways to use alipy. For a high-level encapsulation, you can use alipy.experiment.AlExperiment class. Note that, AlExperiment only support the most commonly used scenario - query all labels of an instance. You can run the experiments with only a few lines of codes by this class. All you need is to specify the various options, the query process will be run in multi-threaded. Note that, if you want to implement your own algorithm with this class, there are some constraints have to be satisfied, please see api reference for this class.
+
+```
+from sklearn.datasets import load_iris
+from alipy.experiment.al_experiment import AlExperiment
+
+X, y = load_iris(return_X_y=True)
+al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50,)
+al.split_AL()
+al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
+al.set_performance_metric('roc_auc_score')
+al.start_query(multi_thread=True)
+al.plot_learning_curve()
+```
+
+To customize your own active learning experiment, it is recommended to follow the examples provided in the ALiPy/examples and tutorial in [alipy main page](), pick the tools according to your usage. In this way, on one hand, the logic of your program is absolutely clear to you and thus easy to debug. On the other hand, some parts in your active learning process can be substituted by your own implementation for special usage.
 
 ```
 import copy
 from sklearn.datasets import load_iris
-from alipy.utils.toolbox import ToolBox
+from alipy import ToolBox
 
 X, y = load_iris(return_X_y=True)
 alibox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')
@@ -184,19 +204,3 @@ print(analyser)
 analyser.plot_learning_curves(title='Example of AL', std_area=True)
 ```
 
-However, some users may also need a high level encapsulation which is eaiser to use. Luckily, alipy also provides a class which has encapsulated various tools and implemented the main loop of active learning, namely alipy.experiment.AlExperiment. Note that, AlExperiment only support the most commonly used scenario - query all labels of an instance. You can run the experiments with only a few lines of codes by this class. All you need is to specify the various options, the query process will be run in multi-threaded.
-
-```
-from sklearn.datasets import load_iris
-from alipy.experiment.al_experiment import AlExperiment
-
-X, y = load_iris(return_X_y=True)
-al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50,)
-al.split_AL()
-al.set_query_strategy(strategy="QueryInstanceUncertainty", measure='least_confident')
-al.set_performance_metric('roc_auc_score')
-al.start_query(multi_thread=True)
-al.plot_learning_curve()
-```
-
-Note that, if you want to implement your own algorithm with this class, there are some constraints have to be satisfied, please see api reference for this class.
