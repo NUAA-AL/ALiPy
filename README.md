@@ -4,9 +4,9 @@ Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.
 
 ## Introduction
 
-ALiPy is a python package for experimenting with different active learning settings and algorithms. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
-
 ALiPy是一个以自由度为主打的，面向科研人员进行实验的主动学习工具包，其目的在于减轻实现实验对比的工作量。该工具包根据主动学习框架的不同部件提供了若干独立的工具类，这样一方面可以方便地支持不同主动学习场景，另一方面可以使用户自由地组织自己的项目，用户可以不必继承任何接口来实现自己的算法与替换项目中的部件。ALiPy不仅支持7种不同的主动学习场景(代价敏感，特征查询，多标记查询等)，同时还实现了共25种主动学习算法供使用者调用。详细的介绍与文档请参考工具包的[官方网站]()。
+
+ALiPy is a python package for experimenting with different active learning settings and algorithms. It aims to support experiment implementation with miscellaneous tool functions. These tools are designed in a low coupling way in order to let users to program the experiment project at their own customs.
 
 Features of alipy include:
 
@@ -104,19 +104,19 @@ In order to adapt various users, alipy provides multifarious independent tool cl
 
 ALiPy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
 
-Query Instance: Uncertainty , Graph Density (CVPR 2012) , QUIRE (TPAMI 2014) , SPAL (AAAI 2019), Query By Committee , Random , BMDR (KDD 2013), LAL (NIPS 2017), Expected Error Reduction
+* Query Instance: Uncertainty , Graph Density (CVPR 2012) , QUIRE (TPAMI 2014) , SPAL (AAAI 2019), Query By Committee , Random , BMDR (KDD 2013), LAL (NIPS 2017), Expected Error Reduction
 
-Query Multi Label: AUDI (ICDM 2013) , QUIRE (TPAMI 2014) , Random, MMC (KDD 2009), Adaptive (IJCAI 2013)
+* Query Multi Label: AUDI (ICDM 2013) , QUIRE (TPAMI 2014) , Random, MMC (KDD 2009), Adaptive (IJCAI 2013)
 
-Query Features: AFASMC (KDD 2018) , Stability (ICDM 2013) , Random
+* Query Features: AFASMC (KDD 2018) , Stability (ICDM 2013) , Random
 
-Cost Effective: HALC (IJCAI 2018) , Random , Cost performance
+* Cost Effective: HALC (IJCAI 2018) , Random , Cost performance
 
-Noisy Oracles: CEAL (IJCAI 2017) , IEthresh (KDD 2009) , All, Random
+* Noisy Oracles: CEAL (IJCAI 2017) , IEthresh (KDD 2009) , All, Random
 
-Query types: AURO (IJCAI 2015)
+* Query types: AURO (IJCAI 2015)
 
-Large Scale Active Learning: Subsampling
+* Large Scale Active Learning: Subsampling
 
 ### Implement your own algorithm
 
