@@ -61,7 +61,6 @@ scipy
 scikit-learn
 matplotlib
 prettytable
-cvxpy
 ```
 
 3. Optional dependencies
