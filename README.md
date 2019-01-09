@@ -94,12 +94,6 @@ The tool classes provided by alipy cover as many components in active learning a
 
 * Using `alipy.utils.multi_thread` to parallel your k-fold experiment.
 
-### Why independent tools?
-
-In active learning experiment, the settings in active learning are plentiful. It is very hard to write a unified class to consider every special setting. Besides, the implementation way can also be plentiful. Different users have different customs in programming.
-
-In order to adapt various users, alipy provides multifarious independent tool classes corresponding to each module in the unified framework of active learning. In this way, the code between different parts can be implemented without limitation. Also, each independent module can be replaced by users' own implementation (without inheriting). Because the modules in alipy will not influence each other and thus can be substituted freely.
-
 ### The implemented query strategies
 
 ALiPy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
