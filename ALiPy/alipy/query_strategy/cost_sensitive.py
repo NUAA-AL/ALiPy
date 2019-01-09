@@ -1,5 +1,9 @@
 """
+Implement query strategies for cost-sensitive for hierarchical multi-label setting.
 
+1.Cost-Effective Active Learning for Hierarchical Multi-Label Classification(IJCAI`18)
+2.Uncertainty
+3.Random
 """
 from __future__ import division
 
@@ -12,6 +16,7 @@ import random
 import numpy as np
 from sklearn.svm import SVC
 from alipy.index import MultiLabelIndexCollection
+from alipy.index import get_Xy_in_multilabel
 from alipy.query_strategy.base import BaseMultiLabelQuery
 from alipy.utils.misc import randperm, nlargestarg, nsmallestarg
 from alipy.oracle import Oracle
@@ -40,8 +45,8 @@ def select_Knapsack_01(infor_value, costs, capacity):
     num = len(infor_value)
     dp = np.zeros((num + 1, capacity + 1))
     flag = np.zeros(num)
-    for i in np.arange(num):
-        for j in np.arange(capacity+1):
+    for i in range(num):
+        for j in range(capacity+1):
             if (j - costs[i]) < 0:
                 dp[i+1][j] = dp[i][j]
             else:
@@ -139,7 +144,7 @@ def select_POSS(infor_value, costs, budget):
 
     return min_infovalue, selectedVariables
 
-def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
+def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_true):
     """"Complete instance-label information according to hierarchy in the label-tree.
     
     Parameters
@@ -154,7 +159,6 @@ def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
     """
-    # assert(isinstance(multilabel_index, MultiLabelIndexCollection))
     # try to convert the indexes
     if not isinstance(multilabel_index, MultiLabelIndexCollection):
         try:
@@ -168,27 +172,28 @@ def hierarchical_multilabel_mark(multilabel_index, label_tree, y_true):
                 "start from 0) or a list "
                 "of tuples with 2 elements, in which, the 1st element is the index of instance "
                 "and the 2nd element is the index of label.")
-    multilabel_index = copy.copy(container)
+        multilabel_index = copy.deepcopy(container)
     n_classes = multilabel_index._label_size
     assert(np.shape(label_tree)[0] == n_classes and np.shape(label_tree)[1] == n_classes)
 
     add_label_index = MultiLabelIndexCollection(label_size=n_classes)
+      
     for instance_label_pair in multilabel_index:
         i_instance = instance_label_pair[0]
         j_label = instance_label_pair[1]
         if y_true[instance_label_pair] == 1:           
             for descent_label in label_tree[j_label]:
-                add_label_index.update((i_instance, descent_label))
+                if (not (i_instance, descent_label) in multilabel_index) and (not (i_instance, descent_label) in label_index):
+                    add_label_index.update((i_instance, descent_label))
         elif y_true[instance_label_pair] == -1:
             for parent_label in label_tree[:, j_label]:
-                add_label_index.update((i_instance, parent_label))
+                if (not (i_instance, parent_label) in multilabel_index) and (not (i_instance, parent_label) in label_index):
+                    add_label_index.update((i_instance, parent_label))
+
     for i in add_label_index:
-        # print(type(i))
         multilabel_index.update(i)
     return multilabel_index
                 
-
-
 
 class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     """HALC exploit the label hierarchies for cost-effective queries and will selects a 
@@ -220,20 +225,18 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     [1] Yan Y, Huang S J. Cost-Effective Active Learning for Hierarchical
         Multi-Label Classification[C]//IJCAI. 2018: 2962-2968.
     """
-    def __init__(self, X=None, y=None, weights=None, label_tree=None):
+    def __init__(self, X, y, label_tree, weights=None):
     
         super(QueryCostSensitiveHALC, self).__init__(X, y)
         self.n_samples, self.n_classes = np.shape(y)
 
-        
         if weights is None:
             self.weights = np.ones(self.n_classes)
         else:
             assert(np.shape(y)[0] == len(weights))
             self.weights = weights
-        self.Distance = self._cal_Distance()
-        # if node_i is the parent of node_j,then label_tree(i,j)==1
         self.label_tree = label_tree
+        self.Distance = self._cal_Distance()
     
     def _cal_Distance(self):
         """
@@ -253,9 +256,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         """
         Train the models for each class.
         """
-
         if basemodel is None:
-            basemodel = SVC()
+            basemodel = SVC(decision_function_shape='ovr')
         label_index = self._check_multi_label_ind(label_index)
         train_traget = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         models =[]
@@ -278,7 +280,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             j_label = np.where(label_mat[:, j] == 1)
             j_unlabel = np.where(unlabel_mat[:, j] == 1)
             for i in j_unlabel[0]:
-                d_v = model.decision_values(self.X[i][j])
+                d_v = model.decision_function([self.X[i]])
                 Uncertainty[i][j] = np.abs(self.weights[j] / d_v)
             Uncertainty[j_label, j] = -np.infty
         return Uncertainty
@@ -295,7 +297,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             if i in label_samples[0]:
                 g_j = self.y[i, j_class]
             else:
-                g_j = models[j_class].decision_values(self.X[i, :])
+                g_j = models[j_class].predict([self.X[i, :]])
             vote.append(np.sign(g_j))       
         return np.sign(np.sum(vote)) 
     
@@ -303,13 +305,14 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         """
         """
         Udes = 0
+
         que = queue.Queue()
         que.put(j_class)     
         while not que.empty():
             temp = que.get()
-            if np.any(self.label_tree[j_class]):
-                for i in self.label_tree[j_class]:
-                    if self.label_tree[j_class, i] == 1:
+            if np.any(self.label_tree[temp]):
+                for i in self.label_tree[temp]:
+                    if self.label_tree[temp, i] == 1:
                         que.put(i)
             else:
                 Udes += Uncertainty[xi_index][temp]
@@ -327,21 +330,22 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         Uncertainty = self.cal_uncertainty(label_index, unlabel_index, models)
         label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
-
         for j in np.arange(self.n_classes):
-            j_label = np.where(label_mat[:, j] == 1)
-            j_unlabel = np.where(unlabel_mat[:, j] == 1)
-            for i in j_unlabel[0]:
+            # j_tartget = 
+            # j_label = np.where(label_mat[:, j] == 1)[0]
+            # label = np.where(unlabel_mat[:, j] != 1)[0]
+            j_unlabel = np.where(unlabel_mat[:, j] == 1)[0]
+            j_label = np.where(unlabel_mat[:, j] != 1)[0]
+            for i in j_unlabel:
                 flag = self.cal_relevance(i, j, label_index, models, k=5)
                 if flag == 1:
                     Infor[i][j] = Uncertainty[i][j] * 2
                 elif flag == -1:
                     Infor[i][j] = Uncertainty[i][j] + self.cal_Udes(i, j, Uncertainty)
             Infor[j_label][j] = -np.infty
-
         return Infor
         
-    def select(self, label_index, unlabel_index, oracle, cost, budget, models=None, base_model=None):
+    def select(self, label_index, unlabel_index, cost=None, oracle=None, budget=40, models=None, base_model=None):
         """ Selects a batch of instance-label pairs with most information and least cost.
 
         Parameters
@@ -391,27 +395,30 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         if oracle is None and cost is None:
             raise ValueError('There is no information about the cost of each laebl. \
                             Please input Oracle or cost for the label at least.')
-        if not oracle:
+        if oracle:
             _, costs = oracle.query_by_index(range(self.n_classes))
         else:
             costs = cost
+        
         Infor = self.cal_Informativeness(label_index, unlabel_index, models)
         instance_pair = np.array([0, 0])
         infor_value=np.array([0])
-        corresponding_cost = np.array([0])
+        corresponding_cost = np.array([0],dtype=int)
 
         # sort the infor in descent way,in the meanwhile record instance label pair
         for j in np.arange(self.n_classes):
             j_info = Infor[:, j]
             sort_index = np.argsort(j_info)
-            sort_index = sort_index[0: 40]
             sort_index = sort_index[::-1]
+            sort_index = sort_index[0: budget]
             useless_index = np.where(Infor[sort_index][j] == -np.infty)
-            sort_index = sort_index[: 40 - len(useless_index[0])]
+            sort_index = sort_index[: budget - len(useless_index)]
             
-            instance_pair = np.column_stack((sort_index, np.ones(len(sort_index)) * j))
-            infor_value = np.append(infor_value, Infor[sort_index][j])
-            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
+            j_instance_pair = np.column_stack((sort_index, np.ones(len(sort_index), dtype=int) * j))
+            for k in sort_index:
+                infor_value = np.r_[infor_value, Infor[k][j]]
+            corresponding_cost = np.r_[corresponding_cost, np.ones(len(sort_index),dtype=int) * costs[j]]
+            instance_pair = np.vstack((instance_pair, j_instance_pair))
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
@@ -419,7 +426,9 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
         max_value, select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
         # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
-        return max_value, instance_pair[np.where(select_result!=0)[0]]
+
+        multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
+        return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
         
 
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
@@ -468,8 +477,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         else:
             costs = cost
 
-        # instance_pair = MultiLabelIndexCollection(label_size=n_classes)
-        instance_pair = []
+        instance_pair = MultiLabelIndexCollection(label_size=n_classes)
+        # instance_pair = []
         current_cost = 0.
         while True:
             onedim_index = unlabel_index.get_onedim_index()
@@ -479,8 +488,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
             current_cost += costs[j_class]
             if current_cost > budget :
                 break
-            # instance_pair.update((i_sample, j_class))
-            instance_pair.append((i_sample, j_class))
+            instance_pair.update((i_sample, j_class))
+            # instance_pair.append((i_sample, j_class))
             unlabel_index.difference_update((i_sample, j_class))
         return instance_pair
 
@@ -555,27 +564,33 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         if models is None:
             models = self.train_models(label_index, basemodel)
 
+
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         target = unlabel_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         uncertainty = self.cal_uncertainty(target, models)
         instance_pair = np.array([0, 0])
-        
         infor_value=np.array([0])
-        corresponding_cost = np.array([0])
+        corresponding_cost = np.array([0],dtype=int)
 
         # sort the infor in descent way,in the meanwhile record instance label pair
         for j in np.arange(self.n_classes):
-
             j_info = uncertainty[:, j]
             sort_index = np.argsort(j_info)
-            sort_index = sort_index[0: 40]
             sort_index = sort_index[::-1]
+            sort_index = sort_index[0: budget]
             useless_index = np.where(uncertainty[sort_index][j] == -np.infty)
-            sort_index = sort_index[: 40 - len(useless_index)]
+            sort_index = sort_index[: budget - len(useless_index)]
             
-            instance_pair = np.column_stack((sort_index, np.ones(len(sort_index)) * j))
-            infor_value = np.append(infor_value, uncertainty[sort_index][j])
-            corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
+            j_instance_pair = np.column_stack((sort_index, np.ones(len(sort_index), dtype=int) * j))
+            # print(sort_index)
+            # print('shape(uncertainty[sort_index][j]) ',np.shape(uncertainty[sort_index][j]))
+            for k in sort_index:
+                infor_value = np.r_[infor_value, uncertainty[k][j]]
+            # infor_value = np.r_[infor_value, uncertainty[sort_index][j]]
+            corresponding_cost = np.r_[corresponding_cost, np.ones(len(sort_index),dtype=int) * costs[j]]
+            instance_pair = np.vstack((instance_pair, j_instance_pair))
+            # infor_value = np.append(infor_value, uncertainty[sort_index][j])
+            # corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
@@ -583,16 +598,17 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
 
         _ , select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
         # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
-        return list(instance_pair[np.where(select_result!=0)[0]])
-        # multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
-        # return MultiLabelIndexCollection(multilabel_index, label_index=self.n_classes)
+        # select_index = 
+        # return tuple(instance_pair[np.where(select_result!=0)[0]])
+        multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
+        return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
 
     def train_models(self, label_index, basemodel):
         """
         Train the models for each class.
         """
         if basemodel is None:
-            basemodel = SVC()
+            basemodel = SVC(decision_function_shape='ovr')
         label_index = self._check_multi_label_ind(label_index)
         train_target = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         models =[]
@@ -605,7 +621,8 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         return models
 
     def cal_uncertainty(self, target, models):
-        """
+        """Calculate the uncertainty.
+        target: unlabel_martix
         """
         Uncertainty = np.zeros([self.n_samples, self.n_classes])
         # unlabel_data = self.X[unlabel_index, :]
@@ -615,24 +632,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             j_label = np.where(j_target != 1)
             j_unlabel = np.where(j_target == 1)
             for i in j_unlabel[0]:
-                d_v = model.decision_values(self.X[i][j])
+                d_v = model.decision_function([self.X[i]])
                 Uncertainty[i][j] = np.abs(1 / d_v)
             Uncertainty[j_label, j] = -np.infty
-        
         return Uncertainty
-
-if __name__ == "__main__":
-    b = 20
-    w = [1, 2, 5, 6, 7, 9]
-    v1 = [1, 6, 18, 22, 28, 36]
-    v = [-1, -6, -18, -22, -28, -36]
-    costs = [1, 2, 5]
-    value = [-3, -6, -8]
-    k, select=select_Knapsack_01(v1,w,20)
-    print(k)
-    print(select)
-    
-    x, y = select_POSS(v,w,20)
-
-    print(x)
-    print(y)

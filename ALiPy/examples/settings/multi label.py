@@ -1,3 +1,5 @@
+import sys
+sys.path.append(r'D:\al_tools\ALiPy\ALiPy')
 import copy
 import numpy as np
 from sklearn.datasets import load_iris
@@ -19,6 +21,7 @@ def main_loop(alibox, round, strategy):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
+    query_y = mult_y.copy()
     # base model
     model = LabelRankingModel()
 
@@ -37,7 +40,6 @@ def main_loop(alibox, round, strategy):
         X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y)
         model.fit(X=X_tr, y=y_tr)
         pres, pred = model.predict(X[test_idx])
-
         perf = alibox.calc_performance_metric(y_true=mult_y[test_idx], y_pred=pred, performance_metric='hamming_loss')
 
         # save
