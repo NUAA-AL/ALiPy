@@ -15,7 +15,7 @@ import random
 
 import numpy as np
 from sklearn.svm import SVC
-from alipy.index import MultiLabelIndexCollection
+from alipy.index import MultiLabelIndexCollection, flattern_multilabel_index
 from alipy.index import get_Xy_in_multilabel
 from alipy.query_strategy.base import BaseMultiLabelQuery
 from alipy.utils.misc import randperm, nlargestarg, nsmallestarg
@@ -153,7 +153,10 @@ def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_tr
         The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
         MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
         the 1st element is the index of instance and the 2nd element is the index of labels.
+
     label_tree: np.ndarray
+        The hierarchical relationships among data features.
+        if node_i is the parent of node_j , then label_tree(i,j)=1
 
     y_true: 2D array, optional (default=None)
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
@@ -173,6 +176,21 @@ def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_tr
                 "of tuples with 2 elements, in which, the 1st element is the index of instance "
                 "and the 2nd element is the index of label.")
         multilabel_index = copy.deepcopy(container)
+    
+    if not isinstance(label_index, MultiLabelIndexCollection):
+        try:
+            if isinstance(label_index[0], tuple):
+                container = MultiLabelIndexCollection(label_index, np.shape(y_true)[1])
+            else:
+                container = MultiLabelIndexCollection.construct_by_1d_array(label_index, label_mat_shape=np.shape(y_true))
+        except:
+            raise ValueError(
+                "Please pass a 1d array of indexes or MultiLabelIndexCollection (column major, "
+                "start from 0) or a list "
+                "of tuples with 2 elements, in which, the 1st element is the index of instance "
+                "and the 2nd element is the index of label.")
+        label_index = copy.deepcopy(container)
+    
     n_classes = multilabel_index._label_size
     assert(np.shape(label_tree)[0] == n_classes and np.shape(label_tree)[1] == n_classes)
 
@@ -181,17 +199,20 @@ def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_tr
     for instance_label_pair in multilabel_index:
         i_instance = instance_label_pair[0]
         j_label = instance_label_pair[1]
-        if y_true[instance_label_pair] == 1:           
-            for descent_label in label_tree[j_label]:
-                if (not (i_instance, descent_label) in multilabel_index) and (not (i_instance, descent_label) in label_index):
-                    add_label_index.update((i_instance, descent_label))
+        if y_true[instance_label_pair] == 1:
+            for descent_label in range(n_classes):
+                if label_tree[j_label][descent_label] == 1:
+                    if (not (i_instance, descent_label) in label_index):
+                        add_label_index.update((i_instance, descent_label))   
         elif y_true[instance_label_pair] == -1:
-            for parent_label in label_tree[:, j_label]:
-                if (not (i_instance, parent_label) in multilabel_index) and (not (i_instance, parent_label) in label_index):
-                    add_label_index.update((i_instance, parent_label))
+            for parent_label in range(n_classes):
+                if label_tree[parent_label][j_label] == 1:
+                    if (not (i_instance, parent_label) in label_index):
+                        add_label_index.update((i_instance, parent_label))
 
     for i in add_label_index:
-        multilabel_index.update(i)
+        if not i in multilabel_index:
+            multilabel_index.update(i)
     return multilabel_index
                 
 
@@ -331,9 +352,6 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
         for j in np.arange(self.n_classes):
-            # j_tartget = 
-            # j_label = np.where(label_mat[:, j] == 1)[0]
-            # label = np.where(unlabel_mat[:, j] != 1)[0]
             j_unlabel = np.where(unlabel_mat[:, j] == 1)[0]
             j_label = np.where(unlabel_mat[:, j] != 1)[0]
             for i in j_unlabel:
@@ -437,12 +455,17 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     def __init__(self, X=None, y=None):
         super(QueryCostSensitiveRandom, self).__init__(X, y)
 
-    def select(self, unlabel_index, oracle=None, cost=None, budget=40):
+    def select(self, label_index, unlabel_index, oracle=None, cost=None, budget=40):
         """Randomly selects a batch of instance-label pairs under the 
         constraints of meeting the budget conditions.
 
         Parameters
         ----------
+        label_index: MultiLabelIndexCollection
+            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+            the 1st element is the index of instance and the 2nd element is the index of labels.
+            
         unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
@@ -472,25 +495,23 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         if oracle is None and cost is None:
             raise ValueError('There is no information about the cost of each laebl. \
                             Please input Oracle or cost for the label at least.')
-        if not oracle:
+        if oracle:
             _, costs = oracle.query_by_index(range(n_classes))
         else:
             costs = cost
 
         instance_pair = MultiLabelIndexCollection(label_size=n_classes)
-        # instance_pair = []
+        un_ind = copy.deepcopy(unlabel_index)
         current_cost = 0.
         while True:
-            onedim_index = unlabel_index.get_onedim_index()
-            od_ind = np.random.choice(onedim_index)
-            i_sample = od_ind // n_classes
-            j_class = od_ind % n_classes
+            rand = np.random.choice(len(un_ind))
+            i_j = flattern_multilabel_index(un_ind.index)[rand]
+            j_class = i_j[1]
             current_cost += costs[j_class]
-            if current_cost > budget :
+            if current_cost > budget:
                 break
-            instance_pair.update((i_sample, j_class))
-            # instance_pair.append((i_sample, j_class))
-            unlabel_index.difference_update((i_sample, j_class))
+            instance_pair.update(i_j)
+            un_ind.difference_update(i_j)
         return instance_pair
 
                 
@@ -579,27 +600,19 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             sort_index = sort_index[::-1]
             sort_index = sort_index[0: budget]
             useless_index = np.where(uncertainty[sort_index][j] == -np.infty)
-            sort_index = sort_index[: budget - len(useless_index)]
-            
+            sort_index = sort_index[: budget - len(useless_index)]  
             j_instance_pair = np.column_stack((sort_index, np.ones(len(sort_index), dtype=int) * j))
-            # print(sort_index)
-            # print('shape(uncertainty[sort_index][j]) ',np.shape(uncertainty[sort_index][j]))
             for k in sort_index:
                 infor_value = np.r_[infor_value, uncertainty[k][j]]
             # infor_value = np.r_[infor_value, uncertainty[sort_index][j]]
             corresponding_cost = np.r_[corresponding_cost, np.ones(len(sort_index),dtype=int) * costs[j]]
             instance_pair = np.vstack((instance_pair, j_instance_pair))
-            # infor_value = np.append(infor_value, uncertainty[sort_index][j])
-            # corresponding_cost = np.append(corresponding_cost, np.ones(len(sort_index)) * costs[j])
         
         instance_pair = instance_pair[1:,]
         infor_value = infor_value[1:]
         corresponding_cost = corresponding_cost[1:]
 
         _ , select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
-        # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
-        # select_index = 
-        # return tuple(instance_pair[np.where(select_result!=0)[0]])
         multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
         return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
 

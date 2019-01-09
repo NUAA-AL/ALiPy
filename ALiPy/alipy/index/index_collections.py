@@ -702,21 +702,3 @@ def map_whole_index_to_train(train_idx, index_in_whole):
         return MultiLabelIndexCollection(tr_ob)
     else:
         return IndexCollection(tr_ob)
-
-if __name__ == "__main__":
-    multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
-    print(multi_lab_ind1)
-    print(flattern_multilabel_index(multi_lab_ind1))
-    a = MultiLabelIndexCollection([(1, 3), (1, 4)], label_size=5)
-
-    for i in a:
-        print(i)
-        print(type(i))
-        multi_lab_ind1.add(i)
-    print(multi_lab_ind1)
-    fl = flattern_multilabel_index(multi_lab_ind1, label_size=5)
-    print(fl)
-    # q = multi_lab_ind1.get_unbroken_instances()
-    # print(q)
-    # a= multi_lab_ind1.get_break_instances()
-    # print(a)

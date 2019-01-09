@@ -1,7 +1,5 @@
 import numpy as np 
 import copy
-import warnings
-warnings.filterwarnings('ignore')
 
 from sklearn.datasets import make_multilabel_classification
 from sklearn.ensemble import RandomForestClassifier
@@ -21,6 +19,7 @@ y[y == 0] = -1
 
 cost = [1, 3, 3, 7, 10]
 
+# if node_i is the parent of node_j , then label_tree(i,j)=1 else 0
 label_tree = np.zeros((5,5),dtype=np.int)
 label_tree[0, 1] = 1
 label_tree[0, 2] = 1
@@ -32,12 +31,14 @@ alibox = ToolBox(X=X, y=y, query_type='PartLabels')
 # Split data
 alibox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
 
-# Use the default Logistic Regression classifier
+# baseclassifier model use RFC
 model = RandomForestClassifier()
-# The cost budget is 20 times querying
-stopping_criterion = alibox.get_stopping_criterion('num_of_queries', 10)
+
 # The budget of query
 budget = 40
+
+# The cost budget is 500
+stopping_criterion = alibox.get_stopping_criterion('cost_limit', 500)
 
 performance_result = []
 halc_result = []
@@ -50,10 +51,10 @@ def main_loop(alibox, strategy, round):
     saver = alibox.get_stateio(round)
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
-        # Passing model=None to use the default model for evaluating the committees' disagreement
         select_ind = strategy.select(label_ind, unlab_ind, cost=cost, budget=budget)
-        
-        select_ind = hierarchical_multilabel_mark(select_ind, label_ind,label_tree, y)
+        # 
+        select_ind = hierarchical_multilabel_mark(select_ind, label_ind, label_tree, y)
+
         label_ind.update(select_ind)
         unlab_ind.difference_update(select_ind)
             
