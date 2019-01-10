@@ -17,6 +17,7 @@ X, y = make_multilabel_classification(n_samples=2000, n_features=20, n_classes=5
                                    random_state=None)
 y[y == 0] = -1
 
+# the cost of each class
 cost = [1, 3, 3, 7, 10]
 
 # if node_i is the parent of node_j , then label_tree(i,j)=1 else 0

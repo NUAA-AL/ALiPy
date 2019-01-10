@@ -29,14 +29,17 @@ def select_Knapsack_01(infor_value, costs, capacity):
     -----------
     infor_value: array-like
         The value corresponding to each item.
+
     costs: array-like
         The cost corresponding to each item.
+
     capacity: float
         The capacity of the knapsack.
     Returns:
     -----------
     max_value: float
         The greatest value the knapsack can bring.
+
     select_index: array-like
         The result of whether to select the item or not,
         1 reprent this item is selected,0 is not.
@@ -68,14 +71,17 @@ def select_POSS(infor_value, costs, budget):
     ----------
     infor_value: array-like
         The value corresponding to each item.
+
     costs: array-like
         The cost corresponding to each item.
+
     Budget: float
         the constraint on the cost of selected variables.
     Returns:
     ----------
     max_value: float
         The greatest infor-value.
+
     select_index: array-like
         The result of whether to select the item or not,
         1 reprent this item is selected,0 is not.
@@ -103,7 +109,6 @@ def select_POSS(infor_value, costs, budget):
     for round in np.arange(T):
         # randomly select a solution from the population and mutate it to generate a new solution.
         offspring = np.abs(population[np.random.randint(0, popSize), :] - np.random.choice([1, 0], size=(num), p=[1/num, 1 - 1/num]))
-        # print('offspring:  ', offspring)
         # compute the fitness of the new solution.
         offspringFit = np.array([0., 0.])
         offspringFit[1] = np.sum(offspring * costs)
@@ -114,12 +119,11 @@ def select_POSS(infor_value, costs, budget):
             offspringFit[0] = np.sum(offspring * infor_value)
 
         # use the new solution to update the current population.
-        judge1 = np.array(fitness[0: popSize, 0] < offspringFit[0]) & np.array(fitness[0: popSize, 1] <= offspringFit[1])
-        judge2 = np.array(fitness[0: popSize, 0] <= offspringFit[0]) & np.array(fitness[0: popSize, 1] < offspringFit[1])
         # if (fitness[0: popSize, 0] < offspringFit[0] and fitness[0: popSize, 1] <= offspringFit[1]) or (fitness[0: popSize, 0] <= offspringFit[0] and fitness[0: popSize, 1] < offspringFit[1]):
+        judge1 = np.array(fitness[0: popSize, 0] < offspringFit[0]) & np.array(fitness[0: popSize, 1] <= offspringFit[1])
+        judge2 = np.array(fitness[0: popSize, 0] <= offspringFit[0]) & np.array(fitness[0: popSize, 1] < offspringFit[1])   
         c= judge1 | judge2
         if c.any():
-            # print("no delete")
             continue
         else:
             # deleteIndex = fitness[0: popSize, 0] >= offspringFit[0] * fitness[0: popSize, 1] >= offspringFit[1]
@@ -135,9 +139,6 @@ def select_POSS(infor_value, costs, budget):
         popSize = len(nodeleteIndex) + 1
 
     temp = np.where(fitness[:, 1] <= budget)
-    # max_info_indx = np.argmax(fitness[temp[0], 0])
-    # max_infovalue = fitness[max_info_indx][0]
-    # selectedVariables = population[max_info_indx, :]
     min_info_indx = np.argmin(fitness[temp[0], 0])
     min_infovalue = fitness[min_info_indx][0]
     selectedVariables = population[min_info_indx, :]
@@ -149,6 +150,11 @@ def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_tr
     
     Parameters
     ----------
+    label_index: {list, np.ndarray, MultiLabelIndexCollection}
+        The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
+        MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
+        the 1st element is the index of instance and the 2nd element is the index of labels.
+
     multilabel_index: {list, np.ndarray, MultiLabelIndexCollection}
         The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
         MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
@@ -161,6 +167,11 @@ def hierarchical_multilabel_mark(multilabel_index, label_index, label_tree, y_tr
     y_true: 2D array, optional (default=None)
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
+    
+    Returns
+    -------
+    selected_ins_lab_pair: list
+        A list of tuples that contains the indexes of selected instance-label pairs. 
     """
     # try to convert the indexes
     if not isinstance(multilabel_index, MultiLabelIndexCollection):
@@ -234,12 +245,12 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
         shape [n_samples, n_classes]
 
-    weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
-        the weights of each class.if not provide,it will all be 1 
-
     label_tree: 2D array
         The hierarchical relationships among data features.
         if node_i is the parent of node_j , then label_tree(i,j)=1
+
+    weights: np.array, (default=None), shape [1, n_classes] or [n_classes]
+        the weights of each class.if not provide,it will all be 1 
 
     References
     ----------
@@ -378,14 +389,14 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
 
+        cost: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            the cost of querying each class.if not provide,it will all be 1. 
+
         oracle: Oracle,(default=None)
             Oracle indicate the cost for each label.
             Oracle in active learning whose role is to label the given query.And it can also give the cost of 
             each corresponding label.The Oracle includes the label and cost information at least.
             Oracle(labels=labels, cost=cost)
-
-        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-            the costs of querying each class.if not provide,it will all be 1. 
 
         budget: int, optional (default=40)
             The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
@@ -446,11 +457,22 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         # max_value, select_result = select_POSS(infor_value, corresponding_cost, budget)
 
         multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
-        return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
+        # return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
+        return multilabel_index
         
 
 class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     """Randomly selects a batch of instance-label pairs.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+        shape [n_samples, n_features]
+
+    y: 2D array, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+        shape [n_samples, n_classes]
     """
     def __init__(self, X=None, y=None):
         super(QueryCostSensitiveRandom, self).__init__(X, y)
@@ -461,10 +483,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
 
         Parameters
         ----------
-        label_index: MultiLabelIndexCollection
-            The indexes of labeled samples. It should be a 1d array of indexes (column major, start from 0) or
-            MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
-            the 1st element is the index of instance and the 2nd element is the index of labels.
+        label_index: ignore
             
         unlabel_index: {list, np.ndarray, MultiLabelIndexCollection}
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
@@ -485,8 +504,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
 
         Returns
         -------
-        selected_ins_lab_pair: list
-            A list of tuples that contains the indexes of selected instance-label pairs.    
+        selected_ins_lab_pair: MultiLabelIndexCollection
+            The selected instance label pair.    
         """
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         n_classes = unlabel_index._label_size
@@ -512,7 +531,8 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
                 break
             instance_pair.update(i_j)
             un_ind.difference_update(i_j)
-        return instance_pair
+        # return instance_pair
+        return [tuple(i) for i in list(instance_pair)]
 
                 
 class QueryCostSensitivePerformance(BaseMultiLabelQuery):
@@ -555,8 +575,8 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
             each corresponding label.The Oracle includes the label and cost information at least.
             Oracle(labels=labels, cost=cost)
 
-        costs: np.array, (default=None), shape [1, n_classes] or [n_classes]
-            the costs of querying each class.if not provide,it will all be 1. 
+        cost: np.array, (default=None), shape [1, n_classes] or [n_classes]
+            the cost of querying each class.if not provide,it will all be 1. 
 
         budget: int, optional (default=40)
             The budget of the select cost.If cost for eatch labels is 1,will degenerate into the batch_size.
@@ -614,7 +634,8 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
 
         _ , select_result = select_Knapsack_01(infor_value, corresponding_cost, budget)
         multilabel_index = [tuple(i) for i in list(instance_pair[np.where(select_result!=0)[0]])]
-        return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
+        # return MultiLabelIndexCollection(multilabel_index, label_size=self.n_classes)
+        return multilabel_index
 
     def train_models(self, label_index, basemodel):
         """
