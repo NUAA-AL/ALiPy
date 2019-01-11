@@ -29,7 +29,7 @@ Features of alipy include:
 	- Provide 25 algorithms.
 	- Support 7 different settings.
 
-For more detailed introduction and tutorial, please refer to the [website of alipy](http://parnec.nuaa.edu.cn/huangsj/alipy) (Coming soon).
+For more detailed introduction and tutorial, please refer to the [website of alipy](http://parnec.nuaa.edu.cn/huangsj/alipy).
 
 ## Setup
 
