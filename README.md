@@ -6,15 +6,15 @@ Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.
 
 ALiPy是一个基于Python实现的主动学习工具包，内置20余种主动学习算法，并提供包括数据处理、结果可视化等工具。ALiPy根据主动学习框架的不同部件提供了若干独立的工具类，这样一方面可以方便地支持不同主动学习场景，另一方面可以使用户自由地组织自己的项目，用户可以不必继承任何接口来实现自己的算法与替换项目中的部件。此外，ALiPy不仅支持多种不同的主动学习场景，如标注代价敏感，噪声标注者，多标记查询等。详细的介绍与文档请参考工具包的[官方网站](http://parnec.nuaa.edu.cn/huangsj/alipy/)。
 
-ALiPy provides a module based implementation of active learning framework, which allows users to conveniently evaluate, compare and analyze the performance of active learning methods. It implementations of more than 20 algorithms and also supports users to easily implement their own approaches under different settings.
+ALiPy provides a module based implementation of active learning framework, which allows users to conveniently evaluate, compare and analyze the performance of active learning methods. It implementations more than 20 algorithms and also supports users to easily implement their own approaches under different settings.
 
 Features of alipy include:
 
 * Model independent
-	- There is no limitation of the model. You may use SVM in sklearn or deep model in tensorflow as you need.
+	- There is no limitation to the classification model. One can use SVM in sklearn or deep model in tensorflow as you need.
 	
 * Module independent
-	- There is no framework limitation in our toolbox, using any tools are independent and optional.
+	- One can freely modify one or more modules of the toolbox without affection to the others.
 	
 * Implement your own algorithm without inheriting anything
 	- There are few limitations of the user-defined functions, such as the parameters or names.
