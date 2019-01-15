@@ -202,7 +202,7 @@ analyser.plot_learning_curves(title='Example of AL', std_area=True)
 If you think ALiPy is useful for your research, please cite our work:
 
 ```
-@techreport{libact,
+@techreport{TGHalipy,
   author = {Ying-Peng Tang and Guo-Xiang Li and Sheng-Jun Huang},
   title = {ALiPy: Active Learning in Python},
   institution = {Nanjing University of Aeronautics and Aestronautics},
