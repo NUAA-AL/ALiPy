@@ -205,7 +205,7 @@ If you think ALiPy is useful for your research, please cite our work:
 @techreport{TLHalipy,
   author = {Ying-Peng Tang and Guo-Xiang Li and Sheng-Jun Huang},
   title = {ALiPy: Active Learning in Python},
-  institution = {Nanjing University of Aeronautics and Aestronautics},
+  institution = {Nanjing University of Aeronautics and Astronautics},
   url = {https://github.com/NUAA-AL/ALiPy},
   note = {available as arXiv preprint \url{https://arxiv.org/abs/1901.03802}},
   month = jan,
