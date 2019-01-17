@@ -432,7 +432,7 @@ def split_load(path):
             else:
                 ret_arr.append(None)
         else:
-            ret_arr.append(np.loadtxt(os.path.join(saving_path, fname)))
+            ret_arr.append(np.loadtxt(os.path.join(saving_path, fname), dtype=int))
     return ret_arr[0], ret_arr[1], ret_arr[2], ret_arr[3]
 
 
