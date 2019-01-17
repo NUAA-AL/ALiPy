@@ -61,7 +61,7 @@ bmdr_result = []
 spal_result = []
 lal_result = []
 
-_I_have_installed_the_cvxpy = True
+_I_have_installed_the_cvxpy = False
 
 for round in range(5):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)

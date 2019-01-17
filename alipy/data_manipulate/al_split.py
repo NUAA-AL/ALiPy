@@ -105,11 +105,11 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
     for i in range(split_count):
         if (not all_class) or y is None:
             rp = randperm(number_of_instance - 1)
-            cutpoint = round((1 - test_ratio) * len(rp))
+            cutpoint = int(round((1 - test_ratio) * len(rp)))
             tp_train = instance_indexes[rp[0:cutpoint]]
             train_idx.append(tp_train)
             test_idx.append(instance_indexes[rp[cutpoint:]])
-            cutpoint = round(initial_label_rate * len(tp_train))
+            cutpoint = int(round(initial_label_rate * len(tp_train)))
             if cutpoint <= 1:
                 cutpoint = 1
             label_idx.append(tp_train[0:cutpoint])
@@ -130,9 +130,9 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
             # check validaty
             while 1:
                 rp = randperm(number_of_instance - 1)
-                cutpoint = round((1 - test_ratio) * len(rp))
+                cutpoint = int(round((1 - test_ratio) * len(rp)))
                 tp_train = instance_indexes[rp[0:cutpoint]]
-                cutpointlabel = round(initial_label_rate * len(tp_train))
+                cutpointlabel = int(round(initial_label_rate * len(tp_train)))
                 if cutpointlabel <= 1:
                     cutpointlabel = 1
                 label_id = tp_train[0:cutpointlabel]
@@ -231,12 +231,12 @@ def __split_data_matrix(data_matrix=None, matrix_shape=None, test_ratio=0.3, ini
         if partially_labeled:
             # split train test
             rp = randperm(data_shape[0] - 1)
-            cutpoint = round((1 - test_ratio) * len(rp))
+            cutpoint = int(round((1 - test_ratio) * len(rp)))
             tp_train = instance_indexes[rp[0:cutpoint]]
 
             # split label & unlabel
             train_size = len(tp_train)
-            lab_ind = randperm((0, train_size * data_shape[1] - 1), round(initial_label_rate * train_size * data_shape[1]))
+            lab_ind = randperm((0, train_size * data_shape[1] - 1), int(round(initial_label_rate * train_size * data_shape[1])))
             if all_class:
                 if round(initial_label_rate * train_size) < data_shape[1]:
                     raise ValueError("The initial rate is too small to guarantee that each "
@@ -244,11 +244,11 @@ def __split_data_matrix(data_matrix=None, matrix_shape=None, test_ratio=0.3, ini
                 while len(np.unique([item % data_shape[1] for item in lab_ind])) != data_shape[1]:
                     # split train test
                     rp = randperm(data_shape[0] - 1)
-                    cutpoint = round((1 - test_ratio) * len(rp))
+                    cutpoint = int(round((1 - test_ratio) * len(rp)))
                     tp_train = instance_indexes[rp[0:cutpoint]]
                     # split label & unlabel
                     train_size = len(tp_train)
-                    lab_ind = randperm((0, train_size * data_shape[1] - 1), round(initial_label_rate * train_size))
+                    lab_ind = randperm((0, train_size * data_shape[1] - 1), int(round(initial_label_rate * train_size)))
             train_idx.append(tp_train)
             test_idx.append(instance_indexes[rp[cutpoint:]])
             unlab_ind = set(np.arange(train_size * data_shape[1]))
@@ -257,10 +257,10 @@ def __split_data_matrix(data_matrix=None, matrix_shape=None, test_ratio=0.3, ini
             unlabel_idx.append([(tp_train[item // data_shape[1]], item % data_shape[1]) for item in unlab_ind])
         else:
             rp = randperm(data_shape[0] - 1)
-            cutpoint = round((1 - test_ratio) * len(rp))
+            cutpoint = int(round((1 - test_ratio) * len(rp)))
             tp_train = instance_indexes[rp[0:cutpoint]]
 
-            cutpoint_lab = round(initial_label_rate * len(tp_train))
+            cutpoint_lab = int(round(initial_label_rate * len(tp_train)))
             if cutpoint_lab <= 1:
                 cutpoint_lab = 1
             if all_class:
@@ -274,10 +274,10 @@ def __split_data_matrix(data_matrix=None, matrix_shape=None, test_ratio=0.3, ini
                     if not np.any(temp == 0):
                         break
                     rp = randperm(data_shape[0] - 1)
-                    cutpoint = round((1 - test_ratio) * len(rp))
+                    cutpoint = int(round((1 - test_ratio) * len(rp)))
                     tp_train = instance_indexes[rp[0:cutpoint]]
 
-                    cutpoint_lab = round(initial_label_rate * len(tp_train))
+                    cutpoint_lab = int(round(initial_label_rate * len(tp_train)))
             train_idx.append(tp_train)
             test_idx.append(instance_indexes[rp[cutpoint:]])
             label_idx.append([(i,) for i in tp_train[0:cutpoint_lab]])
@@ -454,11 +454,11 @@ def split_save(train_idx, test_idx, label_idx, unlabel_idx, path):
 
     saving_path = os.path.abspath(path)
     if os.path.isdir(saving_path):
-        np.savetxt(os.path.join(saving_path, 'train_idx.txt'), train_idx)
-        np.savetxt(os.path.join(saving_path, 'test_idx.txt'), test_idx)
+        np.savetxt(os.path.join(saving_path, 'train_idx.txt'), train_idx, fmt='%d')
+        np.savetxt(os.path.join(saving_path, 'test_idx.txt'), test_idx, fmt='%d')
         if len(np.shape(label_idx)) == 2:
-            np.savetxt(os.path.join(saving_path, 'label_idx.txt'), label_idx)
-            np.savetxt(os.path.join(saving_path, 'unlabel_idx.txt'), unlabel_idx)
+            np.savetxt(os.path.join(saving_path, 'label_idx.txt'), label_idx, fmt='%d')
+            np.savetxt(os.path.join(saving_path, 'unlabel_idx.txt'), unlabel_idx, fmt='%d')
         else:
             np.save(os.path.join(saving_path, 'label_idx.npy'), label_idx)
             np.save(os.path.join(saving_path, 'unlabel_idx.npy'), unlabel_idx)
