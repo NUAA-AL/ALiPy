@@ -69,7 +69,7 @@ prettytable
 cvxpy
 ```
 
-Note that, the basic dependencies must be installed, and the optional dependencies are required only if users need to involke KDD'13 BMDR and AAAI'19 SPAL methods in alipy. (cvxpy will not be installed through pip. Cvxpy is an optimization package used to solve the QP problem in alipy. However, this package needs VC++ 14 environment which may not be installed for all users.
+Note that, the basic dependencies must be installed, and the optional dependencies are required only if users need to involke KDD'13 BMDR and AAAI'19 SPAL methods in alipy. (cvxpy will not be installed through pip.)
 
 ## Tools in alipy
 
