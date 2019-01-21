@@ -242,14 +242,18 @@ class QueryInstanceUncertainty(BaseIndexQuery):
         return entropy
 
 
-class QueryRandom(interface.BaseQueryStrategy):
+class QueryRandom(BaseIndexQuery):
     """Randomly sample a batch of indexes from the unlabel indexes."""
 
-    def select(self, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1):
         """Select indexes randomly.
 
         Parameters
         ----------
+		label_index: object
+            Add this parameter to ensure the consistency of api of strategies.
+			Please ignore it.
+			
         unlabel_index: collections.Iterable
             The indexes of unlabeled set.
 
