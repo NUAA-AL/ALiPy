@@ -218,3 +218,6 @@ available as arXiv preprint https://arxiv.org/abs/1901.03802.
   year = 2019
 }
 ```
+Online document: [http://parnec.nuaa.edu.cn/huangsj/alipy/](http://parnec.nuaa.edu.cn/huangsj/alipy/)
+
+Offline document: [http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v101.zip](http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v101.zip)
