@@ -461,6 +461,9 @@ class ToolBox:
             'cost_limit': stop when cost reaches the limit.
             'percent_of_unlabel': stop when specific percentage of unlabeled data pool is labeled.
             'time_limit': stop when CPU time reaches the limit.
+			
+		value: {int, float}, optional (default=None)
+			The value of the corresponding stopping criterion.
 
         Returns
         -------

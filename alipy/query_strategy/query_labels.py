@@ -666,7 +666,10 @@ class QueryInstanceQUIRE(BaseIndexQuery):
     """Querying Informative and Representative Examples (QUIRE)
 
     Query the most informative and representative examples where the metrics
-    measuring and combining are done using min-max approach.
+    measuring and combining are done using min-max approach. Note that, QUIRE is 
+	not a batch mode active learning algorithm, it will select only one instance
+	for querying at each iteration. Also, it does not need a model to evaluate the 
+	unlabeled data.
 
     The implementation refers to the project: https://github.com/ntucllab/libact
 
@@ -749,8 +752,8 @@ class QueryInstanceQUIRE(BaseIndexQuery):
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
-    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
-        """Select indexes from the unlabel_index for querying.
+    def select(self, label_index, unlabel_index, **kwargs):
+        """Select one instance from the unlabel_index for querying.
 
         Parameters
         ----------
@@ -765,13 +768,10 @@ class QueryInstanceQUIRE(BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
-        assert (batch_size > 0)
         assert (isinstance(unlabel_index, collections.Iterable))
         assert (isinstance(label_index, collections.Iterable))
         unlabel_index = np.asarray(unlabel_index)
         label_index = np.asarray(label_index)
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
 
         # build map from value to index
         label_index_in_train = [np.where(self._train_idx == i)[0][0] for i in label_index]
