@@ -5,10 +5,9 @@ from sklearn.datasets import make_multilabel_classification
 from sklearn.ensemble import RandomForestClassifier
 
 from alipy import ToolBox
-from alipy.index.multi_label_tools import get_Xy_in_multilabel, check_index_multilabel
+from alipy.index.multi_label_tools import get_Xy_in_multilabel
 from alipy.query_strategy.cost_sensitive import QueryCostSensitiveHALC, QueryCostSensitivePerformance, QueryCostSensitiveRandom
 from alipy.query_strategy.cost_sensitive import hierarchical_multilabel_mark
-from alipy.metrics.performance import type_of_target
 
 X, y = make_multilabel_classification(n_samples=2000, n_features=20, n_classes=5,
                                    n_labels=3, length=50, allow_unlabeled=True,
@@ -30,7 +29,7 @@ label_tree[2, 4] = 1
 alibox = ToolBox(X=X, y=y, query_type='PartLabels')
 
 # Split data
-alibox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10)
+alibox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10, all_class=True)
 
 # baseclassifier model use RFC
 model = RandomForestClassifier()

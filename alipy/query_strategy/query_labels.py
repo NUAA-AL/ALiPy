@@ -24,7 +24,6 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.utils.multiclass import unique_labels
 
 from .base import BaseIndexQuery
-from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 from ..utils.ace_warnings import *
 

@@ -4,9 +4,9 @@ import numpy as np
 import copy
 from sklearn.utils.validation import check_X_y
 
-from alipy.index import MultiLabelIndexCollection
-from alipy.oracle import Oracle, Oracles
-from alipy.utils.interface import BaseQueryStrategy
+from ..index import MultiLabelIndexCollection
+from ..oracle import Oracle, Oracles
+from ..utils.interface import BaseQueryStrategy
 
 
 class BaseIndexQuery(BaseQueryStrategy, metaclass=ABCMeta):

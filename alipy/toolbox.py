@@ -74,19 +74,29 @@ class ToolBox:
 
     unlabel_idx: array-like, optional (default=None)
         index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
-
-
-    Attributes
-    ----------
-
-
-    Examples
-    ----------
-
     """
 
     def __init__(self, y, X=None, instance_indexes=None,
                  query_type='AllLabels', saving_path=None, **kwargs):
+        """
+        _index_len: int, length of indexes.
+        _y: 2d array, the label matrix of whole dataset.
+        _target_type: str, the type of target.
+        _label_space: list, the label space.
+        _label_num: int, The number of unique labels.
+        _instance_flag: bool, Whether passed instances when initializing.
+        _X: 2d array, The feature matrix of the whole dataset.
+        _indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
+        query_type: str, The query type of this active learning project.
+        _split: bool, whether split the data.
+        split_count: int, the number of split times.
+        train_idx: list, a list split_count lists which include the indexes of training set.
+        test_idx: list, a list split_count lists which include the indexes of testing set.
+        label_idx: list, a list split_count lists which include the indexes of labeled set. (A subset of training set)
+        unlabel_idx: list, a list split_count lists which include the indexes of unlabeled set. (A subset of training set)
+        _saving_path: str, saving path.
+        _saving_dir: str, saving dir.
+        """
         self._index_len = None
         # check and record parameters
         self._y = check_array(y, ensure_2d=False, dtype=None)
@@ -508,15 +518,34 @@ class ToolBox:
         """Return an IndexCollection object initialized with array."""
         return IndexCollection(array)
 
-    def MultiLabelIndexCollection(self, array, label_mat_shape=None):
-        """Return a MultiLabelIndexCollection object initialized with array.
-        The label_mat_shape is the shape of the provided label matrix by default."""
+    def MultiLabelIndexCollection(self, array, label_mat_shape=None, order='F'):
+        """
+        Return a MultiLabelIndexCollection object initialized with array.
+        The label_mat_shape is the shape of the provided label matrix by default.
+
+        Parameters
+        ----------
+        array: {list, np.ndarray}
+            An 1d array or a list of tuples of indexes.
+
+        label_mat_shape: tuple (optional, default=None)
+            The shape of label matrix. The 1st element is the number of instances,
+            and the 2nd element is the total classes. If it is not specified, it will
+            use the shape of label matrix y.
+
+        order : {'C', 'F'}, optional
+            Determines whether the indices should be viewed as indexing in
+            row-major (C-style) or column-major (Matlab-style) order.
+            Only useful when an 1d array is given.
+
+        """
         if isinstance(array[0], tuple):
             return MultiLabelIndexCollection(data=array, label_size=self._y.shape[1] if label_mat_shape is None else
             label_mat_shape[1])
         else:
             return MultiLabelIndexCollection.construct_by_1d_array(data=array,
-                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape)
+                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape,
+                                                                   order=order)
 
     def State(self, select_index, performance, queried_label=None, cost=None):
         """Get a State object for storing information in one iteration of active learning.
