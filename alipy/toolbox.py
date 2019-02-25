@@ -15,9 +15,7 @@ from .index.index_collections import IndexCollection, MultiLabelIndexCollection,
 from .metrics import performance
 from .oracle.knowledge_repository import MatrixRepository, ElementRepository
 from .oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
-from .query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, \
-    QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE
-from .query_strategy.query_type import check_query_type
+from .query_strategy import check_query_type
 from .utils.multi_thread import aceThreading
 
 
@@ -359,8 +357,7 @@ class ToolBox:
         ----------
         strategy_name: str, optional (default='QueryRandom')
             The name of a query strategy, should be one of
-            ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-            'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']
+            the implemented methods.
 
         arg1, arg2, ...: dict, optional
             if kwargs is None,the pre-defined strategy will init in
@@ -371,50 +368,17 @@ class ToolBox:
         Returns
         -------
         query_strategy: BaseQueryStrategy
-            the query_strategy object
+            the query_strategy object.
 
         """
-        if self.query_type != "AllLabels":
-            raise NotImplemented("Query strategy for other query types is not implemented yet.")
-
-        # a pre-defined strategy in ALiPy
-        if strategy_name not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-                                 'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
-            raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
-                                      'method name or privide a callable object.'.format(str(strategy_name)))
-        else:
-            if strategy_name == 'QueryInstanceQBC':
-                method = kwargs.pop('method', 'query_by_bagging')
-                disagreement = kwargs.pop('disagreement', 'vote_entropy')
-                query_function = QueryInstanceQBC(self._X, self._y,
-                                                  method, disagreement)
-            elif strategy_name == 'QueryInstanceUncertainty':
-                measure = kwargs.pop('measure', 'entropy')
-                query_function = QueryInstanceUncertainty(self._X,
-                                                          self._y,
-                                                          measure)
-            elif strategy_name == 'QueryRandom':
-                query_function = QueryRandom(self._X, self._y)
-            elif strategy_name == 'QureyExpectedErrorReduction':
-                query_function = QureyExpectedErrorReduction(self._X,
-                                                             self._y)
-            elif strategy_name == 'QueryInstanceGraphDensity' or strategy_name == 'QueryInstanceQUIRE':
-                if kwargs.pop('train_idx', None) is None:
-                    raise ValueError(
-                        "Missing necessary parameter 'train_idx' in GraphDensity or QUIRE method.")
-                if strategy_name == 'QueryInstanceGraphDensity':
-                    query_function = QueryInstanceGraphDensity(self._X,
-                                                               self._y,
-                                                               train_idx=kwargs.pop(
-                                                                   'train_idx'))
-                else:
-                    query_function = QueryInstanceQUIRE(self._X,
-                                                        self._y,
-                                                        train_idx=kwargs.pop(
-                                                            'train_idx'),
-                                                        metric=kwargs.pop('metric',
-                                                                          'manhattan'))
-        return query_function
+        try:
+            exec("from .query_strategy import " + strategy_name)
+        except:
+            raise KeyError("Strategy "+strategy_name+" is not implemented in ALiPy.")
+        strategy = None
+        strategy = eval(strategy_name + "(X=self._X, y=self._y, **kwargs)")
+        # print(strategy)
+        return strategy
 
     def calc_performance_metric(self, y_true, y_pred, performance_metric='accuracy_score', **kwargs):
         """Evaluate the model performance.
@@ -461,9 +425,9 @@ class ToolBox:
             'cost_limit': stop when cost reaches the limit.
             'percent_of_unlabel': stop when specific percentage of unlabeled data pool is labeled.
             'time_limit': stop when CPU time reaches the limit.
-			
-		value: {int, float}, optional (default=None)
-			The value of the corresponding stopping criterion.
+
+        value: {int, float}, optional (default=None)
+            The value of the corresponding stopping criterion.
 
         Returns
         -------

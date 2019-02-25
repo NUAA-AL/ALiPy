@@ -44,9 +44,9 @@ class StoppingCriteria:
         'cost_limit': Stop when cost reaches the limit.
         'percent_of_unlabel': Stop when specific percentage of unlabeled data pool is labeled.
         'time_limit': Stop when CPU time reaches the limit.
-		
-	value: {int, float}, optional (default=None)
-		The value of the corresponding stopping criterion.
+
+    value: {int, float}, optional (default=None)
+        The value of the corresponding stopping criterion.
     """
 
     def __init__(self, stopping_criteria=None, value=None):

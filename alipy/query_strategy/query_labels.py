@@ -243,17 +243,51 @@ class QueryInstanceUncertainty(BaseIndexQuery):
 
 
 class QueryRandom(BaseIndexQuery):
-    """Randomly sample a batch of indexes from the unlabel indexes."""
+    """
+    Randomly sample a batch of indexes from the unlabel indexes.
+    The random strategy has been re-named to QueryInstanceRandom,
+    this class will be deleted in v1.0.5.
+    """
 
-    def select(self, label_index, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """Select indexes randomly.
 
         Parameters
         ----------
-		label_index: object
+        label_index: object
             Add this parameter to ensure the consistency of api of strategies.
-			Please ignore it.
-			
+            Please ignore it.
+
+        unlabel_index: collections.Iterable
+            The indexes of unlabeled set.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        if len(unlabel_index) <= batch_size:
+            return np.array([i for i in unlabel_index])
+        perm = randperm(len(unlabel_index) - 1, batch_size)
+        tpl = list(unlabel_index.index)
+        return [tpl[i] for i in perm]
+
+
+class QueryInstanceRandom(BaseIndexQuery):
+    """Randomly sample a batch of indexes from the unlabel indexes."""
+
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        """Select indexes randomly.
+
+        Parameters
+        ----------
+        label_index: object
+            Add this parameter to ensure the consistency of api of strategies.
+            Please ignore it.
+
         unlabel_index: collections.Iterable
             The indexes of unlabeled set.
 
@@ -667,9 +701,9 @@ class QueryInstanceQUIRE(BaseIndexQuery):
 
     Query the most informative and representative examples where the metrics
     measuring and combining are done using min-max approach. Note that, QUIRE is 
-	not a batch mode active learning algorithm, it will select only one instance
-	for querying at each iteration. Also, it does not need a model to evaluate the 
-	unlabeled data.
+    not a batch mode active learning algorithm, it will select only one instance
+    for querying at each iteration. Also, it does not need a model to evaluate the
+    unlabeled data.
 
     The implementation refers to the project: https://github.com/ntucllab/libact
 
