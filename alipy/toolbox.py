@@ -359,12 +359,12 @@ class ToolBox:
                                      examples=self._X[Lcollection.index, :] if instance_flag else None,
                                      indexes=Lcollection.index)
 
-    def get_query_strategy(self, strategy_name="QueryRandom", **kwargs):
+    def get_query_strategy(self, strategy_name="QueryInstanceRandom", **kwargs):
         """Return the query strategy object.
 
         Parameters
         ----------
-        strategy_name: str, optional (default='QueryRandom')
+        strategy_name: str, optional (default='QueryInstanceRandom')
             The name of a query strategy, should be one of
             the implemented methods.
 

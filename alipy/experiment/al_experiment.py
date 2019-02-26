@@ -15,8 +15,8 @@ import inspect
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_X_y
 
-from alipy.query_strategy.query_labels import QueryInstanceQBC, QueryInstanceGraphDensity, \
-         QueryInstanceUncertainty, QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE, \
+from alipy.query_strategy.query_labels import QueryInstanceQBC, \
+         QueryInstanceUncertainty, QueryInstanceRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE, \
           QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL
 from ..data_manipulate.al_split import split
 from .experiment_analyser import ExperimentAnalyser
@@ -160,8 +160,8 @@ class AlExperiment:
                 elif strategy == 'QueryInstanceUncertainty':
                     measure = kwargs.pop('measure', 'entropy')
                     self._query_function = QueryInstanceUncertainty(self._X, self._y, measure)
-                elif strategy == 'QueryRandom':
-                    self._query_function = QueryRandom(self._X, self._y)
+                elif strategy == 'QueryInstanceRandom':
+                    self._query_function = QueryInstanceRandom(self._X, self._y)
                 elif strategy == 'QureyExpectedErrorReduction':
                     self._query_function = QureyExpectedErrorReduction(self._X, self._y)
                 elif strategy == 'QueryInstanceGraphDensity' or strategy == 'QueryInstanceQUIRE':
