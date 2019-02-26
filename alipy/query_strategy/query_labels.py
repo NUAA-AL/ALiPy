@@ -803,6 +803,8 @@ class QueryInstanceQUIRE(BaseIndexQuery):
         """
         assert (isinstance(unlabel_index, collections.Iterable))
         assert (isinstance(label_index, collections.Iterable))
+        if len(unlabel_index) <= 1:
+            return list(unlabel_index)
         unlabel_index = np.asarray(unlabel_index)
         label_index = np.asarray(label_index)
 

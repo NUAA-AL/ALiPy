@@ -37,43 +37,42 @@ class ToolBox:
         Labels of given data [n_samples, n_labels] or [n_samples]
 
     X: array-like, optional (default=None)
-        data matrix with [n_samples, n_features].
+        Data matrix with [n_samples, n_features].
 
     instance_indexes: array-like, optional (default=None)
-        indexes of instances, it should be one-to-one correspondence of
+        Indexes of instances, it should be one-to-one correspondence of
         X, if not provided, it will be generated automatically for each
         x_i started from 0.
         It also can be a list contains names of instances, used for image data_manipulate.
         The split will only depend on the indexes if X is not provided.
 
     query_type: str, optional (default='AllLabels')
-        active learning settings. It will determine how to split data.
+        Active learning settings. It will determine how to split data.
         should be one of ['AllLabels', 'Partlabels', 'Features']:
 
-        AllLabels: query all _labels of an selected instance.
+        AllLabels: query all labels of an selected instance.
             Support scene: binary classification, multi-class classification, multi-label classification, regression
 
-        Partlabels: query part of _labels of an instance.
+        Partlabels: query part of labels of an instance.
             Support scene: multi-label classification
 
         Features: query part of features of an instance.
             Support scene: missing features
 
     saving_path: str, optional (default='.')
-        path to save current settings. if None is provided, then it will not
-        save the path
+        Path to save current settings. Passing None to disable saving.
 
     train_idx: array-like, optional (default=None)
-        index of training set, shape like [n_split_count, n_training_indexes]
+        Index of training set, shape like [n_split_count, n_training_indexes]
 
     test_idx: array-like, optional (default=None)
-        index of testing set, shape like [n_split_count, n_testing_indexes]
+        Index of testing set, shape like [n_split_count, n_testing_indexes]
 
     label_idx: array-like, optional (default=None)
-        index of labeling set, shape like [n_split_count, n_labeling_indexes]
+        Index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
     unlabel_idx: array-like, optional (default=None)
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
+        Index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
 
     def __init__(self, y, X=None, instance_indexes=None,

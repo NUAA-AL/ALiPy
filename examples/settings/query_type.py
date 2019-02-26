@@ -9,7 +9,7 @@ from alipy import ToolBox
 
 X, y = load_iris(return_X_y=True)
 mlb = OneHotEncoder()
-mult_y = mlb.fit_transform(y.reshape((-1,1)))
+mult_y = mlb.fit_transform(y.reshape((-1, 1)))
 mult_y = np.asarray(mult_y.todense())
 mult_y[mult_y == 0] = -1
 
@@ -19,7 +19,7 @@ alibox.split_AL(test_ratio=0.2, initial_label_rate=0.05, all_class=False)
 # query type strategy
 AURO_results = []
 
-for round in range(10):
+for round in range(5):
 
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
@@ -50,7 +50,7 @@ for round in range(10):
         label_ind.update([(select_ins, select_y1), (select_ins, select_y2)])
         unlab_ind.difference_update([(select_ins, select_y1), (select_ins, select_y2)])
 
-        if iter % 3 == 0:
+        if iter % 5 == 0:
             # train/test
             X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=query_y)
             model.fit(X=X_tr, y=y_tr)

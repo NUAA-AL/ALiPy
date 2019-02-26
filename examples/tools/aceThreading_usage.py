@@ -1,7 +1,6 @@
 from sklearn.datasets import load_iris
 from alipy.data_manipulate import split
 from alipy.utils.multi_thread import aceThreading
-from alipy.experiment import StateIO
 # Get the data
 X, y = load_iris(return_X_y=True)
 # Split the data
@@ -15,7 +14,7 @@ acethread = aceThreading(examples=X, labels=y,
 
 from sklearn import linear_model
 from alipy.experiment import State
-from alipy.query_strategy.query_strategy import QueryInstanceQBC
+from alipy.query_strategy import QueryInstanceQBC
 
 # define the custom function
 # Specifically, the parameters of the custom function must be:
