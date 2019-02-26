@@ -7,19 +7,14 @@ Implement query strategies for cost-sensitive for hierarchical multi-label setti
 """
 from __future__ import division
 
-import collections
 import copy
-import warnings
 import queue
-import random
 
 import numpy as np
 from sklearn.svm import SVC
-from alipy.index import MultiLabelIndexCollection, flattern_multilabel_index
-from alipy.index import get_Xy_in_multilabel
-from alipy.query_strategy.base import BaseMultiLabelQuery
-from alipy.utils.misc import randperm, nlargestarg, nsmallestarg
-from alipy.oracle import Oracle
+from ..index import MultiLabelIndexCollection, flattern_multilabel_index, get_Xy_in_multilabel
+from .base import BaseMultiLabelQuery
+from ..utils.misc import nsmallestarg
 
 def select_Knapsack_01(infor_value, costs, capacity):
     """
@@ -290,8 +285,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         """
         if basemodel is None:
             basemodel = SVC(decision_function_shape='ovr')
-        label_index = self._check_multi_label_ind(label_index)
-        train_traget = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        train_traget = label_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         models =[]
         for j in np.arange(self.n_classes):  
             j_target = train_traget[:, j]
@@ -305,8 +299,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
 
         Uncertainty = np.zeros((self.n_samples, self.n_classes))
         # unlabel_data = self.X[unlabel_index, :]
-        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
-        unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        label_mat = label_index.get_matrix_mask((self.n_samples, self.n_classes),sparse=False)
+        unlabel_mat = unlabel_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         for j in np.arange(self.n_classes):
             model = models[j]
             j_label = np.where(label_mat[:, j] == 1)
@@ -320,7 +314,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
     def cal_relevance(self, Xi_index, j_class, label_index, models, k=5):
         """
         """
-        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        label_mat = label_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         label_samples = np.where(label_mat[:, j_class] == 1)
         distance = self.Distance[Xi_index]
         KNN_index = nsmallestarg(distance, k)
@@ -360,8 +354,8 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         """
         Infor = np.zeros((self.n_samples, self.n_classes))
         Uncertainty = self.cal_uncertainty(label_index, unlabel_index, models)
-        label_mat = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
-        unlabel_mat = (unlabel_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        label_mat = label_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
+        unlabel_mat = unlabel_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         for j in np.arange(self.n_classes):
             j_unlabel = np.where(unlabel_mat[:, j] == 1)[0]
             j_label = np.where(unlabel_mat[:, j] != 1)[0]
@@ -644,7 +638,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         if basemodel is None:
             basemodel = SVC(decision_function_shape='ovr')
         label_index = self._check_multi_label_ind(label_index)
-        train_target = (label_index.get_matrix_mask((self.n_samples, self.n_classes))).todense()
+        train_target = label_index.get_matrix_mask((self.n_samples, self.n_classes), sparse=False)
         models =[]
         for j in np.arange(self.n_classes):  
             j_target = train_target[:, j]

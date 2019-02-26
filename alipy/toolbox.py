@@ -15,9 +15,7 @@ from .index.index_collections import IndexCollection, MultiLabelIndexCollection,
 from .metrics import performance
 from .oracle.knowledge_repository import MatrixRepository, ElementRepository
 from .oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
-from .query_strategy import QueryInstanceQBC, QueryInstanceGraphDensity, QueryInstanceUncertainty, \
-    QueryRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE
-from .query_strategy.query_type import check_query_type
+from .query_strategy import check_query_type
 from .utils.multi_thread import aceThreading
 
 
@@ -39,56 +37,65 @@ class ToolBox:
         Labels of given data [n_samples, n_labels] or [n_samples]
 
     X: array-like, optional (default=None)
-        data matrix with [n_samples, n_features].
+        Data matrix with [n_samples, n_features].
 
     instance_indexes: array-like, optional (default=None)
-        indexes of instances, it should be one-to-one correspondence of
+        Indexes of instances, it should be one-to-one correspondence of
         X, if not provided, it will be generated automatically for each
         x_i started from 0.
         It also can be a list contains names of instances, used for image data_manipulate.
         The split will only depend on the indexes if X is not provided.
 
     query_type: str, optional (default='AllLabels')
-        active learning settings. It will determine how to split data.
+        Active learning settings. It will determine how to split data.
         should be one of ['AllLabels', 'Partlabels', 'Features']:
 
-        AllLabels: query all _labels of an selected instance.
+        AllLabels: query all labels of an selected instance.
             Support scene: binary classification, multi-class classification, multi-label classification, regression
 
-        Partlabels: query part of _labels of an instance.
+        Partlabels: query part of labels of an instance.
             Support scene: multi-label classification
 
         Features: query part of features of an instance.
             Support scene: missing features
 
     saving_path: str, optional (default='.')
-        path to save current settings. if None is provided, then it will not
-        save the path
+        Path to save current settings. Passing None to disable saving.
 
     train_idx: array-like, optional (default=None)
-        index of training set, shape like [n_split_count, n_training_indexes]
+        Index of training set, shape like [n_split_count, n_training_indexes]
 
     test_idx: array-like, optional (default=None)
-        index of testing set, shape like [n_split_count, n_testing_indexes]
+        Index of testing set, shape like [n_split_count, n_testing_indexes]
 
     label_idx: array-like, optional (default=None)
-        index of labeling set, shape like [n_split_count, n_labeling_indexes]
+        Index of labeling set, shape like [n_split_count, n_labeling_indexes]
 
     unlabel_idx: array-like, optional (default=None)
-        index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
-
-
-    Attributes
-    ----------
-
-
-    Examples
-    ----------
-
+        Index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
 
     def __init__(self, y, X=None, instance_indexes=None,
                  query_type='AllLabels', saving_path=None, **kwargs):
+        """
+        _index_len: int, length of indexes.
+        _y: 2d array, the label matrix of whole dataset.
+        _target_type: str, the type of target.
+        _label_space: list, the label space.
+        _label_num: int, The number of unique labels.
+        _instance_flag: bool, Whether passed instances when initializing.
+        _X: 2d array, The feature matrix of the whole dataset.
+        _indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
+        query_type: str, The query type of this active learning project.
+        _split: bool, whether split the data.
+        split_count: int, the number of split times.
+        train_idx: list, a list split_count lists which include the indexes of training set.
+        test_idx: list, a list split_count lists which include the indexes of testing set.
+        label_idx: list, a list split_count lists which include the indexes of labeled set. (A subset of training set)
+        unlabel_idx: list, a list split_count lists which include the indexes of unlabeled set. (A subset of training set)
+        _saving_path: str, saving path.
+        _saving_dir: str, saving dir.
+        """
         self._index_len = None
         # check and record parameters
         self._y = check_array(y, ensure_2d=False, dtype=None)
@@ -352,15 +359,14 @@ class ToolBox:
                                      examples=self._X[Lcollection.index, :] if instance_flag else None,
                                      indexes=Lcollection.index)
 
-    def get_query_strategy(self, strategy_name="QueryRandom", **kwargs):
+    def get_query_strategy(self, strategy_name="QueryInstanceRandom", **kwargs):
         """Return the query strategy object.
 
         Parameters
         ----------
-        strategy_name: str, optional (default='QueryRandom')
+        strategy_name: str, optional (default='QueryInstanceRandom')
             The name of a query strategy, should be one of
-            ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-            'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']
+            the implemented methods.
 
         arg1, arg2, ...: dict, optional
             if kwargs is None,the pre-defined strategy will init in
@@ -371,50 +377,17 @@ class ToolBox:
         Returns
         -------
         query_strategy: BaseQueryStrategy
-            the query_strategy object
+            the query_strategy object.
 
         """
-        if self.query_type != "AllLabels":
-            raise NotImplemented("Query strategy for other query types is not implemented yet.")
-
-        # a pre-defined strategy in ALiPy
-        if strategy_name not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom',
-                                 'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE']:
-            raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
-                                      'method name or privide a callable object.'.format(str(strategy_name)))
-        else:
-            if strategy_name == 'QueryInstanceQBC':
-                method = kwargs.pop('method', 'query_by_bagging')
-                disagreement = kwargs.pop('disagreement', 'vote_entropy')
-                query_function = QueryInstanceQBC(self._X, self._y,
-                                                  method, disagreement)
-            elif strategy_name == 'QueryInstanceUncertainty':
-                measure = kwargs.pop('measure', 'entropy')
-                query_function = QueryInstanceUncertainty(self._X,
-                                                          self._y,
-                                                          measure)
-            elif strategy_name == 'QueryRandom':
-                query_function = QueryRandom(self._X, self._y)
-            elif strategy_name == 'QureyExpectedErrorReduction':
-                query_function = QureyExpectedErrorReduction(self._X,
-                                                             self._y)
-            elif strategy_name == 'QueryInstanceGraphDensity' or strategy_name == 'QueryInstanceQUIRE':
-                if kwargs.pop('train_idx', None) is None:
-                    raise ValueError(
-                        "Missing necessary parameter 'train_idx' in GraphDensity or QUIRE method.")
-                if strategy_name == 'QueryInstanceGraphDensity':
-                    query_function = QueryInstanceGraphDensity(self._X,
-                                                               self._y,
-                                                               train_idx=kwargs.pop(
-                                                                   'train_idx'))
-                else:
-                    query_function = QueryInstanceQUIRE(self._X,
-                                                        self._y,
-                                                        train_idx=kwargs.pop(
-                                                            'train_idx'),
-                                                        metric=kwargs.pop('metric',
-                                                                          'manhattan'))
-        return query_function
+        try:
+            exec("from .query_strategy import " + strategy_name)
+        except:
+            raise KeyError("Strategy "+strategy_name+" is not implemented in ALiPy.")
+        strategy = None
+        strategy = eval(strategy_name + "(X=self._X, y=self._y, **kwargs)")
+        # print(strategy)
+        return strategy
 
     def calc_performance_metric(self, y_true, y_pred, performance_metric='accuracy_score', **kwargs):
         """Evaluate the model performance.
@@ -461,6 +434,9 @@ class ToolBox:
             'cost_limit': stop when cost reaches the limit.
             'percent_of_unlabel': stop when specific percentage of unlabeled data pool is labeled.
             'time_limit': stop when CPU time reaches the limit.
+
+        value: {int, float}, optional (default=None)
+            The value of the corresponding stopping criterion.
 
         Returns
         -------
@@ -541,15 +517,34 @@ class ToolBox:
         """Return an IndexCollection object initialized with array."""
         return IndexCollection(array)
 
-    def MultiLabelIndexCollection(self, array, label_mat_shape=None):
-        """Return a MultiLabelIndexCollection object initialized with array.
-        The label_mat_shape is the shape of the provided label matrix by default."""
+    def MultiLabelIndexCollection(self, array, label_mat_shape=None, order='F'):
+        """
+        Return a MultiLabelIndexCollection object initialized with array.
+        The label_mat_shape is the shape of the provided label matrix by default.
+
+        Parameters
+        ----------
+        array: {list, np.ndarray}
+            An 1d array or a list of tuples of indexes.
+
+        label_mat_shape: tuple (optional, default=None)
+            The shape of label matrix. The 1st element is the number of instances,
+            and the 2nd element is the total classes. If it is not specified, it will
+            use the shape of label matrix y.
+
+        order : {'C', 'F'}, optional
+            Determines whether the indices should be viewed as indexing in
+            row-major (C-style) or column-major (Matlab-style) order.
+            Only useful when an 1d array is given.
+
+        """
         if isinstance(array[0], tuple):
             return MultiLabelIndexCollection(data=array, label_size=self._y.shape[1] if label_mat_shape is None else
             label_mat_shape[1])
         else:
             return MultiLabelIndexCollection.construct_by_1d_array(data=array,
-                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape)
+                                                                   label_mat_shape=self._y.shape if label_mat_shape is None else label_mat_shape,
+                                                                   order=order)
 
     def State(self, select_index, performance, queried_label=None, cost=None):
         """Get a State object for storing information in one iteration of active learning.

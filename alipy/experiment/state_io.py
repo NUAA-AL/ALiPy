@@ -24,9 +24,9 @@ import numpy as np
 import prettytable as pt
 
 from .state import State
-from ..utils.interface import BaseCollection
-from ..index.multi_label_tools import check_index_multilabel
 from ..index import IndexCollection, MultiLabelIndexCollection
+from ..index.multi_label_tools import check_index_multilabel
+from ..utils.interface import BaseCollection
 
 
 class StateIO:
@@ -147,7 +147,7 @@ class StateIO:
 
         Parameters
         ----------
-        perf: object
+        perf: float
             The performance value.
         """
         self.initial_point = perf
@@ -165,10 +165,13 @@ class StateIO:
 
         Parameters
         ----------
-        state: State
-            State object to be added.
+        state: {dict, State}
+            State object to be added. Or a dictionary with
+            the following keys: ['select_index', 'queried_info', 'performance']
         """
-        assert (isinstance(state, State))
+        if not isinstance(state, State):
+            assert isinstance(state, dict), "state must be dict or State object."
+            assert 'select_index' in state and 'queried_info' in state and 'performance' in state, "The dict must contain the following keys: ['select_index', 'queried_info', 'performance']"
         self.__state_list.append(copy.deepcopy(state))
         self.__update_info()
 
@@ -363,7 +366,6 @@ class StateIO:
     def _refresh_dataline(self):
         tb = self.__repr__()
         return tb.splitlines()[1]
-
 
 # class StateIO_all_labels(StateIO):
 #     """StateIO for all _labels querying"""

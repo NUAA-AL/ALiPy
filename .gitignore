@@ -6,6 +6,7 @@ __pycache__
 AL_result
 test
 abandoned_code.py
+test.*
 *.pptx
 *.mat
 *.ppt

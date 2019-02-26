@@ -9,16 +9,14 @@ from __future__ import division
 
 import collections
 import copy
+
 import numpy as np
 
-from scipy.sparse import bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix, dok_matrix, lil_matrix
-
-from alipy.index.multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
+from .multi_label_tools import check_index_multilabel, infer_label_size_multilabel, flattern_multilabel_index, \
     integrate_multilabel_index
-from alipy.utils.ace_warnings import *
-from alipy.utils.interface import BaseCollection
-from alipy.utils.misc import randperm
-
+from ..utils.ace_warnings import *
+from ..utils.interface import BaseCollection
+from ..utils.misc import randperm
 
 
 class IndexCollection(BaseCollection):
@@ -84,7 +82,6 @@ class IndexCollection(BaseCollection):
             else:
                 self._element_type = type(tmp_data)
 
-
     @property
     def index(self):
         """
@@ -130,7 +127,8 @@ class IndexCollection(BaseCollection):
         if isinstance(value, np.generic):
             value = np.asscalar(value)
         if not isinstance(value, self._element_type):
-            raise TypeError("A %s parameter is expected, but received: %s" % (str(self._element_type), str(type(value))))
+            raise TypeError(
+                "A %s parameter is expected, but received: %s" % (str(self._element_type), str(type(value))))
         if value in self._innercontainer:
             warnings.warn("Adding element %s has already in the collection, skip." % (value.__str__()),
                           category=RepeatElementWarning,
@@ -297,7 +295,6 @@ class MultiLabelIndexCollection(IndexCollection):
                     category=RepeatElementWarning,
                     stacklevel=3)
 
-
     @property
     def index(self):
         """
@@ -322,7 +319,7 @@ class MultiLabelIndexCollection(IndexCollection):
             return self.
         """
         # check validation
-        assert(isinstance(value, tuple))
+        assert (isinstance(value, tuple))
         if len(value) == 1:
             value = [(value[0], i) for i in range(self._label_size)]
             return self.update(value)
@@ -449,12 +446,12 @@ class MultiLabelIndexCollection(IndexCollection):
         >>> print('row major:', mi.get_onedim_index(order='C'))
         row major: [4, 11, 5]
         """
-        if order=='F':
+        if order == 'F':
             if ins_num is None:
                 raise ValueError("The ins_num must be provided if the order is 'F'.")
             return [tup[0] + tup[1] * ins_num for tup in self._innercontainer]
-        elif order=='C':
-            return [tup[0]*self._label_size + tup[1] for tup in self._innercontainer]
+        elif order == 'C':
+            return [tup[0] * self._label_size + tup[1] for tup in self._innercontainer]
         else:
             raise ValueError("The value of order must be one of {'C', 'F'}")
 
@@ -517,17 +514,23 @@ class MultiLabelIndexCollection(IndexCollection):
         """
         assert isinstance(mat_shape, tuple)
         if sparse:
+            try:
+                exec("from scipy.sparse import " + sparse_format)
+            except:
+                raise ValueError(
+                    "sparse format " + sparse_format + "is not defined. Valid format should be one of "
+                                                       "[bsr_matrix, coo_matrix, csc_matrix, csr_matrix, "
+                                                       "dia_matrix, dok_matrix, lil_matrix].")
             mask = eval(sparse_format + '(mat_shape)')
         else:
             if fill_value == 1:
                 mask = np.zeros(mat_shape, dtype=bool)
                 for item in self._innercontainer:
                     mask[item] = True
-                return mask
             else:
                 mask = np.zeros(mat_shape)
-        for item in self._innercontainer:
-            mask[item] = fill_value
+                for item in self._innercontainer:
+                    mask[item] = fill_value
         return mask
 
     @classmethod
@@ -604,7 +607,6 @@ class MultiLabelIndexCollection(IndexCollection):
 
         nz_row, nz_col = np.nonzero(mask)
         return cls(data=[(nz_row[i], nz_col[i]) for i in range(len(nz_row))], label_size=mask.shape[1])
-
 
 
 class FeatureIndexCollection(MultiLabelIndexCollection):

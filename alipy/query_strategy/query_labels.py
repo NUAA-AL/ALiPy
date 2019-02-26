@@ -24,7 +24,6 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.utils.multiclass import unique_labels
 
 from .base import BaseIndexQuery
-from ..utils import interface
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 from ..utils.ace_warnings import *
 
@@ -242,14 +241,52 @@ class QueryInstanceUncertainty(BaseIndexQuery):
         return entropy
 
 
-class QueryRandom(interface.BaseQueryStrategy):
-    """Randomly sample a batch of indexes from the unlabel indexes."""
+class QueryRandom(BaseIndexQuery):
+    """
+    Randomly sample a batch of indexes from the unlabel indexes.
+    The random strategy has been re-named to QueryInstanceRandom,
+    this class will be deleted in v1.0.5.
+    """
 
-    def select(self, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """Select indexes randomly.
 
         Parameters
         ----------
+        label_index: object
+            Add this parameter to ensure the consistency of api of strategies.
+            Please ignore it.
+
+        unlabel_index: collections.Iterable
+            The indexes of unlabeled set.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        if len(unlabel_index) <= batch_size:
+            return np.array([i for i in unlabel_index])
+        perm = randperm(len(unlabel_index) - 1, batch_size)
+        tpl = list(unlabel_index.index)
+        return [tpl[i] for i in perm]
+
+
+class QueryInstanceRandom(BaseIndexQuery):
+    """Randomly sample a batch of indexes from the unlabel indexes."""
+
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
+        """Select indexes randomly.
+
+        Parameters
+        ----------
+        label_index: object
+            Add this parameter to ensure the consistency of api of strategies.
+            Please ignore it.
+
         unlabel_index: collections.Iterable
             The indexes of unlabeled set.
 
@@ -662,7 +699,10 @@ class QueryInstanceQUIRE(BaseIndexQuery):
     """Querying Informative and Representative Examples (QUIRE)
 
     Query the most informative and representative examples where the metrics
-    measuring and combining are done using min-max approach.
+    measuring and combining are done using min-max approach. Note that, QUIRE is 
+    not a batch mode active learning algorithm, it will select only one instance
+    for querying at each iteration. Also, it does not need a model to evaluate the
+    unlabeled data.
 
     The implementation refers to the project: https://github.com/ntucllab/libact
 
@@ -745,8 +785,8 @@ class QueryInstanceQUIRE(BaseIndexQuery):
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
         self.L = np.linalg.inv(self.K + self.lmbda * np.eye(len(X)))
 
-    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
-        """Select indexes from the unlabel_index for querying.
+    def select(self, label_index, unlabel_index, **kwargs):
+        """Select one instance from the unlabel_index for querying.
 
         Parameters
         ----------
@@ -761,13 +801,12 @@ class QueryInstanceQUIRE(BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
-        assert (batch_size > 0)
         assert (isinstance(unlabel_index, collections.Iterable))
         assert (isinstance(label_index, collections.Iterable))
+        if len(unlabel_index) <= 1:
+            return list(unlabel_index)
         unlabel_index = np.asarray(unlabel_index)
         label_index = np.asarray(label_index)
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
 
         # build map from value to index
         label_index_in_train = [np.where(self._train_idx == i)[0][0] for i in label_index]

@@ -22,10 +22,10 @@ from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kerne
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 
-from alipy.index import IndexCollection, MultiLabelIndexCollection
-from alipy.index.multi_label_tools import get_Xy_in_multilabel
-from alipy.utils.misc import randperm
-from alipy.query_strategy.base import BaseIndexQuery, BaseMultiLabelQuery
+from ..index import IndexCollection, MultiLabelIndexCollection
+from ..index.multi_label_tools import get_Xy_in_multilabel
+from ..utils.misc import randperm
+from .base import BaseIndexQuery, BaseMultiLabelQuery
 
 
 class _LabelRankingModel_MatlabVer:
