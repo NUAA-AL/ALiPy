@@ -131,7 +131,7 @@ class QueryInstanceUncertainty(BaseIndexQuery):
         if self.X is None:
             raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
         if model is None:
-            model = LogisticRegression()
+            model = LogisticRegression(solver='lbfgs')
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
                       self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
         unlabel_x = self.X[unlabel_index, :]
@@ -394,7 +394,7 @@ class QueryInstanceQBC(BaseIndexQuery):
         if self.X is None or self.y is None:
             raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
         if model is None:
-            model = LogisticRegression()
+            model = LogisticRegression(solver='lbfgs')
             model.fit(self.X[label_index],
                       self.y[label_index])
 
@@ -667,7 +667,7 @@ class QureyExpectedErrorReduction(BaseIndexQuery):
         if self.X is None or self.y is None:
             raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
         if model is None:
-            model = LogisticRegression()
+            model = LogisticRegression(solver='lbfgs')
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
                       self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
 

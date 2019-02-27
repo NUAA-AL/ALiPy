@@ -80,7 +80,7 @@ class AlExperiment:
         index of unlabeling set, shape like [n_split_count, n_unlabeling_indexes]
     """
 
-    def __init__(self, X, y, model=LogisticRegression(), performance_metric='accuracy_score',
+    def __init__(self, X, y, model=LogisticRegression(solver='lbfgs'), performance_metric='accuracy_score',
                  stopping_criteria=None, stopping_value=None, batch_size=1, **kwargs):
         self.__custom_strategy_flag = False
         self._split = False
