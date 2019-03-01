@@ -421,8 +421,8 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     return False
         return True
 
-    def plot_learning_curves(self, x_shift=None, start_point=None, title=None, std_area=False, std_alpha=0.3,
-                             saving_path='.'):
+    def plot_learning_curves(self, x_shift=None, start_point=None, title=None, plot_interval=1,
+                             std_area=False, std_alpha=0.3, saving_path='.'):
         """plotting the performance curves.
 
         Parameters
@@ -438,6 +438,10 @@ class _NumOfQueryAnalyser(BaseAnalyser):
 
         title: str, optioanl (default=None)
             The tile of the figure.
+
+        plot_interval: int, optional (default=1)
+            The interval (x_axis) of each two data point.
+            Default is 1, which means plot each data passed to the analyser.
 
         std_area: bool, optional (default=False)
             Whether to show the std values of the performance after each query.
@@ -458,12 +462,18 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         assert len(self._data_extracted) > 0
         if self._is_all_stateio:
             self._check_plotting()
+        plot_interval = int(round(plot_interval))
 
         # plotting
         for i in self._data_extracted.keys():
             points = np.mean(self._data_extracted[i], axis=0)
+            ori_ponits_len = len(points)
             if std_area:
                 std_points = np.std(self._data_extracted[i], axis=0)
+            if plot_interval != 1:
+                points = np.asarray([points[point_ind] for point_ind in range(ori_ponits_len) if point_ind % plot_interval == 0])
+                if std_area:
+                    std_points = np.asarray([std_points[point_ind] for point_ind in range(len(std_points)) if point_ind % plot_interval == 0])
             if x_shift is None:
                 if not self._is_all_stateio or self._data_summary[i].ip is None:
                     x_shift = 1
@@ -471,14 +481,14 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     x_shift = 0
             if start_point is not None:
                 x_shift = 0
-                plt.plot(np.arange(len(points)+1) + x_shift, [start_point] + list(points), label=i)
+                plt.plot(np.arange(ori_ponits_len+1, step=plot_interval) + x_shift, [start_point] + list(points), label=i)
                 if std_area:
-                    plt.fill_between(np.arange(len(points)) + x_shift + 1, points - std_points, points + std_points,
+                    plt.fill_between(np.arange(ori_ponits_len, step=plot_interval) + x_shift + 1, points - std_points, points + std_points,
                                      interpolate=True, alpha=std_alpha)
             else:
-                plt.plot(np.arange(len(points)) + x_shift, points, label=i)
+                plt.plot(np.arange(ori_ponits_len, step=plot_interval) + x_shift, points, label=i)
                 if std_area:
-                    plt.fill_between(np.arange(len(points)) + x_shift, points - std_points, points + std_points,
+                    plt.fill_between(np.arange(ori_ponits_len, step=plot_interval) + x_shift, points - std_points, points + std_points,
                                      interpolate=True, alpha=std_alpha)
 
         # axis & title
@@ -608,7 +618,7 @@ class _CostEffectiveAnalyser(BaseAnalyser):
         same = True if len(effective_cost) == 1 else False
         return same, min(effective_cost), method_cost
 
-    def plot_learning_curves(self, x_shift=0, start_point=None, interpolate_interval=None,
+    def plot_learning_curves(self, x_shift=0, start_point=None, plot_interval=None,
                              title=None, std_area=False, std_alpha=0.3, saving_path='.'):
         """plotting the performance curves.
 
@@ -623,7 +633,7 @@ class _CostEffectiveAnalyser(BaseAnalyser):
             The value of start point. This value will added before the first data
             point for all methods. If not provided, an infer is attempted.
 
-        interpolate_interval: float, optional (default=None)
+        plot_interval: float, optional (default=None)
             The interpolate interval in plotting the cost sensitive curves.
             The interpolate is needed because the x_axis is not aligned due to the different cost of labels.
             If not provided, it will use cost_budget/100 as the default interval.
@@ -648,7 +658,7 @@ class _CostEffectiveAnalyser(BaseAnalyser):
             The matplot object.
         """
         same, effective_cost, method_cost = self._check_and_get_total_cost()
-        interplt_interval = interpolate_interval if interpolate_interval is not None else effective_cost/100
+        interplt_interval = plot_interval if plot_interval is not None else effective_cost / 100
 
         # plotting
         for i in self._data_extracted.keys():
