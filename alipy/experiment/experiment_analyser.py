@@ -514,7 +514,8 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                 plt.savefig(saving_path)
         if show:
             plt.show()
-        return plt
+        else:
+            return plt
 
     def __repr__(self):
         """summary of current methods."""
@@ -735,7 +736,8 @@ class _CostEffectiveAnalyser(BaseAnalyser):
                 plt.savefig(saving_path)
         if show:
             plt.show()
-        return plt
+        else:
+            return plt
 
     def __repr__(self):
         """summary of current methods."""
