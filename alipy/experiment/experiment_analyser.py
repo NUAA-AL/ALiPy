@@ -421,12 +421,15 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     return False
         return True
 
-    def plot_learning_curves(self, x_shift=None, start_point=None, title=None, plot_interval=1,
-                             std_area=False, std_alpha=0.3, saving_path='.'):
+    def plot_learning_curves(self, title=None, x_shift=None, start_point=None, plot_interval=1,
+                             std_area=False, std_alpha=0.3, show=True, saving_path='.'):
         """plotting the performance curves.
 
         Parameters
         ----------
+        title: str, optioanl (default=None)
+            The tile of the figure.
+
         x_shift: float, optional (default=None)
             The shift value of x_axis.
             For example, the original x_axis is np.arange(0,100,1), x_shift = 1,
@@ -435,9 +438,6 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         start_point: float, optional (default=None)
             The value of start point. This value will added before the first data
             point for all methods. If not provided, an infer is attempted.
-
-        title: str, optioanl (default=None)
-            The tile of the figure.
 
         plot_interval: int, optional (default=1)
             The interval (x_axis) of each two data point.
@@ -449,6 +449,10 @@ class _NumOfQueryAnalyser(BaseAnalyser):
         std_alpha: float, optional (default=0.3)
             The alpha value of the std shaded area.
             The smaller the value, the lighter the color.
+
+        show: bool, optional (default=True)
+            Whether to show the figure.
+            If False, it will return the matplotlib.pyplot object directly.
 
         saving_path: str, optional (default='.')
             The path to save the image.
@@ -508,7 +512,8 @@ class _NumOfQueryAnalyser(BaseAnalyser):
                     plt.savefig(os.path.join(saving_path, 'alipy_plotting.pdf'))
             else:
                 plt.savefig(saving_path)
-        plt.show()
+        if show:
+            plt.show()
         return plt
 
     def __repr__(self):
@@ -618,12 +623,15 @@ class _CostEffectiveAnalyser(BaseAnalyser):
         same = True if len(effective_cost) == 1 else False
         return same, min(effective_cost), method_cost
 
-    def plot_learning_curves(self, x_shift=0, start_point=None, plot_interval=None,
-                             title=None, std_area=False, std_alpha=0.3, saving_path='.'):
+    def plot_learning_curves(self, title=None, x_shift=0, start_point=None, plot_interval=None,
+                              std_area=False, std_alpha=0.3, show=True, saving_path='.'):
         """plotting the performance curves.
 
         Parameters
         ----------
+        title: str, optioanl (default=None)
+            The tile of the figure.
+
         x_shift: float, optional (default=0)
             The shift value of x_axis.
             For example, the original x_axis is np.arange(0,100,1), x_shift = 1,
@@ -638,15 +646,16 @@ class _CostEffectiveAnalyser(BaseAnalyser):
             The interpolate is needed because the x_axis is not aligned due to the different cost of labels.
             If not provided, it will use cost_budget/100 as the default interval.
 
-        title: str, optioanl (default=None)
-            The tile of the figure.
-
         std_area: bool, optional (default=False)
             Whether to show the std values of the performance after each query.
 
         std_alpha: float, optional (default=0.3)
             The alpha value of the std shaded area.
             The smaller the value, the lighter the color.
+
+        show: bool, optional (default=True)
+            Whether to show the figure.
+            If False, it will return the matplotlib.pyplot object directly.
 
         saving_path: str, optional (default='.')
             The path to save the image.
@@ -724,7 +733,8 @@ class _CostEffectiveAnalyser(BaseAnalyser):
                     plt.savefig(os.path.join(saving_path, 'alipy_plotting.pdf'))
             else:
                 plt.savefig(saving_path)
-        plt.show()
+        if show:
+            plt.show()
         return plt
 
     def __repr__(self):
