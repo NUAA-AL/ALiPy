@@ -1,10 +1,12 @@
 import copy
+
 from sklearn.datasets import make_classification
+
 from alipy import ToolBox
 
 X, y = make_classification(n_samples=500, n_features=20, n_informative=2, n_redundant=2,
-    n_repeated=0, n_classes=2, n_clusters_per_class=2, weights=None, flip_y=0.01, class_sep=1.0,
-    hypercube=True, shift=0.0, scale=1.0, shuffle=True, random_state=None)
+                           n_repeated=0, n_classes=2, n_clusters_per_class=2, weights=None, flip_y=0.01, class_sep=1.0,
+                           hypercube=True, shift=0.0, scale=1.0, shuffle=True, random_state=None)
 
 alibox = ToolBox(X=X, y=y, query_type='AllLabels', saving_path='.')
 
@@ -18,13 +20,21 @@ model = alibox.get_default_model()
 stopping_criterion = alibox.get_stopping_criterion('num_of_queries', 50)
 
 
-QBC_result = []
-
 def main_loop(alibox, strategy, round):
     # Get the data split of one fold experiment
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
+
+    # Set initial performance point
+    model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
+    pred = model.predict(X[test_idx, :])
+    accuracy = alibox.calc_performance_metric(y_true=y[test_idx],
+                                              y_pred=pred,
+                                              performance_metric='accuracy_score')
+    saver.set_initial_point(accuracy)
+
+    # If the stopping criterion is simple, such as query 50 times. Use `for i in range(50):` is ok.
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
         # Passing model=None to use the default model for evaluating the committees' disagreement
@@ -90,7 +100,6 @@ for round in range(5):
 
         bmdr_result.append(copy.deepcopy(main_loop(alibox, bmdr, round)))
         spal_result.append(copy.deepcopy(main_loop(alibox, spal, round)))
-
 
 analyser = alibox.get_experiment_analyser(x_axis='num_of_queries')
 analyser.add_method(method_name='QBC', method_results=qbc_result)

@@ -16,16 +16,16 @@ import os
 
 import numpy as np
 from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
 from sklearn.neighbors import kneighbors_graph
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.utils.multiclass import unique_labels
 
 from .base import BaseIndexQuery
-from ..utils.misc import nsmallestarg, randperm, nlargestarg
 from ..utils.ace_warnings import *
+from ..utils.misc import nsmallestarg, randperm, nlargestarg
 
 
 def _get_proba_pred(unlabel_x, model):
@@ -1097,6 +1097,23 @@ class QueryInstanceBMDR(BaseIndexQuery):
             raise ValueError(
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
 
+    def __getstate__(self):
+        pickle_seq = (
+            self.X,
+            self.y,
+            self._beta,
+            self._gamma,
+            self._rho,
+            self._kernel,
+            self._K
+        )
+        return pickle_seq
+
+    def __setstate__(self, state):
+        self.X, self.y, self._beta, self._gamma, self._rho, self._kernel, self._K = state
+        import cvxpy
+        self._cvxpy = cvxpy
+
     def select(self, label_index, unlabel_index, batch_size=5, qp_solver='ECOS', **kwargs):
         """Select indexes from the unlabel_index for querying.
 
@@ -1325,6 +1342,23 @@ class QueryInstanceSPAL(BaseIndexQuery):
         if self._K.shape != (len(X), len(X)):
             raise ValueError(
                 'kernel should have size (%d, %d)' % (len(X), len(X)))
+
+    def __getstate__(self):
+        pickle_seq = (
+            self.X,
+            self.y,
+            self._beta,
+            self._gamma,
+            self._rho,
+            self._kernel,
+            self._K
+        )
+        return pickle_seq
+
+    def __setstate__(self, state):
+        self.X, self.y, self._beta, self._gamma, self._rho, self._kernel, self._K = state
+        import cvxpy
+        self._cvxpy = cvxpy
 
     def select(self, label_index, unlabel_index, batch_size=5, qp_solver='ECOS', **kwargs):
         """Select indexes from the unlabel_index for querying.

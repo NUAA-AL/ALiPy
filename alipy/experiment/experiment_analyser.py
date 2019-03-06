@@ -460,8 +460,9 @@ class _NumOfQueryAnalyser(BaseAnalyser):
 
         Returns
         -------
-        plt: object
-            The matplot object.
+        plt: {matplotlib.pyplot, None}
+            If passing `show=False`, the matplot object will be returned.
+            Else, None will be returned.
         """
         assert len(self._data_extracted) > 0
         if self._is_all_stateio:
@@ -664,8 +665,9 @@ class _CostEffectiveAnalyser(BaseAnalyser):
 
         Returns
         -------
-        plt: object
-            The matplot object.
+        plt: {matplotlib.pyplot, None}
+            If passing `show=False`, the matplot object will be returned.
+            Else, None will be returned.
         """
         same, effective_cost, method_cost = self._check_and_get_total_cost()
         interplt_interval = plot_interval if plot_interval is not None else effective_cost / 100
