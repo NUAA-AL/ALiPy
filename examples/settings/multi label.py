@@ -1,26 +1,33 @@
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_iris, make_multilabel_classification
 from sklearn.preprocessing import OneHotEncoder
-from alipy.query_strategy.multi_label import *
-from alipy.index.multi_label_tools import get_Xy_in_multilabel
+
 from alipy import ToolBox
+from alipy.query_strategy.multi_label import *
 
 X, y = load_iris(return_X_y=True)
 mlb = OneHotEncoder()
-mult_y = mlb.fit_transform(y.reshape((-1,1)))
+mult_y = mlb.fit_transform(y.reshape((-1, 1)))
 mult_y = np.asarray(mult_y.todense())
+
+# Or generate a dataset with any sizes
+# X, mult_y = make_multilabel_classification(n_samples=5000, n_features=20, n_classes=5, length=5)
+
+# Since we are using the label ranking model, the label 0 means unknown. we need to
+# set the 0 entries to -1 which means irrelevant.
 mult_y[mult_y == 0] = -1
 
 alibox = ToolBox(X=X, y=mult_y, query_type='PartLabels')
 alibox.split_AL(test_ratio=0.2, initial_label_rate=0.05, all_class=False)
 
+
 def main_loop(alibox, round, strategy):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
-    query_y = mult_y.copy()
     # base model
     model = LabelRankingModel()
 
+    # A simple stopping criterion to specify the query budget.
     while len(label_ind) <= 120:
         # query and update
         select_labs = strategy.select(label_ind, unlab_ind)
@@ -33,7 +40,7 @@ def main_loop(alibox, round, strategy):
         unlab_ind.difference_update(select_labs)
 
         # train/test
-        X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y)
+        X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y, unknown_element=0)
         model.fit(X=X_tr, y=y_tr)
         pres, pred = model.predict(X[test_idx])
         perf = alibox.calc_performance_metric(y_true=mult_y[test_idx], y_pred=pred, performance_metric='hamming_loss')
@@ -44,6 +51,7 @@ def main_loop(alibox, round, strategy):
 
     return copy.deepcopy(saver)
 
+
 audi_result = []
 quire_result = []
 random_result = []
@@ -53,7 +61,7 @@ adaptive_result = []
 for round in range(5):
     # init strategies
     audi = QueryMultiLabelAUDI(X, mult_y)
-    quire = QueryMultiLabelQUIRE(X, mult_y)
+    quire = QueryMultiLabelQUIRE(X, mult_y, kernel='rbf')
     mmc = QueryMultiLabelMMC(X, mult_y)
     adaptive = QueryMultiLabelAdaptive(X, mult_y)
     random = QueryMultiLabelRandom()

@@ -23,5 +23,7 @@ m_ind = alibox.MultiLabelIndexCollection([(1, 0), (2, )])
 st = alibox.State(select_index=[1], performance=perf)
 
 # io
-alibox.save('./alibox.pkl')
-alibox = ToolBox.load(path='./alibox.pkl')
+alibox.save()
+# al_settings.pkl is the default name. To use another name, please pass a specific file name
+# to 'saving_path' parameter when initializing the ToolBox object. (e.g., saving_path='./my_file.pkl')
+alibox = ToolBox.load(path='./al_settings.pkl')

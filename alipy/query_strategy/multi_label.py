@@ -331,6 +331,12 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
     label ranking with threshold learning and use it to evaluate the unlabeled data.
     Thus it is no need to pass any model.
 
+    NOTE: QUIRE is better to be used with RBF kernel, and usually the performance is
+    good even without fine parameter tuning (that is, it is not very sensitive to
+    parameter setting, and using default parameter setting is usually fine)
+
+    Warning: QUIRE must NOT be used with linear kernel on non-textual data.
+
     Parameters
     ----------
     X: 2D array
@@ -373,7 +379,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
         # K: kernel matrix
         super(QueryMultiLabelQUIRE, self).__init__(X, y)
         self.lmbda = kwargs.pop('lambda', 1.)
-        self.kernel = kwargs.pop('kernel', 'linear')
+        self.kernel = kwargs.pop('kernel', 'rbf')
         if self.kernel == 'rbf':
             self.K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma', 1.))
         elif self.kernel == 'poly':

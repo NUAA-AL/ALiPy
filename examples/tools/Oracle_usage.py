@@ -38,7 +38,7 @@ labels, cost = oracle4.query_by_example(queried_examples=[1, 1, 1])
 labels, cost = oracle4.query_by_example(queried_examples=[4, 4, 4])
 print('444',labels, cost)
 
-# ------------Multi labe oracle-------------
+# ------------Multi label oracle-------------
 from alipy.oracle import OracleQueryMultiLabel
 mult_y = [[1, 1, 1], [0, 1, 1], [0, 1, 0]]
 moracle = OracleQueryMultiLabel(labels=mult_y)

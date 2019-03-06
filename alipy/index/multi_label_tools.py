@@ -232,7 +232,7 @@ def get_labelmatrix_in_multilabel(index, data_matrix, unknown_element=0):
 
 
 def get_Xy_in_multilabel(index, X, y, unknown_element=0):
-    """get data matrix by giving index in multi-label setting.
+    """get data matrix by giving the indexes of known instance-label pairs in multi-label setting.
 
     Note:
     Each index should be a tuple, with the first element representing instance index.
@@ -247,8 +247,9 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
     Parameters
     ----------
     index: {list, np.ndarray, tuple, MultiLabelIndexCollection}
+        The indexes of known instance-label pairs.
         if only one index, a tuple is expected.
-        Otherwise, it should be a list type with n tuples.
+        Otherwise, it should be a list type with n tuples or MultiLabelIndexCollection object.
 
     X:  array-like
         array with [n_samples, n_features].

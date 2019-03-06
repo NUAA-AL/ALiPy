@@ -706,6 +706,12 @@ class QueryInstanceQUIRE(BaseIndexQuery):
 
     The implementation refers to the project: https://github.com/ntucllab/libact
 
+    NOTE: QUIRE is better to be used with RBF kernel, and usually the performance is
+    good even without fine parameter tuning (that is, it is not very sensitive to
+    parameter setting, and using default parameter setting is usually fine)
+
+    Warning: QUIRE must NOT be used with linear kernel on non-textual data.
+
     Parameters
     ----------
     X: 2D array

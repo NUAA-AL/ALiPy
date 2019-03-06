@@ -12,6 +12,11 @@ acethread = aceThreading(examples=X, labels=y,
                          label_index=lab, unlabel_index=unlab,
                          max_thread=None, refresh_interval=1, saving_path='.')
 
+# You can also use a ToolBox object to initialize an aceThreading() object without passing redundant parameters.
+# # initializing a ToolBox object first here.
+# acethread = alibox.get_ace_threading(target_function=target_func)
+# acethread.start_all_threads()
+
 from sklearn import linear_model
 from alipy.experiment import State
 from alipy.query_strategy import QueryInstanceQBC
