@@ -146,8 +146,8 @@ class AlExperiment:
             self._query_function = strategy(self._X, self._y, **kwargs)
         else:
             # a pre-defined strategy in ALiPy
-            if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', \
-                                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE', \
+            if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QueryInstanceRandom',
+                                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
                                 'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL']:
                 raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
                                           'method name or privide a callable object.'.format(str(strategy)))
@@ -160,7 +160,7 @@ class AlExperiment:
                 elif strategy == 'QueryInstanceUncertainty':
                     measure = kwargs.pop('measure', 'entropy')
                     self._query_function = QueryInstanceUncertainty(self._X, self._y, measure)
-                elif strategy == 'QueryInstanceRandom':
+                elif strategy == 'QueryInstanceRandom' or strategy == 'QueryRandom':
                     self._query_function = QueryInstanceRandom(self._X, self._y)
                 elif strategy == 'QureyExpectedErrorReduction':
                     self._query_function = QureyExpectedErrorReduction(self._X, self._y)
