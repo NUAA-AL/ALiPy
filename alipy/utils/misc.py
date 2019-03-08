@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, \
     rbf_kernel
 from sklearn.utils.validation import check_array
+from .interface import BaseCollection
 
 def check_matrix(matrix):
     """check if the given matrix is legal."""
@@ -216,13 +217,13 @@ def check_one_to_one_correspondence(*args):
             if first_not_none:
                 # record item type
                 first_not_none = False
-                if_array = isinstance(item, (list, np.ndarray))
+                if_array = isinstance(item, (list, np.ndarray, BaseCollection))
                 if if_array:
                     itemlen = len(item)
                 else:
                     itemlen = 1
             else:
-                if isinstance(item, (list, np.ndarray)):
+                if isinstance(item, (list, np.ndarray, BaseCollection)):
                     if len(item) != itemlen:
                         return False
                 else:
@@ -238,7 +239,7 @@ def unpack(*args):
     """
     ret_args = []
     for arg in args:
-        if isinstance(arg, (list, np.ndarray)):
+        if isinstance(arg, (list, np.ndarray, BaseCollection)):
             if len(arg) == 1:
                 ret_args.append(arg[0])
             else:
