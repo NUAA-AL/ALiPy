@@ -951,7 +951,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
            Classification." IJCAI. 2013.
     """
 
-    def __init__(self, X, y, base_clf=LogisticRegression(solver='lbfgs'), betas=None, random_state=None):
+    def __init__(self, X, y, base_clf=LogisticRegression(solver='liblinear'), betas=None, random_state=None):
         super(QueryMultiLabelAdaptive, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)

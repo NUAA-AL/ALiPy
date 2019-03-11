@@ -18,7 +18,7 @@ tr, te, lab, unlab = split_features(feature_matrix=X, test_ratio=0.3, missing_ra
                                     split_count=10, saving_path=None)
 
 # Use the default Logistic Regression classifier
-model = LogisticRegression(solver='lbfgs')
+model = LogisticRegression(solver='liblinear')
 
 # The cost budget is 50 times querying
 stopping_criterion = StoppingCriteria('num_of_queries', 50)

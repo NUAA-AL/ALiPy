@@ -246,7 +246,7 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
         """
 
         if model is None:
-            model = LogisticRegression(solver='lbfgs')
+            model = LogisticRegression(solver='liblinear')
             model.fit(self.X[label_index], self.y[label_index])
         pred_unlab, _ = _get_proba_pred(self.X[unlabel_index], model)
 
@@ -404,7 +404,7 @@ class QueryNoisyOraclesSelectInstanceUncertainty(BaseNoisyOracleQuery):
             The selected oracles for querying.
         """
         if model is None:
-            model = LogisticRegression(solver='lbfgs')
+            model = LogisticRegression(solver='liblinear')
             model.fit(self.X[label_index], self.y[label_index])
         pred_unlab, _ = _get_proba_pred(self.X[unlabel_index], model)
 
