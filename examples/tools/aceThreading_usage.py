@@ -28,7 +28,7 @@ def target_func(round, train_id, test_id, Lcollection, Ucollection, saver, examp
     # your query strategy
     qs = QueryInstanceQBC(examples, labels, disagreement='vote_entropy')
     # your model
-    reg = linear_model.LogisticRegression(solver='lbfgs')
+    reg = linear_model.LogisticRegression(solver='liblinear')
     reg.fit(X=examples[Lcollection.index, :], y=labels[Lcollection.index])
     # stopping criterion
     while len(Ucollection) > 30:
