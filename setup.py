@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='alipy',
-    version='1.0.2',
+    version='1.0.3',
     description='Active Learning in Python',
     long_description=open('README.md', encoding='UTF-8').read(),
     author='Ying-Peng Tang, Guo-Xiang Li, Sheng-Jun Huang',

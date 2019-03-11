@@ -208,7 +208,7 @@ class ElementRepository(BaseRepository):
         ----------
         indexes: array-like or object
             The indexes used for retrieving.
-            Note that, if you want to retrieve by 2 or more indexes, a list or np.ndarray is expected.
+            Note that, if you want to retrieve by 2 or more indexes, a list, np.ndarray or BaseCollection is expected.
             Otherwise, it will be treated as only one index.
 
         Returns
@@ -479,7 +479,7 @@ class MatrixRepository(BaseRepository):
 
         Parameters
         ----------
-        indexes: {list, numpy.ndarray}
+        indexes: {list, numpy.ndarray, BaseCollection}
             The indexes used for retrieving.
             Note that, if you want to retrieve by 2 or more indexes, a list of int is expected.
 

@@ -23,7 +23,7 @@ class State:
     Parameters
     ----------
     select_index: array-like or object
-        If multiple select_index are provided, it should be a list or np.ndarray type.
+        If multiple select_index are provided, it should be a list, np.ndarray or BaseCollection type.
         otherwise, it will be treated as only one pair for adding.
 
     performance: array-like or object
