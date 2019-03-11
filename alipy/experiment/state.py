@@ -14,7 +14,7 @@ import copy
 import numpy as np
 
 from ..utils.ace_warnings import *
-
+from ..utils.interface import BaseCollection
 
 class State:
     """A class to store information in one iteration of active learning
@@ -23,7 +23,7 @@ class State:
     Parameters
     ----------
     select_index: array-like or object
-        If multiple select_index are provided, it should be a list or np.ndarray type.
+        If multiple select_index are provided, it should be a list, np.ndarray or BaseCollection type.
         otherwise, it will be treated as only one pair for adding.
 
     performance: array-like or object
@@ -37,7 +37,7 @@ class State:
     """
 
     def __init__(self, select_index, performance, queried_label=None, cost=None):
-        if not isinstance(select_index, (list, np.ndarray)):
+        if not isinstance(select_index, (list, np.ndarray, BaseCollection)):
             select_index = [select_index]
 
         self._save_seq = dict()

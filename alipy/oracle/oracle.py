@@ -154,7 +154,7 @@ class Oracle(interface.BaseVirtualOracle):
             and is one-to-one correspondence of y, default is 1.
         """
         labels, indexes, examples, cost = unpack(labels, indexes, examples, cost)
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, interface.BaseCollection)):
             self._add_one_entry(labels, indexes, examples, cost)
         else:
             if not check_one_to_one_correspondence(labels, indexes, examples, cost):
@@ -180,7 +180,7 @@ class Oracle(interface.BaseVirtualOracle):
         cost: list
             corresponding cost produced by query.
         """
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, interface.BaseCollection)):
             indexes = [indexes]
         sup_info = []
         cost = []

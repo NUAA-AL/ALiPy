@@ -25,7 +25,7 @@ import prettytable as pt
 from sklearn.utils.validation import check_array
 
 from ..utils.ace_warnings import *
-from ..utils.interface import BaseRepository
+from ..utils.interface import BaseRepository, BaseCollection
 from ..utils.misc import _is_arraylike, check_one_to_one_correspondence
 from ..index.index_collections import IndexCollection, MultiLabelIndexCollection
 from ..utils.misc import unpack
@@ -191,7 +191,7 @@ class ElementRepository(BaseRepository):
             raise ValueError("Different length of parameters found. "
                              "They should have the same length and is one-to-one correspondence.")
         labels, indexes, cost, examples = unpack(labels, indexes, cost, examples)
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, BaseCollection)):
             self.add(label=labels, select_index=indexes, cost=cost, example=examples)
         else:
             for i in range(len(labels)):
@@ -208,7 +208,7 @@ class ElementRepository(BaseRepository):
         ----------
         indexes: array-like or object
             The indexes used for retrieving.
-            Note that, if you want to retrieve by 2 or more indexes, a list or np.ndarray is expected.
+            Note that, if you want to retrieve by 2 or more indexes, a list, np.ndarray or BaseCollection is expected.
             Otherwise, it will be treated as only one index.
 
         Returns
@@ -219,7 +219,7 @@ class ElementRepository(BaseRepository):
         y: array-like
             The retrieved labels.
         """
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, BaseCollection)):
             indexes = [indexes]
         example_arr = []
         label_arr = []
@@ -422,7 +422,7 @@ class MatrixRepository(BaseRepository):
             raise ValueError("Different length of parameters found. "
                              "They should have the same length and is one-to-one correspondence.")
         labels, indexes, cost, examples = unpack(labels, indexes, cost, examples)
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, BaseCollection)):
             self.add(label=labels, select_index=indexes, cost=cost, example=examples)
         else:
             for i in range(len(indexes)):
@@ -479,7 +479,7 @@ class MatrixRepository(BaseRepository):
 
         Parameters
         ----------
-        indexes: {list, numpy.ndarray}
+        indexes: {list, numpy.ndarray, BaseCollection}
             The indexes used for retrieving.
             Note that, if you want to retrieve by 2 or more indexes, a list of int is expected.
 
@@ -491,7 +491,7 @@ class MatrixRepository(BaseRepository):
         y: array-like
             The retrieved labels.
         """
-        if not isinstance(indexes, (list, np.ndarray)):
+        if not isinstance(indexes, (list, np.ndarray, BaseCollection)):
             ind = np.argwhere(self._indexes == indexes)  # will return empty array if not found.
             if not ind:
                 warnings.warn("Index %s for retrieving is not in the repository, skip." % str(indexes),
