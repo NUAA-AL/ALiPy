@@ -933,7 +933,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
         
     base_clf : ContinuousModel object instance
         The base learner for binary relavance should support predict_proba() method.
-        Such as sklearn.linear_model.LogisticRegression(solver='lbfgs').
+        Such as sklearn.linear_model.LogisticRegression(solver='liblinear').
 
     betas : list of float, 0 <= beta <= 1, default: [0., 0.1, ..., 0.9, 1.]
         List of trade-off parameter that balances the relative importance
@@ -950,7 +950,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
            Classification." IJCAI. 2013.
     """
 
-    def __init__(self, X, y, base_clf=LogisticRegression(solver='lbfgs'), betas=None, random_state=None):
+    def __init__(self, X, y, base_clf=LogisticRegression(solver='liblinear'), betas=None, random_state=None):
         super(QueryMultiLabelAdaptive, self).__init__(X, y)
 
         self.n_samples, self.n_labels = np.shape(self.y)

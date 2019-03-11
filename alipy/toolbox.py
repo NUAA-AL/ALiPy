@@ -417,9 +417,9 @@ class ToolBox:
 
     def get_default_model(self):
         """ 
-        return the LogisticRegression(solver='lbfgs') implemented by the sklearn.
+        return the LogisticRegression(solver='liblinear') implemented by the sklearn.
         """
-        return LogisticRegression(solver='lbfgs')
+        return LogisticRegression(solver='liblinear')
 
     def get_stopping_criterion(self, stopping_criteria=None, value=None):
         """Return example stopping criterion.
