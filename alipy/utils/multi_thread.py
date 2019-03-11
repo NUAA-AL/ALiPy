@@ -111,7 +111,8 @@ class aceThreading:
         target_function: function
         """
         # check target function validity
-        argname = inspect.getfullargspec(target_function)[0]
+        # argname = inspect.getfullargspec(target_function)[0]  # only available in python3
+        argname = target_function.__code__.co_varnames
         for name1 in ['round', 'train_id', 'test_id', 'Ucollection', 'Lcollection', 'saver', 'examples', 'labels',
                       'global_parameters']:
             if name1 not in argname:
