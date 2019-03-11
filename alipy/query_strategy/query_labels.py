@@ -1353,16 +1353,19 @@ class QueryInstanceSPAL(BaseIndexQuery):
         pickle_seq = (
             self.X,
             self.y,
-            self._beta,
+            self._mu,
             self._gamma,
             self._rho,
+            self._lambda,
+            self._lambda_init,
+            self._lambda_pace,
             self._kernel,
             self._K
         )
         return pickle_seq
 
     def __setstate__(self, state):
-        self.X, self.y, self._beta, self._gamma, self._rho, self._kernel, self._K = state
+        self.X, self.y, self._mu, self._gamma, self._rho, self._lambda, self._lambda_init, self._lambda_pace, self._kernel, self._K = state
         import cvxpy
         self._cvxpy = cvxpy
 
