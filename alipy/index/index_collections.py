@@ -78,7 +78,8 @@ class IndexCollection(BaseCollection):
                 raise TypeError("Different types found in the given _indexes.")
             tmp_data = self._innercontainer[0]
             if isinstance(tmp_data, np.generic):
-                self._element_type = type(np.asscalar(tmp_data))
+                # self._element_type = type(np.asscalar(tmp_data))    # deprecated in numpy v1.16
+                self._element_type = type(tmp_data.item())
             else:
                 self._element_type = type(tmp_data)
 
@@ -125,7 +126,8 @@ class IndexCollection(BaseCollection):
             self._element_type = type(value)
         # check validation
         if isinstance(value, np.generic):
-            value = np.asscalar(value)
+            # value = np.asscalar(value)  # deprecated in numpy v1.16
+            value = value.item()
         if not isinstance(value, self._element_type):
             raise TypeError(
                 "A %s parameter is expected, but received: %s" % (str(self._element_type), str(type(value))))
