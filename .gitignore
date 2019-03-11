@@ -24,3 +24,5 @@ gitcmd.txt
 .pytest_cache
 .history
 .test
+*.pyc
+build

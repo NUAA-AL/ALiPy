@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 StateIO
 Container to store state object.
@@ -13,8 +14,9 @@ Several useful functions are implemented in this class:
 # License: BSD 3 clause
 
 from __future__ import division
+from __future__ import print_function
 
-import collections.abc
+import collections
 import copy
 import os
 import pickle

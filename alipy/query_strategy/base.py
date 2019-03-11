@@ -9,8 +9,10 @@ from ..oracle import Oracle, Oracles
 from ..utils.interface import BaseQueryStrategy
 
 
-class BaseIndexQuery(BaseQueryStrategy, metaclass=ABCMeta):
+class BaseIndexQuery(BaseQueryStrategy):
     """The base class for the selection method which imposes a constraint on the parameters of select()"""
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
@@ -29,7 +31,10 @@ class BaseIndexQuery(BaseQueryStrategy, metaclass=ABCMeta):
         """
 
 
-class BaseNoisyOracleQuery(BaseQueryStrategy, metaclass=ABCMeta):
+class BaseNoisyOracleQuery(BaseQueryStrategy):
+
+    __metaclass__ = ABCMeta
+
     def __init__(self, X, y, oracles):
         super(BaseNoisyOracleQuery, self).__init__(X, y)
         if isinstance(oracles, list):
@@ -61,8 +66,10 @@ class BaseNoisyOracleQuery(BaseQueryStrategy, metaclass=ABCMeta):
         """
 
 
-class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
+class BaseMultiLabelQuery(BaseIndexQuery):
     """Base query strategy for multi label setting."""
+
+    __metaclass__ = ABCMeta
 
     def _check_multi_label_ind(self, container):
         """Check if the given array is an array of multi label indexes."""
@@ -122,9 +129,12 @@ class BaseMultiLabelQuery(BaseIndexQuery, metaclass=ABCMeta):
         """
 
 
-class BaseFeatureQuery(BaseIndexQuery, metaclass=ABCMeta):
+class BaseFeatureQuery(BaseIndexQuery):
     """Base query strategy for feature querying setting.
     Basically have the same api with multi label setting."""
+
+    __metaclass__ = ABCMeta
+
     def _check_mask(self, mask):
         mask = np.asarray(mask)
         ue = np.unique(mask)

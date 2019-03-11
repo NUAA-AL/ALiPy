@@ -15,7 +15,7 @@ from sklearn.utils.validation import check_X_y
 from .ace_warnings import *
 
 
-class BaseQueryStrategy(metaclass=ABCMeta):
+class BaseQueryStrategy:
     """Base query class.
 
     The parameters and global const are set in __init__()
@@ -28,6 +28,8 @@ class BaseQueryStrategy(metaclass=ABCMeta):
     which uses the information of test set, the train_idx of the
     data set should be given in initializing.
     """
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, X=None, y=None, **kwargs):
         if X is not None and y is not None:
@@ -67,7 +69,7 @@ class BaseQueryStrategy(metaclass=ABCMeta):
         #     pass
 
 
-class BaseVirtualOracle(metaclass=ABCMeta):
+class BaseVirtualOracle:
     """
     Basic class of virtual Oracle for experiment
 
@@ -75,6 +77,8 @@ class BaseVirtualOracle(metaclass=ABCMeta):
     When querying, the queried_index should be one of the key in the dictionary.
     And the label which corresponds to the key will be returned.
     """
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def query_by_index(self, indexes):
@@ -92,7 +96,7 @@ class BaseVirtualOracle(metaclass=ABCMeta):
         pass
 
 
-class BaseCollection(metaclass=ABCMeta):
+class BaseCollection:
     """The basic container of indexes.
 
     Functions include:
@@ -100,6 +104,8 @@ class BaseCollection(metaclass=ABCMeta):
     2. Discard existed indexes.
     3. Validity checking. (Repeated element, etc.)
     """
+
+    __metaclass__ = ABCMeta
     _innercontainer = None
     _element_type = None
 
@@ -144,7 +150,7 @@ class BaseCollection(metaclass=ABCMeta):
         self._innercontainer.clear()
 
 
-class BaseRepository(metaclass=ABCMeta):
+class BaseRepository:
     """Base knowledge repository
     Store the information given by the oracle (labels, cost, etc.).
 
@@ -153,6 +159,8 @@ class BaseRepository(metaclass=ABCMeta):
     2. History recording
     3. Get labeled set for training model
     """
+
+    __metaclass__ = ABCMeta
 
     def __getitem__(self, index):
         """Same function with retrieve by index.
@@ -212,7 +220,7 @@ class BaseRepository(metaclass=ABCMeta):
         pass
 
 
-class BaseAnalyser(metaclass=ABCMeta):
+class BaseAnalyser:
     """Base Analyser class for analysing experiment result.
 
     Functions include various validity checking and visualizing of the given data.
@@ -226,6 +234,8 @@ class BaseAnalyser(metaclass=ABCMeta):
           element is the x_axis (e.g., iteration, cost),
           and the second element is the y_axis (e.g., the performance)
     """
+
+    __metaclass__ = ABCMeta
 
     def __init__(self):
         # The data extracted from the original data.

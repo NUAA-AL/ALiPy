@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Class to gathering, process and visualize active learning experiment results.
 """

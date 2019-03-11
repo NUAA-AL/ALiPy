@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 """
 Pre-defined classical query strategy.
 
@@ -9,6 +11,7 @@ References:
 # License: BSD 3 clause
 
 from __future__ import division
+from __future__ import print_function
 
 import collections
 import copy

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
 from setuptools import setup
 
@@ -6,7 +6,7 @@ setup(
     name='alipy',
     version='1.0.3',
     description='Active Learning in Python',
-    long_description=open('README.md', encoding='UTF-8').read(),
+    long_description=open('README.md').read(),
     author='Ying-Peng Tang, Guo-Xiang Li, Sheng-Jun Huang',
     author_email='tangyp@nuaa.edu.cn, GuoXiangLi@nuaa.edu.cn, huangsj@nuaa.edu.cn',
     url='https://github.com/NUAA-AL/ALiPy',

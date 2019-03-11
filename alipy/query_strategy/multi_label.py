@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Implement query strategies for multi-label setting.
 

@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Pre-defined query strategy for noisy oracles.
 
@@ -372,8 +373,10 @@ class QueryNoisyOraclesCEAL(BaseNoisyOracleQuery):
         return Q_table, self._oracle_ind_name_dict
 
 
-class QueryNoisyOraclesSelectInstanceUncertainty(BaseNoisyOracleQuery, metaclass=ABCMeta):
+class QueryNoisyOraclesSelectInstanceUncertainty(BaseNoisyOracleQuery):
     """This class implement select and select_by_prediction_mat by uncertainty."""
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, X=None, y=None, oracles=None):
         super(QueryNoisyOraclesSelectInstanceUncertainty, self).__init__(X=X, y=y, oracles=oracles)
