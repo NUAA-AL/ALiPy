@@ -1037,11 +1037,13 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
             pos = np.copy(br_real)
             pos[br_real < 0] = 1
             pos = np.max((1. - pos), axis=1)
+            pos = np.array([0 if i<0 else i for i in pos])
 
             neg = np.copy(br_real)
             neg[br_real > 0] = -1
             neg = np.max((1. + neg), axis=1)
-
+            neg = np.array([0 if i<0 else i for i in neg])
+            
             err = neg + pos
 
             approx_err.append(np.sum(err))
