@@ -52,8 +52,8 @@ class Oracle(interface.BaseVirtualOracle):
 
         labels = check_array(labels, ensure_2d=False, dtype=None)
         if isinstance(labels[0], np.generic):
-            # self._label_type = type(np.asscalar(labels[0]))
-            self._label_type = type(labels[0].item())   # for numpy version > 1.16
+            # self._label_type = type(np.asscalar(labels[0])) # deprecated in numpy v1.16
+            self._label_type = type(labels[0].item())
         else:
             self._label_type = type(labels[0])
         self._label_dim = labels.ndim
@@ -110,8 +110,8 @@ class Oracle(interface.BaseVirtualOracle):
             and is one-to-one correspondence of y, default is 1.
         """
         if isinstance(label, np.generic):
-            # label = np.asscalar(label)
-            label = label.item()    # for numpy version > 1.16
+            # label = np.asscalar(label)    # deprecated in numpy v1.16
+            label = label.item()
         if isinstance(label, list):
             label = np.array(label)
         if not isinstance(label, self._label_type):

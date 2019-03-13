@@ -69,8 +69,8 @@ def randperm(n, k=None):
         the generated array.
     """
     if isinstance(n, np.generic):
-        # n = np.asscalar(n)
-        n=n.item()  # for numpy version > 1.16
+        # n = np.asscalar(n)  # deprecated in numpy v1.16
+        n = n.item()
     if isinstance(n, tuple):
         if n[0] is not None:
             start = n[0]

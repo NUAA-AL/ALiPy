@@ -54,9 +54,7 @@ class StoppingCriteria:
             raise ValueError("Stopping criteria must be one of: [None, 'num_of_queries', 'cost_limit', 'percent_of_unlabel', 'time_limit']")
         self._stopping_criteria = stopping_criteria
         if isinstance(value, np.generic):
-            # python3
-            # value = np.asscalar(value)
-            # python2 for numpy version > 1.16
+            # value = np.asscalar(value)    # deprecated in numpy v1.16
             value = value.item()
 
         if stopping_criteria == 'num_of_queries':

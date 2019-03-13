@@ -250,6 +250,10 @@ class QueryRandom(BaseIndexQuery):
     The random strategy has been re-named to QueryInstanceRandom,
     this class will be deleted in v1.0.5.
     """
+    def __init__(self, X=None, y=None):
+        warnings.warn("QueryRandom will be deleted in the future. Use QueryInstanceRandom instead.",
+                      category=DeprecationWarning)
+        super(QueryRandom, self).__init__(X, y)
 
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """Select indexes randomly.
@@ -1356,16 +1360,19 @@ class QueryInstanceSPAL(BaseIndexQuery):
         pickle_seq = (
             self.X,
             self.y,
-            self._beta,
+            self._mu,
             self._gamma,
             self._rho,
+            self._lambda,
+            self._lambda_init,
+            self._lambda_pace,
             self._kernel,
             self._K
         )
         return pickle_seq
 
     def __setstate__(self, state):
-        self.X, self.y, self._beta, self._gamma, self._rho, self._kernel, self._K = state
+        self.X, self.y, self._mu, self._gamma, self._rho, self._lambda, self._lambda_init, self._lambda_pace, self._kernel, self._K = state
         import cvxpy
         self._cvxpy = cvxpy
 
