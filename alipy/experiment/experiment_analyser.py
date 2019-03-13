@@ -514,7 +514,12 @@ class _NumOfQueryAnalyser(BaseAnalyser):
             else:
                 plt.savefig(saving_path)
         if show:
-            plt.show()
+            try:
+                # show before draw will raise an error in some versions of matplotlib
+                plt.show()
+            except:
+                plt.draw()
+                plt.show()
         else:
             return plt
 
@@ -737,7 +742,12 @@ class _CostEffectiveAnalyser(BaseAnalyser):
             else:
                 plt.savefig(saving_path)
         if show:
-            plt.show()
+            try:
+                # show before draw will raise an error in some versions of matplotlib
+                plt.show()
+            except:
+                plt.draw()
+                plt.show()
         else:
             return plt
 
