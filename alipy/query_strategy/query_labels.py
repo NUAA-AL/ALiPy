@@ -247,6 +247,10 @@ class QueryRandom(BaseIndexQuery):
     The random strategy has been re-named to QueryInstanceRandom,
     this class will be deleted in v1.0.5.
     """
+    def __init__(self, X=None, y=None):
+        warnings.warn("QueryRandom will be deleted in the future. Use QueryInstanceRandom instead.",
+                      category=DeprecationWarning)
+        super(QueryRandom, self).__init__(X, y)
 
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """Select indexes randomly.

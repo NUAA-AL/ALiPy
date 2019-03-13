@@ -6,15 +6,15 @@ from alipy.oracle import MatrixRepository
 
 # Your labeled set
 X_lab = np.random.randn(100, 10)
-y_lab =np.random.randint(low=0, high=2, size=100)
+y_lab = np.random.randint(low=0, high=2, size=100)
 # The unlabeled pool, the labels of unlabeled data can be anything. The algorithm will not use them.
 X_unlab = np.random.rand(100,10)
 y_place_holder = np.random.randint(low=0, high=2, size=100)
 
 # Initialize a query strategy.
 unc = QueryInstanceUncertainty(X=np.vstack((X_unlab, X_lab)), y=np.hstack((y_place_holder, y_lab)))
-unlab_ind = IndexCollection(np.arange(100))   # Indexes of your test set for querying
-label_ind = IndexCollection(np.arange(start=100, stop=200))  # Indexes of your train set
+unlab_ind = IndexCollection(np.arange(100))   # Indexes of your unlabeled set for querying
+label_ind = IndexCollection(np.arange(start=100, stop=200))  # Indexes of your labeled set
 labeled_repo = MatrixRepository(examples=X_lab, labels=y_lab, indexes=label_ind)   # Create a repository to store the labeled instances
 
 # Initialize your model
@@ -30,6 +30,7 @@ for i in range(50):
 
     # Label the selected instance here
     selected_instance = X_unlab[select_ind]
+    # Replace this line with your own labeling code ! But not always labeling instances with 1.
     lab_of_ins = 1
 
     # Add the labeled example to the repo
@@ -40,7 +41,7 @@ for i in range(50):
     model.fit(X_lab, y_lab)
 
     # if you are using default model (model=None), update the label matrix of the query strategy here
-    # unc.y[select_ind] = lab_of_ins
+    unc.y[select_ind] = lab_of_ins
 
 # See the information of your labeling history
 print(labeled_repo.full_history())
