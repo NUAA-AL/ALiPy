@@ -18,7 +18,7 @@ label_ind = IndexCollection(np.arange(start=100, stop=200))  # Indexes of your l
 labeled_repo = MatrixRepository(examples=X_lab, labels=y_lab, indexes=label_ind)   # Create a repository to store the labeled instances
 
 # Initialize your model
-model = LogisticRegression()
+model = LogisticRegression(solver='liblinear')
 model.fit(X_lab, y_lab)
 
 # Set the stopping criterion
@@ -36,14 +36,14 @@ for i in range(50):
     # Add the labeled example to the repo
     labeled_repo.update_query(labels=lab_of_ins, indexes=select_ind, examples=selected_instance)
 
-    # if you are using your own model, update your model here, and pass it to unc.select()
+    # If you are using your own model, update your model here, and pass it to unc.select()
     X_tr, y_tr, ind = labeled_repo.get_training_data()
     model.fit(X_lab, y_lab)
 
-    # if you are using default model (model=None), update the label matrix of the query strategy here
+    # Update the label matrix of the query strategy here in just case that the algorithm may use the labels of labeled set
     unc.y[select_ind] = lab_of_ins
 
-# See the information of your labeling history
+# Display the labeling history
 print(labeled_repo.full_history())
 
 import pickle
