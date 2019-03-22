@@ -4,10 +4,13 @@ import os
 import pickle
 import threading
 import time
-
+import numpy as np
 import prettytable as pt
 
 from ..experiment import StateIO
+from ..index import IndexCollection, MultiLabelIndexCollection
+from ..index.multi_label_tools import check_index_multilabel
+from ..utils.interface import BaseCollection
 
 class aceThreading:
     """This class implement multi-threading in active learning for multiple 
@@ -78,10 +81,25 @@ class aceThreading:
         self._round_num = len(label_index)
         self.__threads = []
         # for monitoring __threads' progress
-        self._saver = [
-            StateIO(round=i, train_idx=self._train_idx[i], test_idx=self._test_idx[i], init_U=self._unlabel_index[i],
-                    init_L=self._label_index[i], saving_path=os.path.join(self._saving_path, 'AL_result'),
-                    verbose=False) for i in range(self._round_num)]
+        self._saver = []
+        for i in range(self._round_num):
+            if isinstance(self._unlabel_index[i], BaseCollection) and isinstance(self._label_index[i], BaseCollection):
+                init_U = copy.deepcopy(self._unlabel_index[i])
+                init_L = copy.deepcopy(self._label_index[i])
+            else:
+                try:
+                    check_index_multilabel(self._label_index[i])
+                    check_index_multilabel(self._unlabel_index[i])
+                    assert len(np.shape(self._labels)) > 1, 'The label matrix should be a 2D array for mult label indexes.'
+                    init_U = copy.deepcopy(MultiLabelIndexCollection(self._unlabel_index[i], label_size=np.shape(self._labels)[1]))
+                    init_L = copy.deepcopy(MultiLabelIndexCollection(self._label_index[i], label_size=np.shape(self._labels)[1]))
+                except TypeError:
+                    init_U = copy.deepcopy(IndexCollection(self._unlabel_index[i]))
+                    init_L = copy.deepcopy(IndexCollection(self._label_index[i]))
+            self._saver.append(StateIO(round=i, train_idx=self._train_idx[i], test_idx=self._test_idx[i], init_U=init_U,
+                        init_L=init_L, saving_path=os.path.join(self._saving_path, 'AL_result'),
+                        verbose=False))
+
         if max_thread is None:
             self.__max_thread = self._round_num
         else:
