@@ -299,7 +299,7 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
             self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
             self._max_query = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
 
-    def fit(self, X, y, n_repeat=10):
+    def fit(self, X, y, n_repeat=10, is_incremental=False):
         """Train the model from X and y.
 
         Parameters
@@ -312,13 +312,27 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
 
         n_repeat: int, optional (default=10)
             The number of optimization iterations.
+
+        is_incremental: bool, optional (default=10)
+            Whether to train the model in an incremental way.
         """
-        if self._init_flag is False:
+        if is_incremental:
+            if self._init_flag is False:
+                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+                self._max_query = self.init_model_train(X, y, n_repeat=n_repeat)
+                self._init_flag = True
+            else:
+                for i in range(n_repeat):
+                    self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
+                        X, y, self._B, self._V, self._costs, self._norm_up,
+                        self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
+                        self._lmbda, self._avg_begin, self._avg_size)
+        else:
+            # re-initialize the model parameter
             self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
             self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
             self._max_query = self.init_model_train(X, y, n_repeat=n_repeat)
-            self._init_flag = True
-        else:
             for i in range(n_repeat):
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
                     X, y, self._B, self._V, self._costs, self._norm_up,
