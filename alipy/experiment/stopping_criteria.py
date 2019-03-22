@@ -17,6 +17,8 @@ import numpy as np
 
 from .state_io import StateIO
 
+__all__ = ['StoppingCriteria',
+           ]
 
 class StoppingCriteria:
     """Class to implement stopping criteria.

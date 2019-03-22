@@ -18,6 +18,10 @@ from ..utils.ace_warnings import *
 from ..utils.interface import BaseCollection
 from ..utils.misc import randperm
 
+__all__ = ['IndexCollection',
+           'MultiLabelIndexCollection',
+           'FeatureIndexCollection',
+           'map_whole_index_to_train']
 
 class IndexCollection(BaseCollection):
     """Index Collection.

@@ -16,6 +16,14 @@ from ..index import MultiLabelIndexCollection, flattern_multilabel_index, get_Xy
 from .base import BaseMultiLabelQuery
 from ..utils.misc import nsmallestarg
 
+__all__ = ['select_Knapsack_01',
+           'select_POSS',
+           'hierarchical_multilabel_mark',
+           'QueryCostSensitiveHALC',
+           'QueryCostSensitiveRandom',
+           'QueryCostSensitivePerformance',
+           ]
+
 def select_Knapsack_01(infor_value, costs, capacity):
     """
     Knapsack-0/1 problem using dynamic porgramming.

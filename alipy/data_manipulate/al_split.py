@@ -18,6 +18,12 @@ from ..query_strategy import check_query_type
 from ..utils.misc import check_matrix
 from ..utils.misc import randperm
 
+__all__ = ['split',
+           'split_features',
+           'split_multi_label',
+           'split_load',
+           'split_save',
+           ]
 
 def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3, initial_label_rate=0.05,
           split_count=10, all_class=True, saving_path='.'):

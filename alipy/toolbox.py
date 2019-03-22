@@ -18,6 +18,8 @@ from .oracle.oracle import OracleQueryMultiLabel, Oracle, OracleQueryFeatures
 from .query_strategy import check_query_type
 from .utils.multi_thread import aceThreading
 
+__all__ = ['ToolBox',
+           ]
 
 class ToolBox:
     """Tool box is a tool class which initializes the active learning

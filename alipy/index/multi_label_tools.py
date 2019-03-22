@@ -4,6 +4,14 @@ import numpy as np
 
 import alipy.utils
 
+__all__ = ['check_index_multilabel',
+           'infer_label_size_multilabel',
+           'flattern_multilabel_index',
+           'integrate_multilabel_index',
+           'get_labelmatrix_in_multilabel',
+           'get_Xy_in_multilabel',
+           ]
+
 
 def check_index_multilabel(index):
     """check if the given indexes are legal.

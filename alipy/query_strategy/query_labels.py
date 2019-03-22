@@ -27,6 +27,16 @@ from .base import BaseIndexQuery
 from ..utils.ace_warnings import *
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 
+__all__ = ['QueryInstanceUncertainty',
+           'QueryInstanceRandom',
+           'QueryInstanceQBC',
+           'QureyExpectedErrorReduction',
+           'QueryInstanceQUIRE',
+           'QueryInstanceGraphDensity',
+           'QueryInstanceBMDR',
+           'QueryInstanceSPAL',
+           'QueryInstanceLAL',
+           ]
 
 def _get_proba_pred(unlabel_x, model):
     """Get the probabilistic prediction results of the unlabeled set.
@@ -582,6 +592,127 @@ class QueryInstanceQBC(BaseIndexQuery):
 
 
 class QureyExpectedErrorReduction(BaseIndexQuery):
+    """The Expected Error Reduction (ERR) algorithm.
+
+    The idea is to estimate the expected future error of a model trained using label set and <x, y> on
+    the remaining unlabeled instances in U (which is assumed to be representative of
+    the test distribution, and used as a sort of validation set), and query the instance
+    with minimal expected future error (sometimes called risk)
+
+    This algorithm needs to re-train the model for multiple times.
+    So There are 2 contraints to the given model.
+    1. It is a sklearn model (or a model who implements their api).
+    2. It has the probabilistic output function predict_proba.
+
+    If your model does not meet the conditions.
+    You can use the default logistic regression model to choose the instances
+    by passing None to the model parameter.
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    References
+    ----------
+    [1] N. Roy and A. McCallum. Toward optimal active learning through sampling
+        estimation of error reduction. In Proceedings of the International Conference on
+        Machine Learning (ICML), pages 441–448. Morgan Kaufmann, 2001.
+
+    """
+
+    def __init__(self, X=None, y=None):
+        warnings.warn("QureyExpectedErrorReduction is deprecated and will be deleted in the future, "
+                      "use QueryExpectedErrorReduction instead.",
+                      category=DeprecationWarning)
+        super(QureyExpectedErrorReduction, self).__init__(X, y)
+
+    def log_loss(self, prob):
+        """Compute expected log-loss.
+
+        Parameters
+        ----------
+        prob: 2d array, shape [n_samples, n_classes]
+            The probabilistic prediction matrix for the unlabeled set.
+
+        Returns
+        -------
+        log_loss: float
+            The sum of log_loss for the prob.
+        """
+        log_loss = 0.0
+        for i in range(len(prob)):
+            for p in list(prob[i]):
+                log_loss -= p * np.log(p)
+        return log_loss
+
+    def select(self, label_index, unlabel_index, model=None, batch_size=1):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        model: object, optional (default=None)
+            Current classification model, should have the 'predict_proba' method for probabilistic output.
+            If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        assert (isinstance(label_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        label_index = np.asarray(label_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
+        # get unlabel_x
+        if self.X is None or self.y is None:
+            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
+        if model is None:
+            model = LogisticRegression(solver='liblinear')
+            model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
+                      self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
+
+        unlabel_x = self.X[unlabel_index]
+        label_y = self.y[label_index]
+        ##################################
+
+        classes = np.unique(self.y)
+        pv, spv = _get_proba_pred(unlabel_x, model)
+        scores = []
+        for i in range(spv[0]):
+            new_train_inds = np.append(label_index, unlabel_index[i])
+            new_train_X = self.X[new_train_inds, :]
+            unlabel_ind = list(unlabel_index)
+            unlabel_ind.pop(i)
+            new_unlabel_X = self.X[unlabel_ind, :]
+            score = []
+            for yi in classes:
+                new_model = copy.deepcopy(model)
+                new_model.fit(new_train_X, np.append(label_y, yi))
+                prob = new_model.predict_proba(new_unlabel_X)
+                score.append(pv[i, yi] * self.log_loss(prob))
+            scores.append(np.sum(score))
+
+        return unlabel_index[nsmallestarg(scores, batch_size)]
+
+
+class QueryExpectedErrorReduction(BaseIndexQuery):
     """The Expected Error Reduction (ERR) algorithm.
 
     The idea is to estimate the expected future error of a model trained using label set and <x, y> on

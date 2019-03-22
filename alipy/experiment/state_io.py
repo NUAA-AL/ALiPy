@@ -28,6 +28,8 @@ from ..index import IndexCollection, MultiLabelIndexCollection
 from ..index.multi_label_tools import check_index_multilabel
 from ..utils.interface import BaseCollection
 
+__all__ = ['StateIO',
+           ]
 
 class StateIO:
     """

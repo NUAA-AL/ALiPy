@@ -19,6 +19,13 @@ from ..index.multi_label_tools import check_index_multilabel
 from ..utils.ace_warnings import *
 from ..utils.misc import check_one_to_one_correspondence, unpack
 
+__all__ = ['Oracle',
+           'OracleQueryInstance',
+           'OracleQueryMultiLabel',
+           'Oracles',
+           'OracleQueryFeatures',
+           ]
+
 
 class Oracle(interface.BaseVirtualOracle):
     """Oracle in active learning whose role is to label the given query.

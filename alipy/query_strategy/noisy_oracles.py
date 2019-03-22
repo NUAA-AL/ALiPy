@@ -46,6 +46,16 @@ from .query_labels import QueryInstanceUncertainty
 from .query_labels import _get_proba_pred
 from ..oracle import Oracles, Oracle
 
+__all__ = ['majority_vote',
+           'get_query_results',
+           'get_majority_vote',
+           'QueryNoisyOraclesCEAL',
+           'QueryNoisyOraclesIEthresh',
+           'QueryNoisyOraclesAll',
+           'QueryNoisyOraclesRandom',
+           ]
+
+
 
 def majority_vote(labels, weight=None):
     """Perform majority vote to determine the true label from

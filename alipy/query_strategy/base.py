@@ -8,6 +8,11 @@ from ..index import MultiLabelIndexCollection
 from ..oracle import Oracle, Oracles
 from ..utils.interface import BaseQueryStrategy
 
+__all__ = ['BaseIndexQuery',
+           'BaseNoisyOracleQuery',
+           'BaseMultiLabelQuery',
+           'BaseFeatureQuery',
+           ]
 
 class BaseIndexQuery(BaseQueryStrategy, metaclass=ABCMeta):
     """The base class for the selection method which imposes a constraint on the parameters of select()"""

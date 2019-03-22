@@ -19,6 +19,10 @@ from .base import BaseMultiLabelQuery
 from .multi_label import LabelRankingModel
 from ..index.multi_label_tools import get_Xy_in_multilabel
 
+__all__ = ['check_query_type',
+           'QueryTypeAURO',
+           ]
+
 def check_query_type(type):
     """Check the query type.
 

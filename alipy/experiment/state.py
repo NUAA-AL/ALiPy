@@ -16,6 +16,9 @@ import numpy as np
 from ..utils.ace_warnings import *
 from ..utils.interface import BaseCollection
 
+__all__ = ['State',
+           ]
+
 class State:
     """A class to store information in one iteration of active learning
     for auditting and analysing.

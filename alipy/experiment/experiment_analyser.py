@@ -19,6 +19,9 @@ from ..utils.ace_warnings import *
 from ..utils.interface import BaseAnalyser
 from .state_io import StateIO
 
+__all__ = ['ExperimentAnalyser',
+           'StateIOContainer',
+           ]
 
 def ExperimentAnalyser(x_axis='num_of_queries'):
     """Class to gathering, process and visualize active learning experiment results.

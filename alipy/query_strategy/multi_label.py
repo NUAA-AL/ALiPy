@@ -27,6 +27,13 @@ from ..index.multi_label_tools import get_Xy_in_multilabel
 from ..utils.misc import randperm
 from .base import BaseIndexQuery, BaseMultiLabelQuery
 
+__all__ = ['LabelRankingModel',
+           'QueryMultiLabelQUIRE',
+           'QueryMultiLabelAUDI',
+           'QueryMultiLabelMMC',
+           'QueryMultiLabelAdaptive',
+           'QueryMultiLabelRandom',
+           ]
 
 class _LabelRankingModel_MatlabVer:
     """Label ranking model is a classification model in multi-label setting.

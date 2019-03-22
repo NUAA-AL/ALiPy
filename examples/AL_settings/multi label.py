@@ -1,8 +1,11 @@
+import numpy as np
+import copy
 from sklearn.datasets import load_iris, make_multilabel_classification
 from sklearn.preprocessing import OneHotEncoder
 
 from alipy import ToolBox
 from alipy.query_strategy.multi_label import *
+from alipy.index.multi_label_tools import get_Xy_in_multilabel
 
 X, y = load_iris(return_X_y=True)
 mlb = OneHotEncoder()

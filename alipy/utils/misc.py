@@ -10,6 +10,16 @@ from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, \
 from sklearn.utils.validation import check_array
 from .interface import BaseCollection
 
+__all__ = ['check_matrix',
+           'get_gaussian_kernel_mat',
+           'randperm',
+           'nlargestarg',
+           'nsmallestarg',
+           'calc_kernel_matrix',
+           'check_one_to_one_correspondence',
+           'unpack',
+           ]
+
 def check_matrix(matrix):
     """check if the given matrix is legal."""
     matrix = check_array(matrix, accept_sparse='csr', ensure_2d=False, order='C')

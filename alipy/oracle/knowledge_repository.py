@@ -30,6 +30,9 @@ from ..utils.misc import _is_arraylike, check_one_to_one_correspondence
 from ..index.index_collections import IndexCollection, MultiLabelIndexCollection
 from ..utils.misc import unpack
 
+__all__ = ['ElementRepository',
+           'MatrixRepository',
+           ]
 
 class ElementRepository(BaseRepository):
     """Class to store fine-grained (element-wise) data.

@@ -27,6 +27,8 @@ from ..index.index_collections import IndexCollection
 from ..utils.multi_thread import aceThreading
 from ..metrics import performance
 
+__all__ = ['AlExperiment',
+           ]
 
 class AlExperiment:
     """AlExperiment is a  class to encapsulate various tools

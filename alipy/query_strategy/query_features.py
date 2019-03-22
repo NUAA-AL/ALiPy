@@ -32,6 +32,13 @@ from .base import BaseFeatureQuery
 from ..index.index_collections import MultiLabelIndexCollection
 from ..utils.misc import randperm
 
+__all__ = ['AFASMC_mc',
+           'AFASMC_mask_mc',
+           'IterativeSVD_mc',
+           'QueryFeatureAFASMC',
+           'QueryFeatureRandom',
+           'QueryFeatureStability',
+           ]
 
 def _svd_threshold(svd_obj, lambdadL):
     svd_obj = np.asarray(svd_obj)

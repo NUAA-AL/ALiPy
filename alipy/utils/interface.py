@@ -14,6 +14,12 @@ from sklearn.utils.validation import check_X_y
 
 from .ace_warnings import *
 
+__all__ = ['BaseQueryStrategy',
+           'BaseVirtualOracle',
+           'BaseCollection',
+           'BaseRepository',
+           'BaseAnalyser',
+           ]
 
 class BaseQueryStrategy(metaclass=ABCMeta):
     """Base query class.
