@@ -1,12 +1,13 @@
-import numpy as np
 import copy
-from sklearn.datasets import load_iris, make_multilabel_classification
-from sklearn.preprocessing import OneHotEncoder, normalize
+
+import numpy as np
+from sklearn.datasets import load_iris
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import OneHotEncoder, normalize
 
 from alipy import ToolBox
-from alipy.query_strategy.multi_label import *
 from alipy.index.multi_label_tools import get_Xy_in_multilabel
+from alipy.query_strategy.multi_label import *
 
 X, y = load_iris(return_X_y=True)
 X = normalize(X, norm='l2')
@@ -32,16 +33,10 @@ def main_loop(alibox, round, strategy):
     saver = alibox.get_stateio(round)
     # base model
     model = LabelRankingModel()
-    # set initial point
-    model.fit(X=X[train_idx], y=mult_y[train_idx])
-    pres, pred = model.predict(X[test_idx])
-    pred[pred == -1] = 0
-    perf = f1_score(y_true=mult_y_for_metric[test_idx], y_pred=pred, average='micro')
-    saver.set_initial_point(perf)
 
     ini_lab_num = len(label_ind)
     # A simple stopping criterion to specify the query budget.
-    while len(label_ind)-ini_lab_num <= 120:
+    while len(label_ind) - ini_lab_num <= 120:
         # query and update
         select_labs = strategy.select(label_ind, unlab_ind)
         # use cost to record the amount of queried instance-label pairs
@@ -57,7 +52,7 @@ def main_loop(alibox, round, strategy):
         model.fit(X=X_tr, y=y_tr)
         pres, pred = model.predict(X[test_idx])
         # using sklearn to calc micro-f1
-        pred[pred==-1] = 0
+        pred[pred == -1] = 0
         perf = f1_score(y_true=mult_y_for_metric[test_idx], y_pred=pred, average='micro')
 
         # save
