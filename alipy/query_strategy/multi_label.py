@@ -76,7 +76,11 @@ class _LabelRankingModel_MatlabVer:
             self._init_flag = True
 
     def get_BV(self, AB, AV, Anum):
-        return (AV / Anum).T.dot(AB / Anum)
+        try:
+            bv = (AV / Anum).T.dot(AB / Anum)
+            return bv
+        except:
+            print('err')
 
     def init_model_train(self, init_data=None, init_targets=None, n_repeat=10):
         if init_data is None:
@@ -229,7 +233,7 @@ class _LabelRankingModel_MatlabVer:
                     norms = norms[norms > norm_up]
                     for k in range(len(idx_down)):
                         V[:, idx_down[k]] = V[:, idx_down[k]] * norm_up / norms[k]
-            if trounds > average_begin and i % average_size == 0:
+            if i == 0 or (trounds > average_begin and i % average_size == 0):
                 AB = AB + B
                 AV = AV + V
                 Anum = Anum + 1
@@ -271,6 +275,11 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
     0 : unknown (not use this label when updating)
 
     This class is mainly used for AURO and AUDI method for multi label querying.
+
+    !! IMPORTANT
+    1. This model is scaling sensitive. If you find the optimization process is not converge,
+    (e.g., ZeroDivisionError: division by zero, RuntimeWarning: overflow encountered in multiply,
+    or the values of BV tend to infinite.) please try to normalize your data first.
 
     Parameters
     ----------

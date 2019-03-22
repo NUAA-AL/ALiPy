@@ -410,7 +410,7 @@ class ToolBox:
 
         """
         if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss',
-                                      'one_error', 'coverage_error',
+                                      'one_error', 'coverage_error', 'f1_score'
                                       'label_ranking_loss', 'label_ranking_average_precision_score']:
             raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
 

@@ -261,38 +261,38 @@ def zero_one_loss(y_true, y_pred, normalize=True, sample_weight=None):
         return n_samples - score
 
 
-def f1_score(y_true, y_pred, pos_label=1, sample_weight=None):
-    """
-        Compute the F1 score, also known as balanced F-score or F-measure
-
-    The F1 score can be interpreted as a weighted average of the precision and
-    recall, where an F1 score reaches its best value at 1 and worst score at 0.
-    The relative contribution of precision and recall to the F1 score are
-    equal. The formula for the F1 score is::
-
-        F1 = 2 * (precision * recall) / (precision + recall)
-
-
-    Parameters
-    ----------
-    y_true : 1d array-like, or label indicator array / sparse matrix
-        Ground truth (correct) target values.
-
-    y_pred : 1d array-like, or label indicator array / sparse matrix
-        Estimated targets as returned by a classifier.
-
-    sample_weight : array-like of shape = [n_samples], optional
-        Sample weights.
-
-    Returns
-    -------
-    f1_score : float or array of float, shape = [n_unique_labels]
-
-    """
-    p, r, t = precision_recall_curve(y_true, y_pred, pos_label=pos_label,
-                           sample_weight=sample_weight)
-    
-    return 2 * (p * r) / (p + r)
+# def f1_score(y_true, y_pred, pos_label=1, sample_weight=None):
+#     """
+#         Compute the F1 score, also known as balanced F-score or F-measure
+#
+#     The F1 score can be interpreted as a weighted average of the precision and
+#     recall, where an F1 score reaches its best value at 1 and worst score at 0.
+#     The relative contribution of precision and recall to the F1 score are
+#     equal. The formula for the F1 score is::
+#
+#         F1 = 2 * (precision * recall) / (precision + recall)
+#
+#
+#     Parameters
+#     ----------
+#     y_true : 1d array-like, or label indicator array / sparse matrix
+#         Ground truth (correct) target values.
+#
+#     y_pred : 1d array-like, or label indicator array / sparse matrix
+#         Estimated targets as returned by a classifier.
+#
+#     sample_weight : array-like of shape = [n_samples], optional
+#         Sample weights.
+#
+#     Returns
+#     -------
+#     f1_score : float or array of float, shape = [n_unique_labels]
+#
+#     """
+#     p, r, t = precision_recall_curve(y_true, y_pred, pos_label=pos_label,
+#                            sample_weight=sample_weight)
+#
+#     return 2 * (p * r) / (p + r)
 
 
 def get_fps_tps_thresholds(y_true, y_score, pos_label=None):

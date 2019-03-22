@@ -1,16 +1,19 @@
 import numpy as np
 import copy
 from sklearn.datasets import load_iris, make_multilabel_classification
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, normalize
+from sklearn.metrics import f1_score
 
 from alipy import ToolBox
 from alipy.query_strategy.multi_label import *
 from alipy.index.multi_label_tools import get_Xy_in_multilabel
 
 X, y = load_iris(return_X_y=True)
+X = normalize(X, norm='l2')
 mlb = OneHotEncoder()
 mult_y = mlb.fit_transform(y.reshape((-1, 1)))
 mult_y = np.asarray(mult_y.todense())
+mult_y_for_metric = mult_y.copy()
 
 # Or generate a dataset with any sizes
 # X, mult_y = make_multilabel_classification(n_samples=5000, n_features=20, n_classes=5, length=5)
@@ -29,9 +32,16 @@ def main_loop(alibox, round, strategy):
     saver = alibox.get_stateio(round)
     # base model
     model = LabelRankingModel()
+    # set initial point
+    model.fit(X=X[train_idx], y=mult_y[train_idx])
+    pres, pred = model.predict(X[test_idx])
+    pred[pred == -1] = 0
+    perf = f1_score(y_true=mult_y_for_metric[test_idx], y_pred=pred, average='micro')
+    saver.set_initial_point(perf)
 
+    ini_lab_num = len(label_ind)
     # A simple stopping criterion to specify the query budget.
-    while len(label_ind) <= 120:
+    while len(label_ind)-ini_lab_num <= 120:
         # query and update
         select_labs = strategy.select(label_ind, unlab_ind)
         # use cost to record the amount of queried instance-label pairs
@@ -46,11 +56,14 @@ def main_loop(alibox, round, strategy):
         X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y, unknown_element=0)
         model.fit(X=X_tr, y=y_tr)
         pres, pred = model.predict(X[test_idx])
-        perf = alibox.calc_performance_metric(y_true=mult_y[test_idx], y_pred=pred, performance_metric='hamming_loss')
+        # using sklearn to calc micro-f1
+        pred[pred==-1] = 0
+        perf = f1_score(y_true=mult_y_for_metric[test_idx], y_pred=pred, average='micro')
 
         # save
         st = alibox.State(select_index=select_labs, performance=perf, cost=cost)
         saver.add_state(st)
+        saver.save()
 
     return copy.deepcopy(saver)
 
@@ -61,13 +74,13 @@ random_result = []
 mmc_result = []
 adaptive_result = []
 
-for round in range(5):
+for round in range(3):
     # init strategies
     audi = QueryMultiLabelAUDI(X, mult_y)
     quire = QueryMultiLabelQUIRE(X, mult_y, kernel='rbf')
     mmc = QueryMultiLabelMMC(X, mult_y)
     adaptive = QueryMultiLabelAdaptive(X, mult_y)
-    random = QueryMultiLabelRandom()
+    random = QueryMultiLabelRandom(select_type='ins')
 
     audi_result.append(main_loop(alibox, round, strategy=audi))
     quire_result.append(main_loop(alibox, round, strategy=quire))
@@ -81,4 +94,4 @@ analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='RANDOM', method_results=random_result)
 analyser.add_method(method_name='MMC', method_results=mmc_result)
 analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
-analyser.plot_learning_curves()
+analyser.plot_learning_curves(plot_interval=20)  # plot a performance point in every 20 queries of instance-label pairs
