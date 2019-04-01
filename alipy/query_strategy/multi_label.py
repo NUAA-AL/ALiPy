@@ -324,12 +324,12 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         n_repeat: int, optional (default=10)
             The number of optimization iterations.
 
-        is_incremental: bool, optional (default=10)
+        is_incremental: bool, optional (default=False)
             Whether to train the model in an incremental way.
         """
         if is_incremental:
             if self._init_flag is False:
-                self._ini_parameters = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
+                self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
                 self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
                 self._max_query = self._ini_parameters
@@ -347,7 +347,7 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
                 self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
                 self._max_query = self._ini_parameters
             else:
-                self._ini_parameters = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
+                self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
                 self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
                 self._max_query = self._ini_parameters
