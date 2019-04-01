@@ -17,7 +17,7 @@ from sklearn.utils import check_X_y
 
 from alipy.query_strategy.query_labels import QueryInstanceQBC, \
          QueryInstanceUncertainty, QueryInstanceRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE, \
-          QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL
+          QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL, QueryExpectedErrorReduction
 from ..data_manipulate.al_split import split
 from .experiment_analyser import ExperimentAnalyser
 from .state import State
@@ -65,6 +65,9 @@ class AlExperiment:
         'cost_limit': stop when cost reaches the limit.
         'percent_of_unlabel': stop when specific percentage of unlabeled data pool is labeled.
         'time_limit': stop when CPU time reaches the limit.
+
+    stopping_value: {int, float}, optional (default=None)
+        The value of the corresponding stopping criterion.
 
     batch_size: int, optional (default=1)
         batch size of AL
@@ -150,7 +153,8 @@ class AlExperiment:
             # a pre-defined strategy in ALiPy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QueryInstanceRandom',
                                 'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
-                                'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL']:
+                                'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL',
+                                'QueryExpectedErrorReduction']:
                 raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
                                           'method name or privide a callable object.'.format(str(strategy)))
             else:
@@ -164,8 +168,8 @@ class AlExperiment:
                     self._query_function = QueryInstanceUncertainty(self._X, self._y, measure)
                 elif strategy == 'QueryInstanceRandom' or strategy == 'QueryRandom':
                     self._query_function = QueryInstanceRandom(self._X, self._y)
-                elif strategy == 'QureyExpectedErrorReduction':
-                    self._query_function = QureyExpectedErrorReduction(self._X, self._y)
+                elif strategy == 'QureyExpectedErrorReduction' or strategy == 'QueryExpectedErrorReduction':
+                    self._query_function = QueryExpectedErrorReduction(self._X, self._y)
                 elif strategy == 'QueryInstanceGraphDensity' or strategy == 'QueryInstanceQUIRE':
                     if self._train_idx is None:
                         raise ValueError(

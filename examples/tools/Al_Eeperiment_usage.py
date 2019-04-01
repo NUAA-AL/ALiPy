@@ -8,7 +8,7 @@ X, y = load_iris(return_X_y=True)
 al = AlExperiment(X, y)
 
 # split the data by using split_AL()
-al.split_AL()
+al.split_AL(test_ratio=0.3, initial_label_rate=0.05, split_count=10)
 
 # or set the data split indexes by input the specific parameters
 from alipy.data_manipulate import split

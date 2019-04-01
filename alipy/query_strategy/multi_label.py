@@ -302,11 +302,13 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
 
     def __init__(self, init_X=None, init_y=None, **kwargs):
         super(LabelRankingModel, self).__init__(init_X, init_y)
+        self._ini_parameters = None
         if self._init_flag is True:
             n_repeat = kwargs.pop('n_repeat', 10)
+            self._ini_parameters = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
             self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
             self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-            self._max_query = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
+            self._max_query = self._ini_parameters
 
     def fit(self, X, y, n_repeat=10, is_incremental=False):
         """Train the model from X and y.
@@ -327,9 +329,10 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         """
         if is_incremental:
             if self._init_flag is False:
+                self._ini_parameters = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
                 self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-                self._max_query = self.init_model_train(X, y, n_repeat=n_repeat)
+                self._max_query = self._ini_parameters
                 self._init_flag = True
             else:
                 for i in range(n_repeat):
@@ -339,9 +342,16 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
                         self._lmbda, self._avg_begin, self._avg_size)
         else:
             # re-initialize the model parameter
-            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
-            self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-            self._max_query = self.init_model_train(X, y, n_repeat=n_repeat)
+            if self._ini_parameters:
+                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+                self._max_query = self._ini_parameters
+            else:
+                self._ini_parameters = self.init_model_train(self._init_X, self._init_y, n_repeat=n_repeat)
+                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+                self._max_query = self._ini_parameters
+                self._init_flag = True
             for i in range(n_repeat):
                 self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
                     X, y, self._B, self._V, self._costs, self._norm_up,
@@ -536,7 +546,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         #     self.y = np.hstack((self.y, 2 * np.ones((self.y.shape[0], 1))))
         self._lr_model = LabelRankingModel()
 
-    def select(self, label_index, unlabel_index, epsilon=0.5, **kwargs):
+    def select(self, label_index, unlabel_index, model=None, epsilon=0.5, **kwargs):
         """Select a subset from the unlabeled set, return the selected instance and label.
 
         Parameters
@@ -564,11 +574,20 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         label_index = self._check_multi_label_ind(label_index)
 
-        # select instance by LCI
-        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1, sparse=False)
         unlab_data, _, data_ind = get_Xy_in_multilabel(index=unlabel_index, X=self.X, y=self.y)
-        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
-        self._lr_model.fit(lab_data, lab_lab)
+        W = unlabel_index.get_matrix_mask(mat_shape=self.y.shape, fill_value=1, sparse=False)
+        if model is not None:
+            assert isinstance(model, LabelRankingModel), 'Model for selection must be LabelRanking model in ' \
+                                                         'AUDI algorithm. Try to pass model=None to use the ' \
+                                                         'default model'
+            self._lr_model = model
+            if not self._lr_model._init_flag:   # not trained
+                lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+                self._lr_model.fit(lab_data, lab_lab)
+        else:
+            # select instance by LCI
+            lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+            self._lr_model.fit(lab_data, lab_lab)
         pres, labels = self._lr_model.predict(unlab_data)
         avgP = np.mean(np.sum(self.y[label_index.get_unbroken_instances(), :] == 1, axis=1))
         insvals = -np.abs((np.sum(labels == 1, axis=1) - avgP) / np.fmax(np.sum(W[data_ind, :] == 1, axis=1), epsilon))
@@ -896,7 +915,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
 
         return unlabel_index[ask_id]
         
-    def select(self, label_index, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """
             Select the unlabel data in batch mode.
         Parameters
@@ -1083,7 +1102,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
         return unlabel_index[ask_idx]
 
-    def select(self, label_index, unlabel_index, batch_size=1):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """
             Select the unlabel data in batch mode.
         Parameters

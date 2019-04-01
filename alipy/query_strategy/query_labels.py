@@ -28,6 +28,7 @@ from ..utils.ace_warnings import *
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
 
 __all__ = ['QueryInstanceUncertainty',
+           'QueryRandom',
            'QueryInstanceRandom',
            'QueryInstanceQBC',
            'QureyExpectedErrorReduction',

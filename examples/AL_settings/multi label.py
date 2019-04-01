@@ -38,7 +38,12 @@ def main_loop(alibox, round, strategy):
     # A simple stopping criterion to specify the query budget.
     while len(label_ind) - ini_lab_num <= 120:
         # query and update
-        select_labs = strategy.select(label_ind, unlab_ind)
+        if isinstance(strategy, QueryMultiLabelAUDI):
+            # If you are using a label ranking model, pass it to AUDI. It can
+            # avoid re-training a label ranking model inside the algorithm
+            select_labs = strategy.select(label_ind, unlab_ind, model=model)
+        else:
+            select_labs = strategy.select(label_ind, unlab_ind)
         # use cost to record the amount of queried instance-label pairs
         if len(select_labs[0]) == 1:
             cost = mult_y.shape[1]
@@ -48,8 +53,8 @@ def main_loop(alibox, round, strategy):
         unlab_ind.difference_update(select_labs)
 
         # train/test
-        X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y, unknown_element=0)
-        model.fit(X=X_tr, y=y_tr)
+        X_tr, y_tr, _ = get_Xy_in_multilabel(select_labs, X=X, y=mult_y, unknown_element=0)
+        model.fit(X=X_tr, y=y_tr, is_incremental=True)
         pres, pred = model.predict(X[test_idx])
         # using sklearn to calc micro-f1
         pred[pred == -1] = 0

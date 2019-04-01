@@ -11,3 +11,6 @@ labrank.fit(X, y)
 # it will return 2 values, the first is the decision values, the second is the predicted labels.
 pres, label = labrank.predict(X)
 print(label)
+
+# label ranking model also support incremental training
+labrank.fit(X, y, is_incremental=True)
