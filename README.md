@@ -4,7 +4,7 @@ Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.
 
 Online document: [http://parnec.nuaa.edu.cn/huangsj/alipy/](http://parnec.nuaa.edu.cn/huangsj/alipy/)
 
-Offline document: [http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v103.zip](http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v103.zip)
+Offline document: [http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v103.zip](http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v103_1.zip)
 
 ## Introduction
 
