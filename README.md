@@ -73,7 +73,7 @@ prettytable
 cvxpy
 ```
 
-Note that, the basic dependencies must be installed, and the optional dependencies are required only if users need to involke KDD'13 BMDR and AAAI'19 SPAL methods in alipy. (cvxpy will not be installed through pip.)
+Note that, the basic dependencies must be installed, and the optional dependencies are required only if users need to involke KDD'13 BMDR and AAAI'19 SPAL methods in alipy. (cvxpy will not be installed through `pip install alipy`.)
 
 ## Tools in alipy
 
