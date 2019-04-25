@@ -33,6 +33,8 @@ def main_loop(alibox, round, strategy):
     saver = alibox.get_stateio(round)
     # base model
     model = LabelRankingModel()
+    X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y, unknown_element=0)
+    model.fit(X=X_tr, y=y_tr, is_incremental=True)
 
     ini_lab_num = len(label_ind)
     # A simple stopping criterion to specify the query budget.
@@ -94,4 +96,4 @@ analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='RANDOM', method_results=random_result)
 analyser.add_method(method_name='MMC', method_results=mmc_result)
 analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
-analyser.plot_learning_curves(plot_interval=20)  # plot a performance point in every 20 queries of instance-label pairs
+analyser.plot_learning_curves(plot_interval=3)  # plot a performance point in every 3 queries of instance-label pairs
