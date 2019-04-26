@@ -748,7 +748,7 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
     """
 
     def __init__(self, X=None, y=None):
-        super(QureyExpectedErrorReduction, self).__init__(X, y)
+        super(QueryExpectedErrorReduction, self).__init__(X, y)
 
     def log_loss(self, prob):
         """Compute expected log-loss.
