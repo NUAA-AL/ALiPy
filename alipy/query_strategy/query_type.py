@@ -157,18 +157,16 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp
+        sel_ins_label_mask = pres_mask[selected_ins]
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
         y1 = np.argmax(pres[selected_ins, 0:-1])
         dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
-        sort_dis = np.argsort(dis)
+        sort_dis = np.argsort(dis)  # descend
         for dis_ind in sort_dis:
-            if dis_ind != y1:
+            if not sel_ins_label_mask[dis_ind] and dis_ind != y1:
                 y2 = dis_ind
                 break
-
-        if (unlab_ins_ind[selected_ins], y1) in label_index or (unlab_ins_ind[selected_ins], y2) in label_index:
-            print('err')
 
         return unlab_ins_ind[selected_ins], y1, y2

@@ -592,10 +592,18 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp
+        sel_ins_label_mask = pres_mask[selected_ins]
 
         dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
-        selected_ins = data_ind[selected_ins]
         selected_lab = np.argmin(dis)
+        if sel_ins_label_mask[selected_lab]:
+            # select a labeled entry
+            argsorted_dis = np.argsort(dis) # descend
+            for dis_ind in argsorted_dis:
+                if not sel_ins_label_mask[dis_ind]:
+                    selected_lab = dis_ind
+                    break
+        selected_ins = data_ind[selected_ins]
 
         return [(selected_ins, selected_lab)]
 

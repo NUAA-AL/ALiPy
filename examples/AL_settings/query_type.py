@@ -19,6 +19,7 @@ mult_y[mult_y == 0] = -1
 
 alibox = ToolBox(X=X, y=mult_y, query_type='PartLabels')
 alibox.split_AL(test_ratio=0.2, initial_label_rate=0.05, all_class=False)
+model = LabelRankingModel() # base model
 
 # query type strategy
 AURO_results = []
@@ -30,8 +31,7 @@ for round in range(5):
     saver = alibox.get_stateio(round)
     query_y = mult_y.copy() # for labeling `less relevant`
     AURO_strategy = QueryTypeAURO(X=X, y=mult_y)
-    # base model
-    model = LabelRankingModel()
+    # init model
     X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y)
     model.fit(X=X_tr, y=y_tr)
 
