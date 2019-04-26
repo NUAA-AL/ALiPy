@@ -598,7 +598,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         selected_lab = np.argmin(dis)
         if sel_ins_label_mask[selected_lab]:
             # select a labeled entry
-            argsorted_dis = np.argsort(dis) # descend
+            argsorted_dis = np.argsort(dis) # ascend
             for dis_ind in argsorted_dis:
                 if not sel_ins_label_mask[dis_ind]:
                     selected_lab = dis_ind
