@@ -131,7 +131,7 @@ def nlargestarg(a, n):
     assert (_is_arraylike(a))
     assert (n > 0)
     argret = np.argsort(a)
-    # ascend
+    # ascent
     return argret[argret.size - n:]
 
 
@@ -154,7 +154,7 @@ def nsmallestarg(a, n):
     assert (_is_arraylike(a))
     assert (n > 0)
     argret = np.argsort(a)
-    # ascend
+    # ascent
     return argret[0:n]
 
 

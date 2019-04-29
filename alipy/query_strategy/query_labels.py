@@ -747,7 +747,7 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
 
     """
 
-    def __init__(self, X=None, y=None):
+    def __init__(self, X, y):
         super(QueryExpectedErrorReduction, self).__init__(X, y)
 
     def log_loss(self, prob):
@@ -802,7 +802,7 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
 
         # get unlabel_x
         if self.X is None or self.y is None:
-            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
+            raise Exception('Data matrix is not provided.')
         if model is None:
             model = LogisticRegression(solver='liblinear')
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
