@@ -1,8 +1,8 @@
 import collections
 
 import numpy as np
-
-import alipy.utils
+from ..utils.interface import BaseCollection
+from ..utils.misc import check_matrix
 
 __all__ = ['check_index_multilabel',
            'infer_label_size_multilabel',
@@ -21,7 +21,7 @@ def check_index_multilabel(index):
     index: list or np.ndarray
         index of the data.
     """
-    if isinstance(index, alipy.utils.interface.BaseCollection):
+    if isinstance(index, BaseCollection):
         return index
     if not isinstance(index, (list, np.ndarray)):
         index = [index]
@@ -193,7 +193,7 @@ def get_labelmatrix_in_multilabel(index, data_matrix, unknown_element=0):
     """
     # check validity
     index = check_index_multilabel(index)
-    data_matrix = alipy.utils.misc.check_matrix(data_matrix)
+    data_matrix = check_matrix(data_matrix)
 
     ins_bound = data_matrix.shape[0]
     ele_bound = data_matrix.shape[1]
@@ -280,7 +280,7 @@ def get_Xy_in_multilabel(index, X, y, unknown_element=0):
         Index of each retrieved data.
     """
     # check validity
-    X = alipy.utils.misc.check_matrix(X)
+    X = check_matrix(X)
     if not len(X) == len(y):
         raise ValueError("Different length of instances and labels found.")
 
