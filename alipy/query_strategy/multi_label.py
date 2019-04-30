@@ -58,7 +58,7 @@ class _LabelRankingModel_MatlabVer:
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, init_X=None, init_y=None):
@@ -297,7 +297,7 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, init_X=None, init_y=None, **kwargs):
@@ -327,36 +327,23 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         is_incremental: bool, optional (default=False)
             Whether to train the model in an incremental way.
         """
-        if is_incremental:
-            if self._init_flag is False:
-                self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
-                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
-                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-                self._max_query = self._ini_parameters
-                self._init_flag = True
-            else:
-                for i in range(n_repeat):
-                    self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
-                        X, y, self._B, self._V, self._costs, self._norm_up,
-                        self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
-                        self._lmbda, self._avg_begin, self._avg_size)
-        else:
-            # re-initialize the model parameter
-            if self._ini_parameters:
-                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
-                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-                self._max_query = self._ini_parameters
-            else:
-                self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
-                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
-                self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
-                self._max_query = self._ini_parameters
-                self._init_flag = True
-            for i in range(n_repeat):
-                self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
-                    X, y, self._B, self._V, self._costs, self._norm_up,
-                    self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
-                    self._lmbda, self._avg_begin, self._avg_size)
+        if not self._init_flag or not self._ini_parameters:
+            self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+            self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+            self._max_query = self._ini_parameters
+            self._init_flag = True
+
+        if not is_incremental:
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
+            self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
+            self._max_query = self._ini_parameters
+
+        for i in range(n_repeat):
+            self._B, self._V, self._AB, self._AV, self._Anum, self._trounds = self.train_model(
+                X, y, self._B, self._V, self._costs, self._norm_up,
+                self._step_size0, self._num_sub, self._AB, self._AV, self._Anum, self._trounds,
+                self._lmbda, self._avg_begin, self._avg_size)
 
     def predict(self, X):
         BV = self.get_BV(self._AB, self._AV, self._Anum)
@@ -412,7 +399,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
     [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
         querying informative and representative examples. IEEE
         Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+        36(10):1936-1949
     """
 
     def __init__(self, X, y, **kwargs):
@@ -537,7 +524,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, X, y):
@@ -560,6 +547,10 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        model: LabelRankingModel (optional, default=None)
+            A trained model used to predict unlabeled data.
+            If None is passed, it will re-train a LabelRanking model.
 
         epsilon: float, optional (default=0.5)
             The threshold to avoid zero-division.
@@ -601,10 +592,18 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp
+        sel_ins_label_mask = pres_mask[selected_ins]
 
         dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
-        selected_ins = data_ind[selected_ins]
         selected_lab = np.argmin(dis)
+        if sel_ins_label_mask[selected_lab]:
+            # select a labeled entry
+            argsorted_dis = np.argsort(dis) # ascent
+            for dis_ind in argsorted_dis:
+                if not sel_ins_label_mask[dis_ind]:
+                    selected_lab = dis_ind
+                    break
+        selected_ins = data_ind[selected_ins]
 
         return [(selected_ins, selected_lab)]
 

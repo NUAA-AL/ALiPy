@@ -357,11 +357,11 @@ class QueryInstanceQBC(BaseIndexQuery):
     ----------
     [1] H.S. Seung, M. Opper, and H. Sompolinsky. Query by committee.
         In Proceedings of the ACM Workshop on Computational Learning Theory,
-        pages 287–294, 1992.
+        pages 287-294, 1992.
 
     [2] N. Abe and H. Mamitsuka. Query learning strategies using boosting and bagging.
         In Proceedings of the International Conference on Machine Learning (ICML),
-        pages 1–9. Morgan Kaufmann, 1998.
+        pages 1-9. Morgan Kaufmann, 1998.
     """
 
     def __init__(self, X=None, y=None, method='query_by_bagging', disagreement='vote_entropy'):
@@ -520,7 +520,7 @@ class QueryInstanceQBC(BaseIndexQuery):
         ----------
         [1] I. Dagan and S. Engelson. Committee-based sampling for training probabilistic
             classifiers. In Proceedings of the International Conference on Machine
-            Learning (ICML), pages 150–157. Morgan Kaufmann, 1995.
+            Learning (ICML), pages 150-157. Morgan Kaufmann, 1995.
         """
         score = []
         input_shape, committee_size = cls()._check_committee_results(predict_matrices)
@@ -571,7 +571,7 @@ class QueryInstanceQBC(BaseIndexQuery):
         ----------
         [1] A. McCallum and K. Nigam. Employing EM in pool-based active learning for
             text classification. In Proceedings of the International Conference on Machine
-            Learning (ICML), pages 359–367. Morgan Kaufmann, 1998.
+            Learning (ICML), pages 359-367. Morgan Kaufmann, 1998.
         """
         score = []
         input_shape, committee_size = cls()._check_committee_results(predict_matrices)
@@ -622,7 +622,7 @@ class QureyExpectedErrorReduction(BaseIndexQuery):
     ----------
     [1] N. Roy and A. McCallum. Toward optimal active learning through sampling
         estimation of error reduction. In Proceedings of the International Conference on
-        Machine Learning (ICML), pages 441–448. Morgan Kaufmann, 2001.
+        Machine Learning (ICML), pages 441-448. Morgan Kaufmann, 2001.
 
     """
 
@@ -743,12 +743,12 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
     ----------
     [1] N. Roy and A. McCallum. Toward optimal active learning through sampling
         estimation of error reduction. In Proceedings of the International Conference on
-        Machine Learning (ICML), pages 441–448. Morgan Kaufmann, 2001.
+        Machine Learning (ICML), pages 441-448. Morgan Kaufmann, 2001.
 
     """
 
-    def __init__(self, X=None, y=None):
-        super(QureyExpectedErrorReduction, self).__init__(X, y)
+    def __init__(self, X, y):
+        super(QueryExpectedErrorReduction, self).__init__(X, y)
 
     def log_loss(self, prob):
         """Compute expected log-loss.
@@ -802,7 +802,7 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
 
         # get unlabel_x
         if self.X is None or self.y is None:
-            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
+            raise Exception('Data matrix is not provided.')
         if model is None:
             model = LogisticRegression(solver='liblinear')
             model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
@@ -893,7 +893,7 @@ class QueryInstanceQUIRE(BaseIndexQuery):
     [2] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
         querying informative and representative examples. IEEE
         Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+        36(10):1936-1949
     """
 
     def __init__(self, X, y, train_idx, **kwargs):
@@ -1034,7 +1034,7 @@ class QueryInstanceGraphDensity(BaseIndexQuery):
         active learning formulation for object class recognition.
         In 2012 IEEE Conference on Computer Vision and  Pattern Recognition,
         Providence, RI, USA, June 16-21, 2012,
-        3626–3633.
+        3626-3633.
     """
 
     def __init__(self, X, y, train_idx, metric='manhattan'):

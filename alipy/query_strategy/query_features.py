@@ -574,7 +574,7 @@ class QueryFeatureStability(BaseFeatureQuery):
     train_idx: array-like
         the index of training data.
 
-    committee_rank: list, optional (default=None)
+    rank_arr: list, optional (default=None)
         The rank parameters used to contruct committee.
         Note that, each rank should be lower then min(X.shape)
 
@@ -678,8 +678,7 @@ class QueryFeatureStability(BaseFeatureQuery):
                 for j in range(mc_sh[1]):
                     var_mat[i, j] = np.var([mat[i][j] for mat in X_mc_arr])
             var_mat *= 1 - observed_mask
-            # in the first 2 rounds, all entries are 0, you will select the known elements.
-            selected_feature = np.argmax(var_mat)  # a 1d index in training set
+            selected_feature = np.argmax(var_mat)
         else:
             selected_feature = np.argmax(1 - observed_mask)
 

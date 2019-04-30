@@ -95,7 +95,7 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         super(QueryTypeAURO, self).__init__(X, y)
         self._lr_model = LabelRankingModel()
 
-    def select(self, label_index, unlabel_index, y_mat=None, **kwargs):
+    def select(self, label_index, unlabel_index, model=None, y_mat=None, **kwargs):
         """Select a subset from the unlabeled set, return the selected instance and label.
 
         Parameters
@@ -109,6 +109,10 @@ class QueryTypeAURO(BaseMultiLabelQuery):
             The indexes of unlabeled samples. It should be a 1d array of indexes (column major, start from 0) or
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
+
+        model: LabelRankingModel (optional, default=None)
+            A trained model used to predict unlabeled data.
+            If None is passed, it will re-train a LabelRanking model.
 
         y_mat: array, optional (default=None)
             The label matrix used for model training. Should have the same shape of y.
@@ -134,24 +138,34 @@ class QueryTypeAURO(BaseMultiLabelQuery):
         unlab_ins_ind = np.nonzero(np.sum(W, axis=1) > 1)[0]
         unlab_data = self.X[unlab_ins_ind]
         unlab_mask = W[unlab_ins_ind]
-        lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=y_mat)
-        self._lr_model.fit(lab_data, lab_lab)
+        if model is not None:
+            assert isinstance(model, LabelRankingModel), 'Model for selection must be LabelRanking model in ' \
+                                                         'AURO algorithm. Try to pass model=None to use the ' \
+                                                         'default model'
+            self._lr_model = model
+            if not self._lr_model._init_flag:   # not trained
+                lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=self.y)
+                self._lr_model.fit(lab_data, lab_lab)
+        else:
+            lab_data, lab_lab, _ = get_Xy_in_multilabel(index=label_index, X=self.X, y=y_mat)
+            self._lr_model.fit(lab_data, lab_lab)
         pres, labels = self._lr_model.predict(unlab_data)
         selected_ins = np.argmax(np.sum(unlab_mask, axis=1))
 
         # set the known entries to -inf
-        pres_mask = 1 - unlab_mask
+        pres_mask = np.asarray(1 - unlab_mask, dtype=bool)
         pres_tmp = pres[:, 0:-1]
         pres_tmp[pres_mask] = np.NINF
         pres[:, 0:-1] = pres_tmp
+        sel_ins_label_mask = pres_mask[selected_ins]
 
         # last line in pres is the predict value of dummy label
         # select label by calculating the distance between each label with dummy label
         y1 = np.argmax(pres[selected_ins, 0:-1])
         dis = np.abs(pres[selected_ins, 0:-1] - pres[selected_ins, -1])
-        sort_dis = np.argsort(dis)
+        sort_dis = np.argsort(dis)  # ascent
         for dis_ind in sort_dis:
-            if dis_ind != y1:
+            if not sel_ins_label_mask[dis_ind] and dis_ind != y1:
                 y2 = dis_ind
                 break
 

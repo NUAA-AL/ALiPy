@@ -25,14 +25,15 @@ mult_y[mult_y == 0] = -1
 
 alibox = ToolBox(X=X, y=mult_y, query_type='PartLabels')
 alibox.split_AL(test_ratio=0.2, initial_label_rate=0.05, all_class=False)
-
+model = LabelRankingModel() # base model
 
 def main_loop(alibox, round, strategy):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
-    # base model
-    model = LabelRankingModel()
+    # init model
+    X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=mult_y, unknown_element=0)
+    model.fit(X=X_tr, y=y_tr)
 
     ini_lab_num = len(label_ind)
     # A simple stopping criterion to specify the query budget.
@@ -94,4 +95,4 @@ analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='RANDOM', method_results=random_result)
 analyser.add_method(method_name='MMC', method_results=mmc_result)
 analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
-analyser.plot_learning_curves(plot_interval=20)  # plot a performance point in every 20 queries of instance-label pairs
+analyser.plot_learning_curves(plot_interval=3)  # plot a performance point in every 3 queries of instance-label pairs

@@ -93,7 +93,7 @@ def select_POSS(infor_value, costs, budget):
     ----------
     [1] Chao Qian, Yang Yu, and Zhi-Hua Zhou.
         Subset selection by pareto optimization. In Advances
-        in Neural Information Processing Systems, pages 1774–
+        in Neural Information Processing Systems, pages 1774-
         1782, 2015.
     """
     assert(len(infor_value) == len(costs))
