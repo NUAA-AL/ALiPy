@@ -58,7 +58,7 @@ class _LabelRankingModel_MatlabVer:
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, init_X=None, init_y=None):
@@ -297,7 +297,7 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, init_X=None, init_y=None, **kwargs):
@@ -327,7 +327,7 @@ class LabelRankingModel(_LabelRankingModel_MatlabVer):
         is_incremental: bool, optional (default=False)
             Whether to train the model in an incremental way.
         """
-        if self._init_flag is False or not self._ini_parameters:
+        if not self._init_flag or not self._ini_parameters:
             self._ini_parameters = self.init_model_train(X, y, n_repeat=n_repeat)
             self._B, self._V, self._AB, self._AV, self._Anum, self._trounds, self._costs, self._norm_up, \
             self._step_size0, self._num_sub, self._lmbda, self._avg_begin, self._avg_size, self._n_repeat, \
@@ -399,7 +399,7 @@ class QueryMultiLabelQUIRE(BaseMultiLabelQuery):
     [1] Huang, S.; Jin, R.; and Zhou, Z. 2014. Active learning by
         querying informative and representative examples. IEEE
         Transactions on Pattern Analysis and Machine Intelligence
-        36(10):1936–1949
+        36(10):1936-1949
     """
 
     def __init__(self, X, y, **kwargs):
@@ -524,7 +524,7 @@ class QueryMultiLabelAUDI(BaseMultiLabelQuery):
     [1] S.-J. Huang and Z.-H. Zhou. Active query driven by uncertainty and
         diversity for incremental multi-label learning. In Proceedings
         of the 13th IEEE International Conference on Data Mining, pages
-        1079–1084, Dallas, TX, 2013.
+        1079-1084, Dallas, TX, 2013.
     """
 
     def __init__(self, X, y):
