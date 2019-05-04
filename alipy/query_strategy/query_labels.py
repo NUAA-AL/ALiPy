@@ -723,7 +723,7 @@ class QueryExpectedErrorReduction(BaseIndexQuery):
     with minimal expected future error (sometimes called risk)
 
     This algorithm needs to re-train the model for multiple times.
-    So There are 2 contraints to the given model.
+    So There are 2 constraints to the given model.
     1. It is a sklearn model (or a model who implements their api).
     2. It has the probabilistic output function predict_proba.
 
