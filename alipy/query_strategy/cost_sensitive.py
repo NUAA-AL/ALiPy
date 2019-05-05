@@ -391,7 +391,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             MultiLabelIndexCollection or a list of tuples with 2 elements, in which,
             the 1st element is the index of instance and the 2nd element is the index of labels.
 
-        cost: np.array, (default=None), shape [1, n_classes] or [n_classes]
+        cost: np.array, (default=None), shape [n_classes]
             the cost of querying each class.if not provide,it will all be 1. 
 
         oracle: Oracle,(default=None)
@@ -419,13 +419,18 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
         """
         label_index = self._check_multi_label_ind(label_index)
         unlabel_index = self._check_multi_label_ind(unlabel_index)
+        n_classes = self.y.shape[1]
 
         if models is None:
             models = self.train_models(label_index, base_model)
 
+        if cost is not None:
+            cost = np.asarray().flatten()
+            assert(len(cost) == self.y.shape[1])
+
         if oracle is None and cost is None:
-            raise ValueError('There is no information about the cost of each laebl. \
-                            Please input Oracle or cost for the label at least.')
+            cost = [1]*n_classes
+
         if oracle:
             _, costs = oracle.query_by_index(range(self.n_classes))
         else:
@@ -511,11 +516,13 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         """
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         n_classes = unlabel_index._label_size
-        assert(len(cost) == n_classes)   
+
+        if cost is not None:
+            cost = np.asarray().flatten()
+            assert(len(cost) == n_classes)
 
         if oracle is None and cost is None:
-            raise ValueError('There is no information about the cost of each laebl. \
-                            Please input Oracle or cost for the label at least.')
+            cost = [1]*n_classes
         if oracle:
             _, costs = oracle.query_by_index(range(n_classes))
         else:
@@ -597,9 +604,15 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         selected_ins_lab_pair: list
             A list of tuples that contains the indexes of selected instance-label pairs. 
         """
+        unlabel_index = self._check_multi_label_ind(unlabel_index)
+        n_classes = unlabel_index._label_size
+        if cost is not None:
+            cost = np.asarray().flatten()
+            assert(len(cost) == n_classes)
+
         if oracle is None and cost is None:
-            raise ValueError('There is no information about the cost of each laebl. \
-                            Please input Oracle or cost for the label at least.')
+            cost = [1]*n_classes
+
         if oracle:
             _, costs = oracle.query_by_index(range(self.n_classes))
         else:
