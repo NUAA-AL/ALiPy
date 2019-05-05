@@ -1327,7 +1327,11 @@ class QueryInstanceBMDR(BaseIndexQuery):
             prob = cvxpy.Problem(objective, constraints)
             # The optimal objective value is returned by `prob.solve()`.
             # print(prob.is_qp())
-            result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            try:
+                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            except cvxpy.error.DCPError:
+                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS, gp=True)
+
             # The optimal value for x is stored in `x.value`.
             # print(x.value)
             dr_weight = np.array(x.value)
@@ -1576,7 +1580,11 @@ class QueryInstanceSPAL(BaseIndexQuery):
             constraints = [0 <= x, x <= 1, es_weight * x == batch_size]
             prob = cvxpy.Problem(objective, constraints)
             # The optimal objective value is returned by `prob.solve()`.
-            result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            # result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            try:
+                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+            except cvxpy.error.DCPError:
+                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS, gp=True)
             # Sometimes the constraints can not be satisfied,
             # thus we relax the constraints to get an approximate solution.
             if not (type(result) == float and result != float('inf') and result != float('-inf')):
@@ -1592,7 +1600,10 @@ class QueryInstanceSPAL(BaseIndexQuery):
                 constraints = [0 <= x, x <= 1]
                 prob = cvxpy.Problem(objective, constraints)
                 # The optimal objective value is returned by `prob.solve()`.
-                result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+                try:
+                    result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
+                except cvxpy.error.DCPError:
+                    result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS, gp=True)
 
             # The optimal value for x is stored in `x.value`.
             # print(x.value)
