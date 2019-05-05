@@ -425,7 +425,7 @@ class QueryCostSensitiveHALC(BaseMultiLabelQuery):
             models = self.train_models(label_index, base_model)
 
         if cost is not None:
-            cost = np.asarray().flatten()
+            cost = np.asarray(cost).flatten()
             assert(len(cost) == self.y.shape[1])
 
         if oracle is None and cost is None:
@@ -518,7 +518,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
         n_classes = unlabel_index._label_size
 
         if cost is not None:
-            cost = np.asarray().flatten()
+            cost = np.asarray(cost).flatten()
             assert(len(cost) == n_classes)
 
         if oracle is None and cost is None:
@@ -607,7 +607,7 @@ class QueryCostSensitivePerformance(BaseMultiLabelQuery):
         unlabel_index = self._check_multi_label_ind(unlabel_index)
         n_classes = unlabel_index._label_size
         if cost is not None:
-            cost = np.asarray().flatten()
+            cost = np.asarray(cost).flatten()
             assert(len(cost) == n_classes)
 
         if oracle is None and cost is None:

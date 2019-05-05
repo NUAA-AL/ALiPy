@@ -96,4 +96,4 @@ analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='RANDOM', method_results=random_result)
 analyser.add_method(method_name='MMC', method_results=mmc_result)
 analyser.add_method(method_name='Adaptive', method_results=adaptive_result)
-analyser.plot_learning_curves(plot_interval=3)  # plot a performance point in every 3 queries of instance-label pairs
+analyser.plot_learning_curves(plot_interval=3, show=False)  # plot a performance point in every 3 queries of instance-label pairs

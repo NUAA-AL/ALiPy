@@ -14,11 +14,11 @@ for strategy in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryInstanceR
     # split the data by using split_AL()
     al.split_AL(split_count=5)
 
-    al.set_query_strategy(strategy="QueryInstanceUncertainty")
+    # al.set_query_strategy(strategy=strategy)
 
-    al.set_performance_metric('accuracy_score')
+    # al.set_performance_metric('accuracy_score')
 
-    al.start_query(multi_thread=True)
+    # al.start_query(multi_thread=True)
 
     # or set the data split indexes by input the specific parameters
     from alipy.data_manipulate import split

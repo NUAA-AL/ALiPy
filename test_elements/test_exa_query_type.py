@@ -74,4 +74,4 @@ for round in range(5):
 
 analyser = alibox.get_experiment_analyser()
 analyser.add_method(method_name='AURO', method_results=AURO_results)
-analyser.plot_learning_curves(plot_interval=5)
+analyser.plot_learning_curves(plot_interval=5, show=False)
