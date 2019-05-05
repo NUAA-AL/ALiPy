@@ -7,7 +7,7 @@ Test the functions in StateIO class
 from __future__ import division
 
 import os
-
+import warnings
 import numpy as np
 import pytest
 from sklearn.datasets import load_iris
@@ -23,8 +23,10 @@ toolbox = acebox(X=X, y=y, query_type='AllLabels', saving_path=cur_path)
 # split data
 toolbox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=split_count)
 saver = toolbox.get_stateio(round=0)
-saver.init_L.difference_update([0, 1, 2])
-saver.init_U.update([0, 1, 2])
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    saver.init_L.difference_update([0, 1, 2])
+    saver.init_U.update([0, 1, 2])
 
 st1_batch2 = State(select_index=[0, 1], performance=0.89)
 st1_batch1 = State(select_index=[1], performance=0.89)

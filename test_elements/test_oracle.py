@@ -1,6 +1,6 @@
-'''
+"""
 Test functions of oracle modules
-'''
+"""
 
 from __future__ import division
 

@@ -76,11 +76,8 @@ class _LabelRankingModel_MatlabVer:
             self._init_flag = True
 
     def get_BV(self, AB, AV, Anum):
-        try:
-            bv = (AV / Anum).T.dot(AB / Anum)
-            return bv
-        except:
-            print('err')
+        bv = (AV / Anum).T.dot(AB / Anum)
+        return bv
 
     def init_model_train(self, init_data=None, init_targets=None, n_repeat=10):
         if init_data is None:
@@ -229,7 +226,7 @@ class _LabelRankingModel_MatlabVer:
                 idx_down = np.nonzero(norms > norm_up)[0]
                 B[:, idx_class * num_sub + idx_max_class] = tmp1
                 B[:, idx_pick * num_sub + idx_max_pick] = tmp2
-                if idx_down:
+                if idx_down.size > 0:
                     norms = norms[norms > norm_up]
                     for k in range(len(idx_down)):
                         V[:, idx_down[k]] = V[:, idx_down[k]] * norm_up / norms[k]
