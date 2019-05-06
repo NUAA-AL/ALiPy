@@ -58,7 +58,6 @@ def main_loop(alibox, round, strategy):
         X_tr, y_tr, _ = get_Xy_in_multilabel(select_labs, X=X, y=mult_y, unknown_element=0)
         model.fit(X=X_tr, y=y_tr, is_incremental=True)
         pres, pred = model.predict(X[test_idx])
-        # using sklearn to calc micro-f1
         pred[pred == -1] = 0
         perf = f1_score(y_true=mult_y_for_metric[test_idx], y_pred=pred, average='micro')
 

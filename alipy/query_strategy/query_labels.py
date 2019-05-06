@@ -1330,12 +1330,6 @@ class QueryInstanceBMDR(BaseIndexQuery):
             try:
                 result = prob.solve(solver=cvxpy.OSQP if qp_solver == 'OSQP' else cvxpy.ECOS)
             except cvxpy.error.DCPError:
-                P = 0.5 * self._beta * KUU
-                pred_of_unlab = tau.dot(KLU)
-                a = pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab)
-                q = self._beta * (
-                    (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
-                        KUU)) + a
                 # cvx
                 x = cvxpy.Variable(U_len)
                 objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
@@ -1350,12 +1344,6 @@ class QueryInstanceBMDR(BaseIndexQuery):
             # Sometimes the constraints can not be satisfied,
             # thus we relax the constraints to get an approximate solution.
             if not (type(result) == float and result != float('inf') and result != float('-inf')):
-                P = 0.5 * self._beta * KUU
-                pred_of_unlab = tau.dot(KLU)
-                a = pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab)
-                q = self._beta * (
-                    (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
-                        KUU)) + a
                 # cvx
                 x = cvxpy.Variable(U_len)
                 objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
@@ -1623,12 +1611,12 @@ class QueryInstanceSPAL(BaseIndexQuery):
             # Sometimes the constraints can not be satisfied,
             # thus we relax the constraints to get an approximate solution.
             if not (type(result) == float and result != float('inf') and result != float('-inf')):
-                P = 0.5 * self._mu * KUU
-                pred_of_unlab = theta.dot(KLU)
-                a = es_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
-                q = self._mu * (
-                    (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
-                        KUU)) + a
+                # P = 0.5 * self._mu * KUU
+                # pred_of_unlab = theta.dot(KLU)
+                # a = es_weight * (pred_of_unlab * pred_of_unlab + 2 * np.abs(pred_of_unlab))
+                # q = self._mu * (
+                #     (U_len - batch_size) / N * np.ones(L_len).dot(KLU) - (L_len + batch_size) / N * np.ones(U_len).dot(
+                #         KUU)) + a
                 # cvx
                 x = cvxpy.Variable(U_len)
                 objective = cvxpy.Minimize(0.5 * cvxpy.quad_form(x, P) + q.T * x)
