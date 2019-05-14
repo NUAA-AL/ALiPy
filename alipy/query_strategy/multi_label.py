@@ -25,6 +25,7 @@ from sklearn.linear_model import LogisticRegression
 from ..index import IndexCollection, MultiLabelIndexCollection
 from ..index.multi_label_tools import get_Xy_in_multilabel
 from ..utils.misc import randperm
+from ..utils.ace_warnings import *
 from .base import BaseIndexQuery, BaseMultiLabelQuery
 
 __all__ = ['LabelRankingModel',
@@ -803,10 +804,13 @@ class QueryMultiLabelMMC(BaseIndexQuery):
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
 
-    base_learner :  object instance
-        The base learner for binary relavance, should support predict_proba
-
     br_base : ProbabilisticModel object instance
+        The base learner for the binary relevance in MMC.
+        Should support predict_proba.
+
+        .. Deprecated
+
+    base_clf : ProbabilisticModel object instance
         The base learner for the binary relevance in MMC.
         Should support predict_proba.
 
@@ -840,9 +844,15 @@ class QueryMultiLabelMMC(BaseIndexQuery):
                                         'random_state': random_state})
         self.logistic_regression_ = LogisticRegression(**self.logreg_param)
 
-        self.br_base = kwargs.pop('br_base',
-                                  SVC(kernel='linear', probability=True,
-                                      random_state=random_state))
+        br_base = kwargs.pop('br_base', None)
+        if br_base is not None:
+            warnings.warn('br_base is deprecated, please use base_clf instead.', DeprecationWarning)
+        br_base2 = kwargs.pop('base_clf', None)
+        if br_base is None and br_base2 is None:
+            self.br_base = SVC(kernel='linear', probability=True,
+                               random_state=random_state)
+        else:
+            self.br_base = br_base2 if br_base is None else br_base
     
     def sequential_select(self, label_index, unlabel_index):
         """
