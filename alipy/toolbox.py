@@ -405,7 +405,7 @@ class ToolBox:
 
         performance_metric: str, optional (default='accuracy_score')
             The name of the performance metric function.
-            Should be one of ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss',
+            Should be one of ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'f1_score',
             'one_error', 'coverage_error', 'label_ranking_loss', 'label_ranking_average_precision_score'].
 
         """
