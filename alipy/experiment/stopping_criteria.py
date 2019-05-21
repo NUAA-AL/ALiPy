@@ -95,6 +95,8 @@ class StoppingCriteria:
             else:
                 return False
         elif self._stopping_criteria == 'percent_of_unlabel':
+            if self.value > 1 or self.value < 0:
+                raise ValueError("Value of percent_of_unlabel should in [0, 1].")
             if self._percent >= self.value:
                 return True
             else:
