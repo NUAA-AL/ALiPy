@@ -101,7 +101,9 @@ class ToolBox:
         self._index_len = None
         # check and record parameters
         self._y = check_array(y, ensure_2d=False, dtype=None)
-        ytype = type_of_target(y)
+        if self._y.shape[0] == 1 or self._y.shape[1] == 1:
+            self._y = self._y.flatten()
+        ytype = type_of_target(self._y)
         if len(self._y.shape) == 2:
             self._target_type = 'multilabel'
         else:
