@@ -21,6 +21,7 @@ from .utils.multi_thread import aceThreading
 __all__ = ['ToolBox',
            ]
 
+
 class ToolBox:
     """Tool box is a tool class which initializes the active learning
     elements according to the setting in order to reduce the error and improve
@@ -388,7 +389,7 @@ class ToolBox:
         try:
             exec("from .query_strategy import " + strategy_name)
         except:
-            raise KeyError("Strategy "+strategy_name+" is not implemented in ALiPy.")
+            raise KeyError("Strategy " + strategy_name + " is not implemented in ALiPy.")
         strategy = None
         strategy = eval(strategy_name + "(X=self._X, y=self._y, **kwargs)")
         # print(strategy)
@@ -412,9 +413,9 @@ class ToolBox:
             'one_error', 'coverage_error', 'label_ranking_loss', 'label_ranking_average_precision_score'].
 
         """
-        if performance_metric not in ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss',
-                                      'one_error', 'coverage_error', 'f1_score',
-                                      'label_ranking_loss', 'label_ranking_average_precision_score']:
+        valid_metric = ['accuracy_score', 'roc_auc_score', 'get_fps_tps_thresholds', 'hamming_loss', 'one_error',
+                        'coverage_error', 'f1_score', 'label_ranking_loss', 'label_ranking_average_precision_score']
+        if performance_metric not in valid_metric:
             raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
 
         performance_metric = getattr(performance, performance_metric)
