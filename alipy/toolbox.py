@@ -2,6 +2,7 @@ import copy
 import os
 import pickle
 import inspect
+import numpy as np
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_array
@@ -424,7 +425,8 @@ class ToolBox:
         if 'y_pred' in metric_para.parameters:
             return performance_metric(y_pred=y_pred, y_true=y_true, **kwargs)
         else:
-            y_pred = y_pred[:, 0]
+            if len(np.shape(y_pred)) == 2:
+                y_pred = y_pred[:, 0]
             return performance_metric(y_score=y_pred, y_true=y_true, **kwargs)
 
     def get_default_model(self):
