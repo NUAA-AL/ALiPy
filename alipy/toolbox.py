@@ -1,6 +1,7 @@
 import copy
 import os
 import pickle
+import inspect
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_array
@@ -419,7 +420,12 @@ class ToolBox:
             raise NotImplementedError('Performance {} is not implemented.'.format(str(performance_metric)))
 
         performance_metric = getattr(performance, performance_metric)
-        return performance_metric(y_pred, y_true, **kwargs)
+        metric_para = inspect.signature(performance_metric)
+        if 'y_pred' in metric_para.parameters:
+            return performance_metric(y_pred=y_pred, y_true=y_true, **kwargs)
+        else:
+            y_pred = y_pred[:, 0]
+            return performance_metric(y_score=y_pred, y_true=y_true, **kwargs)
 
     def get_default_model(self):
         """ 
