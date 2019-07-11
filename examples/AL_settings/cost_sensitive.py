@@ -2,6 +2,7 @@ import numpy as np
 import copy
 
 from sklearn.datasets import make_multilabel_classification
+from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 from alipy import ToolBox
@@ -9,13 +10,15 @@ from alipy.index.multi_label_tools import get_Xy_in_multilabel
 from alipy.query_strategy.cost_sensitive import QueryCostSensitiveHALC, QueryCostSensitivePerformance, QueryCostSensitiveRandom
 from alipy.query_strategy.cost_sensitive import hierarchical_multilabel_mark
 
-X, y = make_multilabel_classification(n_samples=2000, n_features=20, n_classes=5,
+# the num of classes of the classification problem
+NUM_CLASS = 5
+NUM_SAMPLES = 2000
+X, y = make_multilabel_classification(n_samples=NUM_SAMPLES, n_features=20, n_classes=NUM_CLASS,
                                    n_labels=3, length=50, allow_unlabeled=True,
                                    sparse=False, return_indicator='dense',
                                    return_distributions=False,
                                    random_state=None)
 y[y == 0] = -1
-
 # the cost of each class
 cost = [1, 3, 3, 7, 10]
 
@@ -31,9 +34,11 @@ alibox = ToolBox(X=X, y=y, query_type='PartLabels')
 # Split data
 alibox.split_AL(test_ratio=0.3, initial_label_rate=0.1, split_count=10, all_class=True)
 
-# baseclassifier model use RFC
-model = RandomForestClassifier()
-
+# train one model for each label on dataset
+# the base model using SVC in sklearn
+models = []
+for __ in range(NUM_CLASS):
+    models.append(SVC(decision_function_shape='ovr', gamma='auto'))
 # The budget of query
 budget = 40
 
@@ -49,20 +54,38 @@ def main_loop(alibox, strategy, round):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
     saver = alibox.get_stateio(round)
+
+    # initalizing the models
+    train_traget = label_ind.get_matrix_mask((NUM_SAMPLES, NUM_CLASS), sparse=False)
+    for j in np.arange(NUM_CLASS):  
+        j_target = train_traget[:, j]
+        i_samples = np.where(j_target!=0)[0]
+        m = models[j]
+        m.fit(X[i_samples, :], y[i_samples, j])
+
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
-        select_ind = strategy.select(label_ind, unlab_ind, cost=cost, budget=budget)
-        # 
+        select_ind = strategy.select(label_ind, unlab_ind, cost=cost, budget=budget, models=models)
         select_ind = hierarchical_multilabel_mark(select_ind, label_ind, label_tree, y)
 
         label_ind.update(select_ind)
         unlab_ind.difference_update(select_ind)
             
         # Update model and calc performance according to the model you are using
-        X_tr, y_tr, _ = get_Xy_in_multilabel(label_ind, X=X, y=y)
-        model.fit(X_tr, y_tr)
-        pred = model.predict(X[test_idx, :])
-        pred[pred == 0] = 1
+        train_traget = label_ind.get_matrix_mask((NUM_SAMPLES, NUM_CLASS), sparse=False)
+        for j in np.arange(NUM_CLASS):  
+            j_target = train_traget[:, j]
+            i_samples = np.where(j_target!=0)[0]
+            m = models[j]
+            m.fit(X[i_samples, :], y[i_samples, j])
+        pred = None
+        for j in np.arange(NUM_CLASS):
+            model = models[j]
+            pred_j = model.predict(X[test_idx])
+            if pred is None:
+                pred = pred_j.reshape((len(test_idx), 1))
+            else:
+                pred = np.hstack((pred, pred_j.reshape((len(test_idx), 1))))
 
         performance = alibox.calc_performance_metric(y_true=y[test_idx], y_pred=pred, performance_metric='hamming_loss')
 
