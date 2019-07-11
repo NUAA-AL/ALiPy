@@ -484,7 +484,7 @@ class QueryCostSensitiveRandom(BaseMultiLabelQuery):
     def __init__(self, X=None, y=None):
         super(QueryCostSensitiveRandom, self).__init__(X, y)
 
-    def select(self, label_index, unlabel_index, oracle=None, cost=None, budget=40):
+    def select(self, label_index, unlabel_index, oracle=None, cost=None, budget=40, **kwargs):
         """Randomly selects a batch of instance-label pairs under the 
         constraints of meeting the budget conditions.
 
