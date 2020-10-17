@@ -4,8 +4,6 @@ Authors: Ying-Peng Tang, Guo-Xiang Li, [Sheng-Jun Huang](http://parnec.nuaa.edu.
 
 Online document: [http://parnec.nuaa.edu.cn/huangsj/alipy/](http://parnec.nuaa.edu.cn/huangsj/alipy/)
 
-Offline document: [http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v120.zip](http://parnec.nuaa.edu.cn/huangsj/alipy/offline_ver/alipy_doc_v120.zip)
-
 ## Introduction
 
 ALiPy是一个基于Python实现的主动学习工具包，内置20余种主动学习算法，并提供包括数据处理、结果可视化等工具。ALiPy根据主动学习框架的不同部件提供了若干独立的工具类，这样一方面可以方便地支持不同主动学习场景，另一方面可以使用户自由地组织自己的项目，用户可以不必继承任何接口来实现自己的算法与替换项目中的部件。此外，ALiPy不仅支持多种不同的主动学习场景，如标注代价敏感，噪声标注者，多标记查询等。详细的介绍与文档请参考工具包的[官方网站](http://parnec.nuaa.edu.cn/huangsj/alipy/)。
