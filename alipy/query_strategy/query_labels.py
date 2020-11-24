@@ -249,7 +249,7 @@ class QueryInstanceUncertainty(BaseIndexQuery):
             raise Exception('2d array with the shape [n_samples, n_classes]'
                             ' is expected, but received shape: \n%s' % str(spv))
         # calc entropy
-        entropy = [-np.sum(vec * np.log(vec)) for vec in pv]
+        entropy = [-np.sum(vec * np.log(vec+1e-9)) for vec in pv]
         return entropy
 
 
@@ -546,7 +546,7 @@ class QueryInstanceQBC(BaseIndexQuery):
                 count_dict = collections.Counter(input_mat[:, i])
                 tmp = 0
                 for key in count_dict:
-                    tmp += count_dict[key] / committee_size * np.log(count_dict[key] / committee_size)
+                    tmp += count_dict[key] / committee_size * np.log(count_dict[key]+1e-9 / committee_size)
                 score.append(-tmp)
         return score
 
@@ -585,7 +585,7 @@ class QueryInstanceQBC(BaseIndexQuery):
                 for lab in range(label_num):
                     committee_consensus = np.sum(instance_mat[:, lab]) / committee_size
                     for committee in range(committee_size):
-                        tmp += instance_mat[committee, lab] * np.log(instance_mat[committee, lab] / committee_consensus)
+                        tmp += instance_mat[committee, lab] * np.log(instance_mat[committee, lab]+1e-9 / committee_consensus)
                 score.append(tmp)
         else:
             raise Exception(
