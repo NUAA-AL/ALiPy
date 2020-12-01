@@ -213,7 +213,7 @@ class QueryInstanceUncertainty(BaseIndexQuery):
         if self.measure == 'entropy':
             # calc entropy
             pv[pv <= 0] = 1e-06  # avoid zero division
-            entro = [-np.sum(vec * np.log(vec)) for vec in pv]
+            entro = [-np.sum(vec * np.log(vec+1e-9)) for vec in pv]
             assert (len(np.shape(entro)) == 1)
             return unlabel_index[nlargestarg(entro, batch_size)]
 
@@ -536,7 +536,7 @@ class QueryInstanceQBC(BaseIndexQuery):
                 # calc each label
                 for vote in voting:
                     if vote != 0:
-                        tmp += vote / len(predict_matrices) * np.log(vote / len(predict_matrices))
+                        tmp += vote / len(predict_matrices) * np.log((vote+1e-9) / len(predict_matrices))
                 score.append(-tmp)
         else:
             input_mat = np.array([X for X in predict_matrices if X is not None])
@@ -546,7 +546,7 @@ class QueryInstanceQBC(BaseIndexQuery):
                 count_dict = collections.Counter(input_mat[:, i])
                 tmp = 0
                 for key in count_dict:
-                    tmp += count_dict[key] / committee_size * np.log(count_dict[key]+1e-9 / committee_size)
+                    tmp += count_dict[key] / committee_size * np.log((count_dict[key]+1e-9) / committee_size)
                 score.append(-tmp)
         return score
 
@@ -583,9 +583,9 @@ class QueryInstanceQBC(BaseIndexQuery):
                 tmp = 0
                 # calc each label
                 for lab in range(label_num):
-                    committee_consensus = np.sum(instance_mat[:, lab]) / committee_size
+                    committee_consensus = np.sum(instance_mat[:, lab]) / committee_size + 1e-9
                     for committee in range(committee_size):
-                        tmp += instance_mat[committee, lab] * np.log(instance_mat[committee, lab]+1e-9 / committee_consensus)
+                        tmp += instance_mat[committee, lab] * np.log((instance_mat[committee, lab]+1e-9) / committee_consensus)
                 score.append(tmp)
         else:
             raise Exception(
