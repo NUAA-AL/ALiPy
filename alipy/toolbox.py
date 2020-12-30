@@ -82,23 +82,23 @@ class ToolBox:
     def __init__(self, y, X=None, instance_indexes=None,
                  query_type='AllLabels', saving_path=None, **kwargs):
         """
-        _index_len: int, length of indexes.
-        _y: 2d array, the label matrix of whole dataset.
-        _target_type: str, the type of target.
-        _label_space: list, the label space.
-        _label_num: int, The number of unique labels.
-        _instance_flag: bool, Whether passed instances when initializing.
-        _X: 2d array, The feature matrix of the whole dataset.
-        _indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
+        index_len: int, length of indexes.
+        y: 2d array, the label matrix of whole dataset.
+        target_type: str, the type of target.
+        label_space: list, the label space.
+        label_num: int, The number of unique labels.
+        instance_flag: bool, Whether passed instances when initializing.
+        X: 2d array, The feature matrix of the whole dataset.
+        indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
         query_type: str, The query type of this active learning project.
-        _split: bool, whether split the data.
+        split: bool, whether split the data.
         split_count: int, the number of split times.
         train_idx: list, a list split_count lists which include the indexes of training set.
         test_idx: list, a list split_count lists which include the indexes of testing set.
         label_idx: list, a list split_count lists which include the indexes of labeled set. (A subset of training set)
         unlabel_idx: list, a list split_count lists which include the indexes of unlabeled set. (A subset of training set)
-        _saving_path: str, saving path.
-        _saving_dir: str, saving dir.
+        saving_path: str, saving path.
+        saving_dir: str, saving dir.
         """
         self._index_len = None
         # check and record parameters

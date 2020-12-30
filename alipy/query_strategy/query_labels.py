@@ -31,14 +31,16 @@ __all__ = ['QueryInstanceUncertainty',
            'QueryRandom',
            'QueryInstanceRandom',
            'QueryInstanceQBC',
-           'QureyExpectedErrorReduction',
            'QueryExpectedErrorReduction',
            'QueryInstanceQUIRE',
            'QueryInstanceGraphDensity',
            'QueryInstanceBMDR',
            'QueryInstanceSPAL',
            'QueryInstanceLAL',
+           'QueryInstanceCoresetGreedy',
+           'QueryInstanceDensityWeighted',
            ]
+
 
 def _get_proba_pred(unlabel_x, model):
     """Get the probabilistic prediction results of the unlabeled set.
@@ -591,127 +593,6 @@ class QueryInstanceQBC(BaseIndexQuery):
             raise Exception(
                 "A 2D probabilistic prediction matrix must be provided, with the shape like [n_samples, n_class]")
         return score
-
-
-class QureyExpectedErrorReduction(BaseIndexQuery):
-    """The Expected Error Reduction (ERR) algorithm.
-
-    The idea is to estimate the expected future error of a model trained using label set and <x, y> on
-    the remaining unlabeled instances in U (which is assumed to be representative of
-    the test distribution, and used as a sort of validation set), and query the instance
-    with minimal expected future error (sometimes called risk)
-
-    This algorithm needs to re-train the model for multiple times.
-    So There are 2 contraints to the given model.
-    1. It is a sklearn model (or a model who implements their api).
-    2. It has the probabilistic output function predict_proba.
-
-    If your model does not meet the conditions.
-    You can use the default logistic regression model to choose the instances
-    by passing None to the model parameter.
-
-    Parameters
-    ----------
-    X: 2D array, optional (default=None)
-        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
-
-    y: array-like, optional (default=None)
-        Label matrix of the whole dataset. It is a reference which will not use additional memory.
-
-    References
-    ----------
-    [1] N. Roy and A. McCallum. Toward optimal active learning through sampling
-        estimation of error reduction. In Proceedings of the International Conference on
-        Machine Learning (ICML), pages 441-448. Morgan Kaufmann, 2001.
-
-    """
-
-    def __init__(self, X=None, y=None):
-        warnings.warn("QureyExpectedErrorReduction is deprecated and will be deleted in the future, "
-                      "use QueryExpectedErrorReduction instead.",
-                      category=DeprecationWarning)
-        super(QureyExpectedErrorReduction, self).__init__(X, y)
-
-    def log_loss(self, prob):
-        """Compute expected log-loss.
-
-        Parameters
-        ----------
-        prob: 2d array, shape [n_samples, n_classes]
-            The probabilistic prediction matrix for the unlabeled set.
-
-        Returns
-        -------
-        log_loss: float
-            The sum of log_loss for the prob.
-        """
-        log_loss = 0.0
-        for i in range(len(prob)):
-            for p in list(prob[i]):
-                log_loss -= p * np.log(p)
-        return log_loss
-
-    def select(self, label_index, unlabel_index, model=None, batch_size=1):
-        """Select indexes from the unlabel_index for querying.
-
-        Parameters
-        ----------
-        label_index: {list, np.ndarray, IndexCollection}
-            The indexes of labeled samples.
-
-        unlabel_index: {list, np.ndarray, IndexCollection}
-            The indexes of unlabeled samples.
-
-        model: object, optional (default=None)
-            Current classification model, should have the 'predict_proba' method for probabilistic output.
-            If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
-
-        batch_size: int, optional (default=1)
-            Selection batch size.
-
-        Returns
-        -------
-        selected_idx: list
-            The selected indexes which is a subset of unlabel_index.
-        """
-        assert (batch_size > 0)
-        assert (isinstance(unlabel_index, collections.Iterable))
-        assert (isinstance(label_index, collections.Iterable))
-        unlabel_index = np.asarray(unlabel_index)
-        label_index = np.asarray(label_index)
-        if len(unlabel_index) <= batch_size:
-            return unlabel_index
-
-        # get unlabel_x
-        if self.X is None or self.y is None:
-            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
-        if model is None:
-            model = LogisticRegression(solver='liblinear')
-            model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
-                      self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
-
-        unlabel_x = self.X[unlabel_index]
-        label_y = self.y[label_index]
-        ##################################
-
-        classes = np.unique(self.y)
-        pv, spv = _get_proba_pred(unlabel_x, model)
-        scores = []
-        for i in range(spv[0]):
-            new_train_inds = np.append(label_index, unlabel_index[i])
-            new_train_X = self.X[new_train_inds, :]
-            unlabel_ind = list(unlabel_index)
-            unlabel_ind.pop(i)
-            new_unlabel_X = self.X[unlabel_ind, :]
-            score = []
-            for yi in classes:
-                new_model = copy.deepcopy(model)
-                new_model.fit(new_train_X, np.append(label_y, yi))
-                prob = new_model.predict_proba(new_unlabel_X)
-                score.append(pv[i, yi] * self.log_loss(prob))
-            scores.append(np.sum(score))
-
-        return unlabel_index[nsmallestarg(scores, batch_size)]
 
 
 class QueryExpectedErrorReduction(BaseIndexQuery):
@@ -1844,7 +1725,7 @@ class QueryInstanceLAL(BaseIndexQuery):
 
         print('Building lal regression model from ' + file_path)
         lalModel1 = RandomForestRegressor(n_estimators=parameters['est'], max_depth=parameters['depth'],
-                                          max_features=parameters['feat'], oob_score=True, n_jobs=8)
+                                          max_features=parameters['feat'], oob_score=True, n_jobs=os.cpu_count())
 
         lalModel1.fit(regression_features, np.ravel(regression_labels))
 
@@ -1903,3 +1784,141 @@ class QueryInstanceLAL(BaseIndexQuery):
         # retrieve the real index of the selected datapoint
         selectedIndex = np.asarray(unlabel_index)[selectedIndex1toN]
         return selectedIndex
+
+
+class QueryInstanceCoresetGreedy(BaseIndexQuery):
+    """
+    distance: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+    """
+
+    def __init__(self, X, y, train_idx, distance='euclidean'):
+        self.X = X[train_idx,:]
+        self.y = y[train_idx]
+        self.name = 'kcenter'
+        self.features = self.X
+        self.metric = distance
+        self.min_distances = None
+        self.n_obs = self.X.shape[0]
+        self.already_selected = []
+        self.train_idx = train_idx
+
+    def update_distances(self, cluster_centers, only_new=True, reset_dist=False):
+        """Update min distances given cluster centers.
+
+        Args:
+          cluster_centers: indices of cluster centers
+          only_new: only calculate distance for newly selected points and update
+            min_distances.
+          rest_dist: whether to reset min_distances.
+        """
+        if reset_dist:
+            self.min_distances = None
+        if only_new:
+            cluster_centers = [d for d in cluster_centers
+                               if d not in self.already_selected]
+        if cluster_centers:
+            # Update min_distances for all examples given new cluster center.
+            x = self.features[cluster_centers,:]
+            dist = pairwise_distances(self.features, x, metric=self.metric)
+
+            if self.min_distances is None:
+                self.min_distances = np.min(dist, axis=1).reshape(-1, 1)
+            else:
+                self.min_distances = np.minimum(self.min_distances, dist)
+
+    def select(self, label_index, unlabel_index, batch_size=1, model=None, **kwargs):
+        """
+        Diversity promoting active learning method that greedily forms a batch
+        to minimize the maximum distance to a cluster center among all unlabeled
+        datapoints.
+
+        Args:
+          model: model with scikit-like API with decision_function implemented
+          label_index: index of datapoints already selected
+          N: batch size
+
+        Returns:
+          indices of points selected to minimize distance to cluster centers
+        """
+        already_selected = [np.where(self.train_idx == id)[0].item() for id in label_index]
+        # try:
+        #     # Assumes that the transform function takes in original data and not
+        #     # flattened data.
+        #     # print('Getting transformed features...')
+        #     self.features = model.transform(self.X)
+        #     # print('Calculating distances...')
+        #     self.update_distances(already_selected, only_new=False, reset_dist=True)
+        # except:
+        #     # print('Using flat_X as features.')
+        self.update_distances(already_selected, only_new=True, reset_dist=False)
+
+        new_batch = []
+        self.min_distances[already_selected] = -100.0
+        self.already_selected = already_selected
+
+        for _ in range(batch_size):
+            ind = np.argmax(self.min_distances)
+            # New examples should not be in already selected since those points
+            # should have min_distance of zero to a cluster center.
+            assert ind not in self.already_selected
+            assert self.train_idx[ind] in unlabel_index
+
+            self.update_distances([ind], only_new=True, reset_dist=False)
+            new_batch.append(self.train_idx[ind])
+        # print('Maximum distance from cluster centers is %0.2f'
+        #       % max(self.min_distances))
+        return new_batch
+
+
+class QueryInstanceDensityWeighted(BaseIndexQuery):
+    """
+    uncertainty_meansure: ['least_confident', 'margin', 'entropy']
+    distance: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+
+    """
+    def __init__(self, X, y, uncertainty_meansure="entropy", distance="euclidean", beta=1.0):
+        assert uncertainty_meansure in ['least_confident', 'margin', 'entropy']
+        assert distance in ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+        self.X = X
+        self.y = y
+        self.uncertainty_meansure = uncertainty_meansure
+        self.distance = distance
+        self.beta = beta
+
+    def select(self, label_index, unlabel_index, batch_size=1, model=None, proba_prediction=None, **kwargs):
+        unlab_fea = self.X[unlabel_index]
+        if model is None and proba_prediction is None:
+            raise ValueError("must provide one of model and proba_prediction.")
+        if model is not None:
+            pv = model.predict_proba(unlab_fea)
+        else:
+            assert len(proba_prediction) == len(unlabel_index)
+            pv = np.asarray(proba_prediction)
+
+        # informativeness
+        spv = np.shape(pv)  # shape of predict value
+        if self.uncertainty_meansure == 'entropy':
+            # calc entropy
+            pat = [-np.sum(vec * np.log(vec+1e-9)) for vec in pv]
+            # return unlabel_index[nlargestarg(entro, batch_size)]
+        elif self.uncertainty_meansure == 'margin':
+            # calc margin
+            pat = np.partition(pv, (spv[1] - 2, spv[1] - 1), axis=1)
+            pat = pat[:, spv[1] - 2] - pat[:, spv[1] - 1]
+            # return unlabel_index[nlargestarg(pat, batch_size)]
+        elif self.uncertainty_meansure == 'least_confident':
+            # calc least_confident
+            pat = np.partition(pv, spv[1] - 1, axis=1)
+            pat = 1 - pat[:, spv[1] - 1]
+            # return unlabel_index[nlargestarg(pat, batch_size)]
+        else:
+            raise ValueError("uncertainty_meansure should in ['least_confident', 'margin', 'entropy']")
+
+        # repre
+        dis_mat = pairwise_distances(X=unlab_fea, metric=self.distance)
+        rep = np.mean(dis_mat, axis=0)
+        rep = rep**self.beta
+
+        assert len(pat) == len(rep) == len(unlabel_index)
+        scores = pat*rep
+        return np.asarray(unlabel_index)[nlargestarg(scores, batch_size)]

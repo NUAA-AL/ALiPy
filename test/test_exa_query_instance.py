@@ -78,7 +78,7 @@ for round in range(1):
     # Use pre-defined strategy
     unc = alibox.get_query_strategy(strategy_name="QueryInstanceUncertainty")
     qbc = alibox.get_query_strategy(strategy_name="QueryInstanceQBC")
-    eer = alibox.get_query_strategy(strategy_name="QureyExpectedErrorReduction")
+    eer = alibox.get_query_strategy(strategy_name="QueryExpectedErrorReduction")
     rnd = alibox.get_query_strategy(strategy_name="QueryInstanceRandom")
     quire = alibox.get_query_strategy(strategy_name="QueryInstanceQUIRE", train_idx=train_idx)
     density = alibox.get_query_strategy(strategy_name="QueryInstanceGraphDensity", train_idx=train_idx)

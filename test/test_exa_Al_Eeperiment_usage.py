@@ -5,9 +5,9 @@ from alipy.experiment import AlExperiment
 X, y = load_iris(return_X_y=True)
 
 for strategy in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryInstanceRandom',
-                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
-                'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL',
-                'QueryExpectedErrorReduction']:
+                 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
+                 'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL',
+                 'QueryExpectedErrorReduction']:
     # init the AlExperiment
     al = AlExperiment(X, y, stopping_criteria='num_of_queries', stopping_value=50)
 
