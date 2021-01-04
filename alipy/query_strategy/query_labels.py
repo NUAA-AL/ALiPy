@@ -1090,9 +1090,8 @@ class QueryInstanceBMDR(BaseIndexQuery):
                           category=FunctionWarning)
         if len(ul) == 2 and {1, -1} != set(ul):
             y_temp = np.array(copy.deepcopy(self.y))
-            y_temp[y_temp == ul[0]] = 1
-            y_temp[y_temp == ul[1]] = -1
-            self.y = y_temp
+            self.y[y_temp == ul[0]] = 1
+            self.y[y_temp == ul[1]] = -1
 
         self._beta = beta
         self._gamma = gamma
@@ -1355,14 +1354,13 @@ class QueryInstanceSPAL(BaseIndexQuery):
         # K: kernel matrix
         super(QueryInstanceSPAL, self).__init__(X, y)
         ul = unique_labels(self.y)
-        if len(unique_labels(self.y)) != 2:
+        if len(ul) != 2:
             warnings.warn("This query strategy is implemented for binary classification only.",
                           category=FunctionWarning)
         if len(ul) == 2 and {1, -1} != set(ul):
             y_temp = np.array(copy.deepcopy(self.y))
-            y_temp[y_temp == ul[0]] = 1
-            y_temp[y_temp == ul[1]] = -1
-            self.y = y_temp
+            self.y[y_temp == ul[0]] = 1
+            self.y[y_temp == ul[1]] = -1
 
         self._mu = mu
         self._gamma = gamma
