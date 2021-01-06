@@ -24,7 +24,7 @@ def main_loop(alibox, strategy, round):
     # Get the data split of one fold experiment
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
     # Get intermediate results saver for one fold experiment
-    saver = alibox.get_stateio(round, saving_path=f"./{strategy.__name__}_{round}.pkl")
+    saver = alibox.get_stateio(round, saving_path=f"./{strategy.__class__.__name__}_{round}.pkl")
 
     # Set initial performance point
     model.fit(X=X[label_ind.index, :], y=y[label_ind.index])
@@ -70,7 +70,7 @@ spal_result = []
 lal_result = []
 rnd_result = []
 
-_I_have_installed_the_cvxpy = False
+_I_have_installed_the_cvxpy = True
 
 for round in range(5):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
