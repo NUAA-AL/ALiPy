@@ -1785,8 +1785,23 @@ class QueryInstanceLAL(BaseIndexQuery):
 
 
 class QueryInstanceCoresetGreedy(BaseIndexQuery):
-    """
-    distance: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+    """ICLR 2018 Paper: Active Learning for Convolutional Neural Networks: A Core-Set Approach.
+    The implementation is referred to
+    https://github.com/google/active-learning/blob/master/sampling_methods/kcenter_greedy.py
+
+    Parameters
+    ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    train_idx: array-like
+        the index of training data.
+
+    distance: str, optional (default='euclidean')
+        Distance metric. Should be one of ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'].
     """
 
     def __init__(self, X, y, train_idx, distance='euclidean'):
@@ -1824,30 +1839,32 @@ class QueryInstanceCoresetGreedy(BaseIndexQuery):
             else:
                 self.min_distances = np.minimum(self.min_distances, dist)
 
-    def select(self, label_index, unlabel_index, batch_size=1, model=None, **kwargs):
+    def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """
         Diversity promoting active learning method that greedily forms a batch
         to minimize the maximum distance to a cluster center among all unlabeled
         datapoints.
 
-        Args:
-          model: model with scikit-like API with decision_function implemented
-          label_index: index of datapoints already selected
-          N: batch size
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
 
-        Returns:
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        model: object, optional (default=None)
+            Current classification model, should have the 'predict_proba' method for probabilistic output.
+            If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        Returns
+        -------
           indices of points selected to minimize distance to cluster centers
         """
         already_selected = [np.where(self.train_idx == id)[0].item() for id in label_index]
-        # try:
-        #     # Assumes that the transform function takes in original data and not
-        #     # flattened data.
-        #     # print('Getting transformed features...')
-        #     self.features = model.transform(self.X)
-        #     # print('Calculating distances...')
-        #     self.update_distances(already_selected, only_new=False, reset_dist=True)
-        # except:
-        #     # print('Using flat_X as features.')
         self.update_distances(already_selected, only_new=True, reset_dist=False)
 
         new_batch = []
@@ -1863,15 +1880,29 @@ class QueryInstanceCoresetGreedy(BaseIndexQuery):
 
             self.update_distances([ind], only_new=True, reset_dist=False)
             new_batch.append(self.train_idx[ind])
-        # print('Maximum distance from cluster centers is %0.2f'
-        #       % max(self.min_distances))
         return new_batch
 
 
 class QueryInstanceDensityWeighted(BaseIndexQuery):
-    """
-    uncertainty_meansure: ['least_confident', 'margin', 'entropy']
-    distance: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
+    """A method that combines uncertainty and diversity in active selection.
+    Reference paper: Curious Machines: Active Learning with Structured Instances.
+
+    Parameters
+    ----------
+    X: 2D array
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    uncertainty_meansure: str,
+        ['least_confident', 'margin', 'entropy'].
+
+    distance: str, optional (default='euclidean')
+        Distance metric. Should be one of ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'].
+
+    beta: float, optional (default=1.0)
+        The tradeoff parameter. (The exponent of diversity term)
 
     """
     def __init__(self, X, y, uncertainty_meansure="entropy", distance="euclidean", beta=1.0):
@@ -1914,9 +1945,9 @@ class QueryInstanceDensityWeighted(BaseIndexQuery):
 
         # repre
         dis_mat = pairwise_distances(X=unlab_fea, metric=self.distance)
-        rep = np.mean(dis_mat, axis=0)
-        rep = rep**self.beta
+        div = np.mean(dis_mat, axis=0)
+        div = div**self.beta
 
-        assert len(pat) == len(rep) == len(unlabel_index)
-        scores = pat*rep
+        assert len(pat) == len(div) == len(unlabel_index)
+        scores = np.multiply(pat, div)
         return np.asarray(unlabel_index)[nlargestarg(scores, batch_size)]
