@@ -38,7 +38,7 @@ def main_loop(alibox, strategy, round):
     while not stopping_criterion.is_stop():
         # Select a subset of Uind according to the query strategy
         # Passing model=None to use the default model for evaluating the committees' disagreement
-        select_ind = strategy.select(label_index=label_ind, unlabel_index=unlab_ind, batch_size=1)
+        select_ind = strategy.select(label_index=label_ind, unlabel_index=unlab_ind, batch_size=1, model=model)
         label_ind.update(select_ind)
         unlab_ind.difference_update(select_ind)
 
@@ -52,6 +52,7 @@ def main_loop(alibox, strategy, round):
         # Save intermediate results to file
         st = alibox.State(select_index=select_ind, performance=accuracy)
         saver.add_state(st)
+        saver.save()
 
         # Passing the current progress to stopping criterion object
         stopping_criterion.update_information(saver)
@@ -63,6 +64,8 @@ def main_loop(alibox, strategy, round):
 unc_result = []
 qbc_result = []
 eer_result = []
+cors_result = []
+dw_result = []
 quire_result = []
 density_result = []
 bmdr_result = []
@@ -70,7 +73,7 @@ spal_result = []
 lal_result = []
 rnd_result = []
 
-_I_have_installed_the_cvxpy = True
+_I_have_installed_the_cvxpy = False
 
 for round in range(5):
     train_idx, test_idx, label_ind, unlab_ind = alibox.get_split(round)
@@ -80,6 +83,8 @@ for round in range(5):
     qbc = alibox.get_query_strategy(strategy_name="QueryInstanceQBC")
     eer = alibox.get_query_strategy(strategy_name="QueryExpectedErrorReduction")
     rnd = alibox.get_query_strategy(strategy_name="QueryInstanceRandom")
+    dw = alibox.get_query_strategy(strategy_name="QueryInstanceDensityWeighted")
+    cors = alibox.get_query_strategy(strategy_name="QueryInstanceCoresetGreedy", train_idx=train_idx)
     quire = alibox.get_query_strategy(strategy_name="QueryInstanceQUIRE", train_idx=train_idx)
     density = alibox.get_query_strategy(strategy_name="QueryInstanceGraphDensity", train_idx=train_idx)
     lal = alibox.get_query_strategy(strategy_name="QueryInstanceLAL", cls_est=10, train_slt=False)
@@ -90,9 +95,12 @@ for round in range(5):
     qbc_result.append(copy.deepcopy(main_loop(alibox, qbc, round)))
     eer_result.append(copy.deepcopy(main_loop(alibox, eer, round)))
     rnd_result.append(copy.deepcopy(main_loop(alibox, rnd, round)))
+    cors_result.append(copy.deepcopy(main_loop(alibox, cors, round)))
+    dw_result.append(copy.deepcopy(main_loop(alibox, dw, round)))
     quire_result.append(copy.deepcopy(main_loop(alibox, quire, round)))
     density_result.append(copy.deepcopy(main_loop(alibox, density, round)))
     lal_result.append(copy.deepcopy(main_loop(alibox, lal, round)))
+
 
     if _I_have_installed_the_cvxpy:
         bmdr = alibox.get_query_strategy(strategy_name="QueryInstanceBMDR", kernel='rbf')
@@ -106,6 +114,8 @@ analyser.add_method(method_name='QBC', method_results=qbc_result)
 analyser.add_method(method_name='Unc', method_results=unc_result)
 analyser.add_method(method_name='EER', method_results=eer_result)
 analyser.add_method(method_name='Random', method_results=rnd_result)
+analyser.add_method(method_name='Coreset', method_results=cors_result)
+analyser.add_method(method_name='DensityWeighted', method_results=dw_result)
 analyser.add_method(method_name='QUIRE', method_results=quire_result)
 analyser.add_method(method_name='Density', method_results=density_result)
 analyser.add_method(method_name='LAL', method_results=lal_result)
