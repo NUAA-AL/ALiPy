@@ -1837,6 +1837,8 @@ class QueryInstanceCoresetGreedy(BaseIndexQuery):
             if self.min_distances is None:
                 self.min_distances = np.min(dist, axis=1).reshape(-1, 1)
             else:
+                if dist.shape[1] != 1:
+                    dist = np.min(dist, axis=1).reshape(-1, 1)
                 self.min_distances = np.minimum(self.min_distances, dist)
 
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
@@ -1879,6 +1881,7 @@ class QueryInstanceCoresetGreedy(BaseIndexQuery):
             assert self.train_idx[ind] in unlabel_index
 
             self.update_distances([ind], only_new=True, reset_dist=False)
+            self.min_distances[ind] = -100.0
             new_batch.append(self.train_idx[ind])
         return new_batch
 
