@@ -170,6 +170,8 @@ class ToolBox:
             if os.path.isdir(self._saving_path):
                 self._saving_dir = self._saving_path
                 if os.path.exists(os.path.join(saving_path, 'al_settings.pkl')):
+                    warnings.warn("An existed Toolbox file is detected, load the existed one in case of overwriting. "
+                                  "(Delete the old file to create a new Toolbox object)", category=UserWarning)
                     with open(os.path.join(saving_path, 'al_settings.pkl'), 'rb') as f:
                         existed_toolbox = pickle.load(f)
                         for ke in existed_toolbox.__dict__.keys():
