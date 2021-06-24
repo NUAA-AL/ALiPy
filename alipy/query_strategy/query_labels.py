@@ -1084,10 +1084,11 @@ class QueryInstanceBMDR(BaseIndexQuery):
 
         # K: kernel matrix
         super(QueryInstanceBMDR, self).__init__(X, y)
+        self.y = np.asarray(copy.deepcopy(y))   # fix # 33, avoid influencing the original y
         ul = unique_labels(self.y)
         if len(ul) != 2:
-            warnings.warn("This query strategy is implemented for binary classification only.",
-                          category=FunctionWarning)
+            raise ValueError(f"This query strategy is implemented for binary classification only, "
+                             f"but {len(ul)} classes are detected.")
         if len(ul) == 2 and {1, -1} != set(ul):
             y_temp = np.array(copy.deepcopy(self.y))
             self.y[y_temp == ul[0]] = 1
@@ -1353,10 +1354,11 @@ class QueryInstanceSPAL(BaseIndexQuery):
 
         # K: kernel matrix
         super(QueryInstanceSPAL, self).__init__(X, y)
+        self.y = np.asarray(copy.deepcopy(y))  # fix # 33, avoid influencing the original y
         ul = unique_labels(self.y)
         if len(ul) != 2:
-            warnings.warn("This query strategy is implemented for binary classification only.",
-                          category=FunctionWarning)
+            raise ValueError(f"This query strategy is implemented for binary classification only, "
+                             f"but {len(ul)} classes are detected.")
         if len(ul) == 2 and {1, -1} != set(ul):
             y_temp = np.array(copy.deepcopy(self.y))
             self.y[y_temp == ul[0]] = 1
@@ -1631,8 +1633,8 @@ class QueryInstanceLAL(BaseIndexQuery):
     def __init__(self, X, y, mode='LAL_iterative', data_path='.', cls_est=50, train_slt=True, **kwargs):
         super(QueryInstanceLAL, self).__init__(X, y)
         if len(unique_labels(self.y)) != 2:
-            warnings.warn("This query strategy is implemented for binary classification only.",
-                          category=FunctionWarning)
+            raise ValueError(f"This query strategy is implemented for binary classification only, "
+                             f"but {len(unique_labels(self.y))} classes are detected.")
         if not os.path.isdir(data_path):
             raise ValueError("Please pass the directory of the file.")
         self._iter_path = os.path.join(data_path, 'LAL-iterativetree-simulatedunbalanced-big.npz')
