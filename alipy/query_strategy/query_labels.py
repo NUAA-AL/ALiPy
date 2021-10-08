@@ -22,10 +22,15 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
 from sklearn.neighbors import kneighbors_graph
 from sklearn.utils.multiclass import unique_labels
+import torch
+from toma import toma
+from tqdm.auto import tqdm
 
 from .base import BaseIndexQuery
 from ..utils.ace_warnings import *
 from ..utils.misc import nsmallestarg, randperm, nlargestarg
+from . import joint_entropy
+from .LAL_RL import QueryInstanceLAL_RL
 
 __all__ = ['QueryInstanceUncertainty',
            'QueryRandom',
@@ -39,6 +44,8 @@ __all__ = ['QueryInstanceUncertainty',
            'QueryInstanceLAL',
            'QueryInstanceCoresetGreedy',
            'QueryInstanceDensityWeighted',
+           'QueryInstanceBatchBALD',
+           'QueryInstanceLAL_RL'
            ]
 
 
@@ -1956,3 +1963,160 @@ class QueryInstanceDensityWeighted(BaseIndexQuery):
         assert len(pat) == len(div) == len(unlabel_index)
         scores = np.multiply(pat, div)
         return np.asarray(unlabel_index)[nlargestarg(scores, batch_size)]
+
+
+class QueryInstanceBatchBALD(BaseIndexQuery):
+    """Reference Paper:
+        Andreas Kirsch, Joost van Amersfoort, Yarin Gal. 2019.
+        BatchBALD: Efficient and Diverse Batch Acquisition for Deep Bayesian Active Learning
+        https://arxiv.org/abs/1906.08158
+
+    The implementation is referred to
+    https://github.com/BlackHC/batchbald_redux
+
+    Parameters
+    ----------
+    X: 2D array, optional (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+    """
+    def __init__(self, X=None, y=None, verbose=1, **kwargs):
+        super(QueryInstanceBatchBALD, self).__init__(X, y)
+        self.verbose = verbose
+        
+    def select(self, label_index, unlabel_index, model=None, batch_size=1, num_samples=None, device=None, **kwargs):
+        """
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        model: object, optional (default=None)
+            Classification model, should be a bayesian model and must have the 'predict_proba' method for probabilistic output.
+            If not provided, LogisticRegression with default parameters implemented by sklearn will be used.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        num_samples: int, optional (default=None)
+            the maximum amount of memory that is used for entropy calculation.
+
+        device: torch.device, optional (default=None)
+            pytorch device that will be used for the calculations, default is cpu.
+            if a cuda device is given, then the model must accept a device for the predict_proba method.
+        """
+        assert (batch_size > 0)
+        assert (isinstance(unlabel_index, collections.Iterable))
+        unlabel_index = np.asarray(unlabel_index)
+        if len(unlabel_index) <= batch_size:
+            return unlabel_index
+
+        if self.X is None:
+            raise Exception('Data matrix is not provided, use select_by_prediction_mat() instead.')
+        if model is None:
+            model = LogisticRegression(solver='liblinear')
+            model.fit(self.X[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index],
+                      self.y[label_index if isinstance(label_index, (list, np.ndarray)) else label_index.index])
+        unlabel_x = self.X[unlabel_index, :]
+
+        if device != None:
+            pred = model.predict_proba(unlabel_x, device)
+        else:
+            pred = model.predict_proba(unlabel_x)
+        
+        if len(pred.shape) == 2:
+            # assuming first dim is num of samples and second dim is num of classes
+            pred = pred[:,None,:]
+        elif len(pred.shape) != 3:
+            raise ValueError("predict_proba of the model should return array if dim 2 or 3")
+
+        pred_tensor = torch.Tensor(pred).to(device)
+
+        if num_samples == None:
+            num_samples = pred.shape[2] ** batch_size
+        
+        return unlabel_index[self.get_batchbald_batch(pred_tensor.log().double(), batch_size, num_samples, 
+                                                 dtype=torch.double, device=device)]
+
+    def get_batchbald_batch(self, log_probs_N_K_C: torch.Tensor, batch_size: int, num_samples: int, dtype=None, device=None):
+        N, K, C = log_probs_N_K_C.shape
+    
+        batch_size = min(batch_size, N)
+    
+        candidate_indices = []
+        candidate_scores = []
+    
+        if batch_size == 0:
+            return []
+    
+        conditional_entropies_N = self.compute_conditional_entropy(log_probs_N_K_C)
+    
+        batch_joint_entropy = joint_entropy.DynamicJointEntropy(
+            num_samples, batch_size - 1, K, C, dtype=dtype, device=device, verbose=self.verbose
+        )
+    
+        # We always keep these on the CPU.
+        scores_N = torch.empty(N, dtype=torch.double, pin_memory=torch.cuda.is_available())
+
+        if self.verbose >= 1:
+            p_bar = tqdm(total=batch_size, desc="BatchBALD", leave=False)
+            def update():
+                p_bar.update()
+            def close():
+                p_bar.close()
+        else:
+            update = lambda *x : None
+            close = lambda *x : None
+    
+        for i in range(batch_size):
+            if i > 0:
+                latest_index = candidate_indices[-1]
+                batch_joint_entropy.add_variables(log_probs_N_K_C[latest_index : latest_index + 1])
+    
+            shared_conditinal_entropies = conditional_entropies_N[candidate_indices].sum()
+    
+            batch_joint_entropy.compute_batch(log_probs_N_K_C, output_entropies_B=scores_N)
+    
+            scores_N -= conditional_entropies_N + shared_conditinal_entropies
+            scores_N[candidate_indices] = -float("inf")
+    
+            candidate_score, candidate_index = scores_N.max(dim=0)
+    
+            candidate_indices.append(candidate_index.item())
+            candidate_scores.append(candidate_score.item())
+
+            update()
+    
+        close()
+        return candidate_indices
+    
+    
+    def compute_conditional_entropy(self, log_probs_N_K_C: torch.Tensor) -> torch.Tensor:
+        N, K, C = log_probs_N_K_C.shape
+    
+        entropies_N = torch.empty(N, dtype=torch.double)
+    
+        if self.verbose >= 1:
+            pbar = tqdm(total=N, desc="Conditional Entropy", leave=False)
+            def update():
+                pbar.update()
+            def close():
+                pbar.close()
+        else:
+            update = lambda *x : None
+            close = lambda *x : None
+    
+        @toma.execute.chunked(log_probs_N_K_C, 1024)
+        def compute(log_probs_n_K_C, start: int, end: int):
+            nats_n_K_C = log_probs_n_K_C * torch.exp(log_probs_n_K_C)
+    
+            entropies_N[start:end].copy_(-torch.sum(nats_n_K_C, dim=(1, 2)) / K)
+            update()
+    
+        close()
+        return entropies_N

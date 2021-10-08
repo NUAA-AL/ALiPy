@@ -12,7 +12,7 @@ setup(
     author_email='tangyp@nuaa.edu.cn, GuoXiangLi@nuaa.edu.cn, huangsj@nuaa.edu.cn',
     url='https://github.com/NUAA-AL/ALiPy',
     setup_requires=[],
-    install_requires=['numpy', 'scipy', 'scikit-learn', 'matplotlib', 'prettytable'],
+    install_requires=['numpy', 'scipy', 'scikit-learn', 'matplotlib', 'prettytable', 'torch', 'tqdm', 'toma'],
     packages=[
         'alipy',
         'alipy.data_manipulate',
