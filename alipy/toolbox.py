@@ -1,6 +1,7 @@
 import copy
 import os
 import pickle
+import warnings
 import inspect
 import numpy as np
 
@@ -83,23 +84,23 @@ class ToolBox:
     def __init__(self, y, X=None, instance_indexes=None,
                  query_type='AllLabels', saving_path=None, **kwargs):
         """
-        _index_len: int, length of indexes.
-        _y: 2d array, the label matrix of whole dataset.
-        _target_type: str, the type of target.
-        _label_space: list, the label space.
-        _label_num: int, The number of unique labels.
-        _instance_flag: bool, Whether passed instances when initializing.
-        _X: 2d array, The feature matrix of the whole dataset.
-        _indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
+        index_len: int, length of indexes.
+        y: 2d array, the label matrix of whole dataset.
+        target_type: str, the type of target.
+        label_space: list, the label space.
+        label_num: int, The number of unique labels.
+        instance_flag: bool, Whether passed instances when initializing.
+        X: 2d array, The feature matrix of the whole dataset.
+        indexes: list, The indexes of each instances, should have the same length of the feature and label matrix.
         query_type: str, The query type of this active learning project.
-        _split: bool, whether split the data.
+        split: bool, whether split the data.
         split_count: int, the number of split times.
         train_idx: list, a list split_count lists which include the indexes of training set.
         test_idx: list, a list split_count lists which include the indexes of testing set.
         label_idx: list, a list split_count lists which include the indexes of labeled set. (A subset of training set)
         unlabel_idx: list, a list split_count lists which include the indexes of unlabeled set. (A subset of training set)
-        _saving_path: str, saving path.
-        _saving_dir: str, saving dir.
+        saving_path: str, saving path.
+        saving_dir: str, saving dir.
         """
         self._index_len = None
         # check and record parameters
@@ -169,8 +170,22 @@ class ToolBox:
             self._saving_path = os.path.abspath(saving_path)
             if os.path.isdir(self._saving_path):
                 self._saving_dir = self._saving_path
+                if os.path.exists(os.path.join(saving_path, 'al_settings.pkl')):
+                    warnings.warn("An existed Toolbox file is detected, load the existed one in case of overwriting. "
+                                  "(Delete the old file to create a new Toolbox object)", category=UserWarning)
+                    with open(os.path.join(saving_path, 'al_settings.pkl'), 'rb') as f:
+                        existed_toolbox = pickle.load(f)
+                        for ke in existed_toolbox.__dict__.keys():
+                            setattr(self, ke, getattr(existed_toolbox, ke))
+                        return
             else:
                 self._saving_dir = os.path.split(self._saving_path)[0]  # if a directory, a dir and None will return.
+                if os.path.exists(saving_path):
+                    with open(os.path.abspath(saving_path), 'rb') as f:
+                        existed_toolbox = pickle.load(f)
+                        for ke in existed_toolbox.__dict__.keys():
+                            setattr(self, ke, getattr(existed_toolbox, ke))
+                        return
             self.save()
 
     def split_AL(self, test_ratio=0.3, initial_label_rate=0.05,
@@ -210,6 +225,11 @@ class ToolBox:
 
         """
         # should support other query types in the future
+        if self._split is True:
+            warnings.warn("Data has already been split. Return the existed split in case of overwriting.",
+                          category=RuntimeWarning)
+            return self.train_idx, self.test_idx, self.label_idx, self.unlabel_idx
+
         self.split_count = split_count
         if self._target_type != 'Features':
             if self._target_type != 'multilabel':
@@ -242,6 +262,7 @@ class ToolBox:
                 saving_path=self._saving_path
             )
         self._split = True
+        self.save()
         return self.train_idx, self.test_idx, self.label_idx, self.unlabel_idx
 
     def get_split(self, round=None):

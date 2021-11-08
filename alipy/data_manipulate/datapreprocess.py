@@ -102,7 +102,7 @@ def StandardScale(X):
 
     '''
     if sparse.issparse(X):
-            raise TypeError("MinMaxScaler does no support sparse input. "
+            raise TypeError("MinMaxScaler does not support sparse input. "
                             "You may consider to use MaxAbsScaler instead.")
     if not isinstance(X, np.ndarray):
         X = np.asarray(X)

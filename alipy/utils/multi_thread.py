@@ -109,7 +109,7 @@ class aceThreading:
             assert max_thread > 0
             self.__max_thread = max_thread
         # for controlling the print frequency
-        self._start_time = time.clock()
+        self._start_time = time.perf_counter()
         # for displaying the time elapse
         self._thread_time_elapse = [-1] * self._round_num
         # for recovering the workspace
@@ -246,8 +246,8 @@ class aceThreading:
         return str(tb)
 
     def _if_refresh(self):
-        if time.clock() - self._start_time > self._refresh_interval:
-            self._start_time = time.clock()
+        if time.perf_counter() - self._start_time > self._refresh_interval:
+            self._start_time = time.perf_counter()
             return True
         else:
             return False

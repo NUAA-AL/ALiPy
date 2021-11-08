@@ -66,7 +66,7 @@ class StoppingCriteria:
             if not isinstance(value, float) and value is not None:
                 value = float(value)
         if stopping_criteria == 'time_limit':
-            self._start_time = time.clock()
+            self._start_time = time.perf_counter()
         self.value = value
 
         # collect information
@@ -102,7 +102,7 @@ class StoppingCriteria:
             else:
                 return False
         elif self._stopping_criteria == 'time_limit':
-            if time.clock() - self._start_time >= self.value:
+            if time.perf_counter() - self._start_time >= self.value:
                 return True
             else:
                 return False
@@ -132,7 +132,7 @@ class StoppingCriteria:
             Reset the current state to the initial.
         """
         self.value = self._init_value
-        self._start_time = time.clock()
+        self._start_time = time.perf_counter()
         self._current_iter = 0
         self._accum_cost = 0
         self._current_unlabel = 100

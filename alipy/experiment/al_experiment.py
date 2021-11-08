@@ -16,8 +16,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.utils import check_X_y
 
 from alipy.query_strategy.query_labels import QueryInstanceQBC, \
-         QueryInstanceUncertainty, QueryInstanceRandom, QureyExpectedErrorReduction, QueryInstanceQUIRE, \
-          QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL, QueryExpectedErrorReduction
+    QueryInstanceUncertainty, QueryInstanceRandom, QueryInstanceQUIRE, \
+    QueryInstanceGraphDensity, QueryInstanceBMDR, QueryInstanceSPAL, QueryInstanceLAL, QueryExpectedErrorReduction
 from ..data_manipulate.al_split import split
 from .experiment_analyser import ExperimentAnalyser
 from .state import State
@@ -29,6 +29,7 @@ from ..metrics import performance
 
 __all__ = ['AlExperiment',
            ]
+
 
 class AlExperiment:
     """AlExperiment is a  class to encapsulate various tools
@@ -152,7 +153,7 @@ class AlExperiment:
         else:
             # a pre-defined strategy in ALiPy
             if strategy not in ['QueryInstanceQBC', 'QueryInstanceUncertainty', 'QueryRandom', 'QueryInstanceRandom',
-                                'QureyExpectedErrorReduction', 'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
+                                'QueryInstanceGraphDensity', 'QueryInstanceQUIRE',
                                 'QueryInstanceBMDR', 'QueryInstanceSPAL', 'QueryInstanceLAL',
                                 'QueryExpectedErrorReduction']:
                 raise NotImplementedError('Strategy {} is not implemented. Specify a valid '
@@ -168,7 +169,7 @@ class AlExperiment:
                     self._query_function = QueryInstanceUncertainty(self._X, self._y, measure)
                 elif strategy == 'QueryInstanceRandom' or strategy == 'QueryRandom':
                     self._query_function = QueryInstanceRandom(self._X, self._y)
-                elif strategy == 'QureyExpectedErrorReduction' or strategy == 'QueryExpectedErrorReduction':
+                elif strategy == 'QueryExpectedErrorReduction':
                     self._query_function = QueryExpectedErrorReduction(self._X, self._y)
                 elif strategy == 'QueryInstanceGraphDensity' or strategy == 'QueryInstanceQUIRE':
                     if self._train_idx is None:
@@ -182,23 +183,23 @@ class AlExperiment:
                     gamma = kwargs.pop('gamma', 0.1)
                     rho = kwargs.pop('rho', 1)
                     self._query_function = QueryInstanceBMDR(self._X, self._y, beta, gamma, rho, **kwargs)
-                    self.qp_solver = kwargs.pop('qp_sover', 'ECOS')                      
+                    self.qp_solver = kwargs.pop('qp_sover', 'ECOS')
                 elif strategy == 'QueryInstanceSPAL':
-                    mu = kwargs.pop('mu',0.1)
-                    gamma = kwargs.pop('gamma',0.1)
-                    rho = kwargs.pop('rho',1)
-                    lambda_init = kwargs.pop('lambda_init',0.1)
-                    lambda_pace = kwargs.pop('lambda_pace',0.01)
-                    self._query_function = QueryInstanceSPAL(self._X, self._y, mu, gamma, rho, lambda_init, lambda_pace, **kwargs)
+                    mu = kwargs.pop('mu', 0.1)
+                    gamma = kwargs.pop('gamma', 0.1)
+                    rho = kwargs.pop('rho', 1)
+                    lambda_init = kwargs.pop('lambda_init', 0.1)
+                    lambda_pace = kwargs.pop('lambda_pace', 0.01)
+                    self._query_function = QueryInstanceSPAL(self._X, self._y, mu, gamma, rho, lambda_init, lambda_pace,
+                                                             **kwargs)
                     self.qp_solver = kwargs.pop('qp_sover', 'ECOS')
                 elif strategy == 'QueryInstanceLAL':
                     mode = kwargs.pop('mode', 'LAL_iterative')
                     data_path = kwargs.pop('data_path', '.')
                     cls_est = kwargs.pop('cls_est', 50)
                     train_slt = kwargs.pop('train_slt', True)
-                    self._query_function = QueryInstanceLAL(self._X, self._y, mode, data_path, cls_est, train_slt, **kwargs)
-
-
+                    self._query_function = QueryInstanceLAL(self._X, self._y, mode, data_path, cls_est, train_slt,
+                                                            **kwargs)
 
     def set_performance_metric(self, performance_metric='accuracy_score', **kwargs):
         """
@@ -378,8 +379,6 @@ class AlExperiment:
             elif self._query_function_name == 'QueryInstanceQUIRE':
                 querfunction = QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
 
-        
-
         # performance calc
         perf_result = self._performance_metric(pred, self._y[test_id])
 
@@ -398,7 +397,8 @@ class AlExperiment:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
                                                              model=self._model)
                 elif self._query_function_name == 'QueryInstanceBMDR' or self._query_function_name == 'QueryInstanceSPAL':
-                    select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size, qp_solver=self.qp_solver)
+                    select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size,
+                                                             qp_solver=self.qp_solver)
                 else:
                     select_ind = self._query_function.select(Lcollection, Ucollection, batch_size=self._batch_size)
             else:
