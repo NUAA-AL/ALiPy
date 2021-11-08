@@ -21,6 +21,7 @@ __all__ = ['BaseQueryStrategy',
            'BaseAnalyser',
            ]
 
+
 class BaseQueryStrategy(metaclass=ABCMeta):
     """Base query class.
 
