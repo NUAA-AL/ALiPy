@@ -924,7 +924,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
         for i, p in enumerate(pred_num_lbl):
             yhat[i, idx_poolf[i, :p]] = 1
 
-        # TODO(guo hongtao 2021.11.23 email:csguo@nuaa.edu.cn): why f = poolf * 2 - 1 ?
+        # TODO(guo hongtao): why f = poolf * 2 - 1 ?
         score = ((1 - yhat * f) / 2).sum(axis=1)
         ask_id = self.random_state_.choice(np.where(score == np.max(score))[0])
 
@@ -994,7 +994,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
-        
+
     base_clf : ContinuousModel object instance
         The base learner for binary relavance should support predict_proba() method.
         Such as sklearn.linear_model.LogisticRegression(solver='liblinear').
@@ -1164,7 +1164,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
             select_index.append((selected, ))
 
         return select_index
-        
+
 
 class QueryMultiLabelRandom(BaseMultiLabelQuery):
     """Select instance or instance-label pairs randomly."""
