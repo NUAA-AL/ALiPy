@@ -152,7 +152,7 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
             for lab_value in lab_set:
                 indx = np.where(y[tp_train] == lab_value)
                 indx = [tp_train[i] for i in indx]
-                tp_lab_indx_arr.append(indx[0][0])
+                tp_lab_indx_arr.append(np.random.choice(indx[0], 1)[0])
             # randomly take examples from the rest data
             for i in np.arange(len(tp_lab_indx_arr), cutpointlabel):
                 while 1:    # avoid repeated entries
