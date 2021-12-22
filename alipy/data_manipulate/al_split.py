@@ -126,13 +126,23 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
                 raise Exception("y must be provided when all_class flag is True.")
             y = check_array(y, ensure_2d=False, dtype=None)
             if y.ndim == 1:
-                label_num = len(np.unique(y))
-            else:
+                lab_set = np.unique(y)
+                label_num = len(lab_set)
+            elif y.ndim == 2:
                 label_num = y.shape[1]
+                lab_set = list(range(label_num))
             if round((1 - test_ratio) * initial_label_rate * number_of_instance) < label_num:
                 raise ValueError(
                     "The initial rate is too small to guarantee that each "
                     "split will contain at least one instance for each class.")
+            for lab_value in lab_set:
+                if y.ndim == 1:
+                    indx = np.where(y == lab_value)
+                else:   # one-hot encoding
+                    indx = np.where(y[:, lab_value] == 1)
+                if len(indx[0]) < 2:
+                    raise ValueError(f"The number of data in class {lab_value} is 1, can not guarantee that "
+                                     f"each split will contain at least one instance for each class.")
 
             # enforce the train and test set has the same number of classes
             while 1:
@@ -150,7 +160,10 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
             lab_set = np.unique(y)
             # take one example from each class in the training set
             for lab_value in lab_set:
-                indx = np.where(y[tp_train] == lab_value)
+                if y.ndim == 1:
+                    indx = np.where(y[tp_train] == lab_value)
+                else:
+                    indx = np.where(y[:, lab_value] == 1)   # one-hot encoding
                 indx = [tp_train[i] for i in indx]
                 tp_lab_indx_arr.append(np.random.choice(indx[0], 1)[0])
             # randomly take examples from the rest data
@@ -160,7 +173,7 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
                     if candidate_ind not in tp_lab_indx_arr:
                         tp_lab_indx_arr.append(candidate_ind)
                         break
-                tp_unlabel_idx_arr = list(set(tp_train) - set(tp_lab_indx_arr))
+            tp_unlabel_idx_arr = list(set(tp_train) - set(tp_lab_indx_arr))
 
             train_idx.append(tp_train)
             test_idx.append(instance_indexes[rp[cutpoint:]])
