@@ -109,7 +109,7 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
     label_idx = []
     unlabel_idx = []
     for i in range(split_count):
-        if (not all_class) or y is None:
+        if (not all_class) or y is None:    # directly split data without checking the validity
             rp = randperm(number_of_instance - 1)
             cutpoint = int(round((1 - test_ratio) * len(rp)))
             tp_train = instance_indexes[rp[0:cutpoint]]
@@ -120,39 +120,65 @@ def split(X=None, y=None, instance_indexes=None, query_type=None, test_ratio=0.3
                 cutpoint = 1
             label_idx.append(tp_train[0:cutpoint])
             unlabel_idx.append(tp_train[cutpoint:])
-        else:
+        else:   # enforce each set has one example per class at least
+            # check the validity of y and split ratio
             if y is None:
                 raise Exception("y must be provided when all_class flag is True.")
             y = check_array(y, ensure_2d=False, dtype=None)
             if y.ndim == 1:
-                label_num = len(np.unique(y))
-            else:
+                lab_set = np.unique(y)
+                label_num = len(lab_set)
+            elif y.ndim == 2:
                 label_num = y.shape[1]
+                lab_set = list(range(label_num))
             if round((1 - test_ratio) * initial_label_rate * number_of_instance) < label_num:
                 raise ValueError(
                     "The initial rate is too small to guarantee that each "
                     "split will contain at least one instance for each class.")
+            for lab_value in lab_set:
+                if y.ndim == 1:
+                    indx = np.where(y == lab_value)
+                else:   # one-hot encoding
+                    indx = np.where(y[:, lab_value] == 1)
+                if len(indx[0]) < 2:
+                    raise ValueError(f"The number of data in class {lab_value} is 1, can not guarantee that "
+                                     f"each split will contain at least one instance for each class.")
 
-            # check validaty
+            # enforce the train and test set has the same number of classes
             while 1:
                 rp = randperm(number_of_instance - 1)
                 cutpoint = int(round((1 - test_ratio) * len(rp)))
                 tp_train = instance_indexes[rp[0:cutpoint]]
                 cutpointlabel = int(round(initial_label_rate * len(tp_train)))
-                if cutpointlabel <= 1:
-                    cutpointlabel = 1
-                label_id = tp_train[0:cutpointlabel]
-                if y.ndim == 1:
-                    if len(np.unique(y[label_id])) == label_num:
-                        break
+                if len(np.unique(y[tp_train])) != len(np.unique(y[instance_indexes[rp[cutpoint:]]])):
+                    continue
                 else:
-                    temp = np.sum(y[label_id], axis=0)
-                    if not np.any(temp == 0):
+                    break
+
+            tp_lab_indx_arr = []
+            tp_unlabel_idx_arr = []
+            lab_set = np.unique(y)
+            # take one example from each class in the training set
+            for lab_value in lab_set:
+                if y.ndim == 1:
+                    indx = np.where(y[tp_train] == lab_value)
+                else:
+                    indx = np.where(y[:, lab_value] == 1)   # one-hot encoding
+                indx = [tp_train[i] for i in indx]
+                tp_lab_indx_arr.append(np.random.choice(indx[0], 1)[0])
+            # randomly take examples from the rest data
+            for i in np.arange(len(tp_lab_indx_arr), cutpointlabel):
+                while 1:    # avoid repeated entries
+                    candidate_ind = np.random.choice(tp_train, 1)[0]
+                    if candidate_ind not in tp_lab_indx_arr:
+                        tp_lab_indx_arr.append(candidate_ind)
                         break
+            tp_unlabel_idx_arr = list(set(tp_train) - set(tp_lab_indx_arr))
+
             train_idx.append(tp_train)
             test_idx.append(instance_indexes[rp[cutpoint:]])
-            label_idx.append(tp_train[0:cutpointlabel])
-            unlabel_idx.append(tp_train[cutpointlabel:])
+            label_idx.append(tp_lab_indx_arr)
+            unlabel_idx.append(tp_unlabel_idx_arr)
 
     split_save(train_idx=train_idx, test_idx=test_idx, label_idx=label_idx,
                unlabel_idx=unlabel_idx, path=saving_path)
