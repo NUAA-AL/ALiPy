@@ -1996,14 +1996,6 @@ class QueryInstanceERIAL(BaseIndexQuery):
     """
 
     def __init__(self, X, y, **kwargs):
-        try:
-            import cvxpy
-            self._cvxpy = cvxpy
-        except:
-            raise ImportError("This method need cvxpy to solve the QP problem."
-                              "Please refer to https://www.cvxpy.org/install/index.html "
-                              "install cvxpy manually before using.")
-
         self.X = X
         self.y = y
 
@@ -2059,7 +2051,6 @@ class QueryInstanceERIAL(BaseIndexQuery):
         selected_idx: list
             The selected indexes which is a subset of unlabel_index.
         """
-        cp = self._cvxpy
         if model is None and proba_prediction_all is None:
             raise ValueError("must provide one of model and proba_prediction_all.")
         elif model is not None:
@@ -2111,8 +2102,6 @@ class QueryInstanceERIAL(BaseIndexQuery):
         C = _d_BvSB * _min_svc
 
         # use cvxopt to solve QP
-
-
         P = cv_matrix(2 * M1)
         q = cv_matrix((M2-M3+beta*C).T)
         # q = cv_matrix((M2-M3+beta*C).T)
@@ -2129,7 +2118,6 @@ class QueryInstanceERIAL(BaseIndexQuery):
         A = cv_matrix(A)
         # b = cv_matrix(np.ones(1))
         b = cv_matrix([0.])
-
 
         sol = solvers.qp(P, q, G, h, A, b)
         # sol = solvers.qp(P, q, G, h)
