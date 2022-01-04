@@ -15,7 +15,7 @@ from alipy.index.index_collections import *
 from alipy.utils.ace_warnings import *
 
 index1 = IndexCollection([1, 2, 3])
-index2 = IndexCollection([1, 2, 2, 3])
+index2 = IndexCollection([1, 2, 3])
 multi_lab_ind1 = MultiLabelIndexCollection([(0, 1), (0, 2), (0, (3, 4)), (1, (0, 1))], label_size=5)
 
 
@@ -38,17 +38,18 @@ def test_basic_ind1():
 
 
 def test_warn_ind1():
-    with pytest.warns(RepeatElementWarning, match=r'.*same elements in the given data'):
+    with pytest.raises(ValueError, match=r'.*same elements in the given data'):
         a = IndexCollection([1, 2, 2, 3])
-    with pytest.warns(RepeatElementWarning, match=r'.*has already in the collection.*'):
+    a = IndexCollection([1, 2, 3])
+    with pytest.raises(ValueError, match=r'.*already in the collection.*'):
         a.add(3)
     a.add(4)
-    with pytest.warns(InexistentElementWarning, match=r'.*to discard is not in the collection.*'):
+    with pytest.raises(ValueError, match=r'.*not in the collection.*'):
         a.discard(6)
     assert a.pop() == 4
-    with pytest.warns(RepeatElementWarning, match=r'.*has already in the collection.*'):
+    with pytest.raises(ValueError, match=r'.*already in the collection.*'):
         a.update(IndexCollection([2, 9, 10]))
-    with pytest.warns(InexistentElementWarning, match=r'.*to discard is not in the collection.*'):
+    with pytest.raises(ValueError, match=r'.*not in the collection.*'):
         a.difference_update(IndexCollection([2, 100]))
 
 

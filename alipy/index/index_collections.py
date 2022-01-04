@@ -74,9 +74,7 @@ class IndexCollection(BaseCollection):
                 data = [data]
             self._innercontainer = list(np.unique([i for i in data], axis=0))
             if len(self._innercontainer) != len(data):
-                warnings.warn("There are %d same elements in the given data" % (len(data) - len(self._innercontainer)),
-                              category=RepeatElementWarning,
-                              stacklevel=3)
+                raise ValueError("There are %d same elements in the given data" % (len(data) - len(self._innercontainer)))
             datatype = collections.Counter([type(i) for i in self._innercontainer])
             if len(datatype) != 1:
                 raise TypeError("Different types found in the given _indexes.")
@@ -136,9 +134,9 @@ class IndexCollection(BaseCollection):
             raise TypeError(
                 "A %s parameter is expected, but received: %s" % (str(self._element_type), str(type(value))))
         if value in self._innercontainer:
-            warnings.warn("Adding element %s has already in the collection, skip." % (value.__str__()),
-                          category=RepeatElementWarning,
-                          stacklevel=3)
+            raise ValueError("Fatal: adding element %s failed, it is already in the collection. "
+                             "(make sure that: training set = labeled set + unlabeled set, "
+                             "labeled set - unlabeled set = empty set)" % (value.__str__()))
         else:
             self._innercontainer.append(value)
         return self
@@ -159,9 +157,8 @@ class IndexCollection(BaseCollection):
             Return self.
         """
         if value not in self._innercontainer:
-            warnings.warn("Element %s to discard is not in the collection, skip." % (value.__str__()),
-                          category=InexistentElementWarning,
-                          stacklevel=3)
+            raise ValueError("Fatal: discard element %s failed, it is not in the collection."
+                             "(Please make sure the queried index is a subset of unlabeled set.)" % (value.__str__()))
         else:
             self._innercontainer.remove(value)
         return self
