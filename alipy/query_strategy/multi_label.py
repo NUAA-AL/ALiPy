@@ -36,7 +36,7 @@ __all__ = ['LabelRankingModel',
            'QueryMultiLabelRandom',
            ]
 
-class _LabelRankingModel_MatlabVer:
+class _LabelRankingModel_MatlabVer(object):
     """Label ranking model is a classification model in multi-label setting.
     It combines label ranking with threshold learning, and use SGD to optimize.
 
@@ -617,7 +617,7 @@ def seed_random_state(seed):
                      " instance" % seed)
 
 
-class DummyClf():
+class DummyClf(object):
     """This classifier handles training sets with only 0s or 1s to unify the
     interface.
     """
@@ -644,7 +644,7 @@ class DummyClf():
         return ret
 
 
-class _BinaryRelevance():
+class _BinaryRelevance(object):
     r"""Binary Relevance
 
     base_clf : base-classifier
@@ -791,7 +791,7 @@ class _BinaryRelevance():
 
 
 class QueryMultiLabelMMC(BaseIndexQuery):
-    """Maximum loss reduction with Maximal Confidence (MMC)
+    r"""Maximum loss reduction with Maximal Confidence (MMC)
     This algorithm is designed to use binary relavance with SVM as base model.
 
     The implementation refers to the project: https://github.com/ntucllab/libact
@@ -853,7 +853,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
                                random_state=random_state)
         else:
             self.br_base = br_base2 if br_base is None else br_base
-    
+
     def sequential_select(self, label_index, unlabel_index):
         """
             Select one unlabel-sample at a time.
@@ -885,7 +885,7 @@ class QueryMultiLabelMMC(BaseIndexQuery):
             unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
         elif not isinstance(unlabel_index,IndexCollection):
             raise TypeError("index type error")
-        
+
         if len(unlabel_index) <= 1:
             return list(unlabel_index)
 
@@ -895,32 +895,41 @@ class QueryMultiLabelMMC(BaseIndexQuery):
         br = _BinaryRelevance(self.br_base)
         br.train(self.X[label_index], self.y[label_index])
 
+        # trnf : numpy array, shape=(n_samples, n_labels)
         trnf = br.predict_proba(labeled_pool)
         poolf = br.predict_proba(X_pool)
         f = poolf * 2 - 1
 
         trnf = np.sort(trnf, axis=1)[:, ::-1]
+        # Normalize the classification probabilities
         trnf /= np.tile(trnf.sum(axis=1).reshape(-1, 1), (1, trnf.shape[1]))
         if len(np.unique(self.y.sum(axis=1))) == 1:
             lr = DummyClf()
         else:
             lr = self.logistic_regression_
+
+        # For each training data x, present [1:q_1(x), 2:q_2(x), 3:q_3(x), ...., k:q_k(x)] as the training features for LR model
+        # the number of labels of x is used as the category to train a multi-class classfier.
         lr.fit(trnf, self.y[label_index].sum(axis=1))
 
         idx_poolf = np.argsort(poolf, axis=1)[:, ::-1]
         poolf = np.sort(poolf, axis=1)[:, ::-1]
+        # Normalize
         poolf /= np.tile(poolf.sum(axis=1).reshape(-1, 1), (1, poolf.shape[1]))
+        # Number of prediction categories
         pred_num_lbl = lr.predict(poolf).astype(int)
+
 
         yhat = -1 * np.ones((len(X_pool), self.n_labels), dtype=int)
         for i, p in enumerate(pred_num_lbl):
             yhat[i, idx_poolf[i, :p]] = 1
 
+        # TODO(guo hongtao): why f = poolf * 2 - 1 ?
         score = ((1 - yhat * f) / 2).sum(axis=1)
         ask_id = self.random_state_.choice(np.where(score == np.max(score))[0])
 
         return unlabel_index[ask_id]
-        
+
     def select(self, label_index, unlabel_index, batch_size=1, **kwargs):
         """
             Select the unlabel data in batch mode.
@@ -956,10 +965,10 @@ class QueryMultiLabelMMC(BaseIndexQuery):
             unlabel_index = IndexCollection(unlabel_index.get_unbroken_instances())
         elif not isinstance(unlabel_index,IndexCollection):
             raise TypeError("index type error")
-        
+
         if len(unlabel_index) <= batch_size:
             return list(unlabel_index)
-        
+
         select_index = []
         for i in range(batch_size):
             selected = self.sequential_select(label_index, unlabel_index)
@@ -985,7 +994,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
 
     y: array-like
         Label matrix of the whole dataset. It is a reference which will not use additional memory.
-        
+
     base_clf : ContinuousModel object instance
         The base learner for binary relavance should support predict_proba() method.
         Such as sklearn.linear_model.LogisticRegression(solver='liblinear').
@@ -1155,7 +1164,7 @@ class QueryMultiLabelAdaptive(BaseIndexQuery):
             select_index.append((selected, ))
 
         return select_index
-        
+
 
 class QueryMultiLabelRandom(BaseMultiLabelQuery):
     """Select instance or instance-label pairs randomly."""

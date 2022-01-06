@@ -15,13 +15,16 @@ import copy
 import os
 
 import numpy as np
+from numpy.lib.function_base import select
 from sklearn.ensemble import BaggingClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import pairwise_distances
-from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel
+from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel, linear_kernel, euclidean_distances
 from sklearn.neighbors import kneighbors_graph
 from sklearn.utils.multiclass import unique_labels
+from cvxopt import solvers
+from cvxopt import matrix as cv_matrix
 
 from .base import BaseIndexQuery
 from ..utils.ace_warnings import *
@@ -39,6 +42,7 @@ __all__ = ['QueryInstanceUncertainty',
            'QueryInstanceLAL',
            'QueryInstanceCoresetGreedy',
            'QueryInstanceDensityWeighted',
+           'QueryInstanceERIAL'
            ]
 
 
@@ -1910,6 +1914,7 @@ class QueryInstanceDensityWeighted(BaseIndexQuery):
         The tradeoff parameter. (The exponent of diversity term)
 
     """
+
     def __init__(self, X, y, uncertainty_meansure="entropy", distance="euclidean", beta=1.0):
         assert uncertainty_meansure in ['least_confident', 'margin', 'entropy']
         assert distance in ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan']
@@ -1956,3 +1961,170 @@ class QueryInstanceDensityWeighted(BaseIndexQuery):
         assert len(pat) == len(div) == len(unlabel_index)
         scores = np.multiply(pat, div)
         return np.asarray(unlabel_index)[nlargestarg(scores, batch_size)]
+
+
+class QueryInstanceERIAL(BaseIndexQuery):
+    """Exploring Representativeness and Informativeness for Active Learning (IEEE TRANS ON CYBERNETICS)
+    will quety a batch of Representative and Informative examples by minimizing a well designed
+    objective  function.
+
+    The QR solver is cvxpy here.
+
+    The model used for instances selection is a SVM model with the kernel form.
+
+    Parameters
+    ----------
+    X: 2D array, optionyal (default=None)
+        Feature matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    y: array-like, optional (default=None)
+        Label matrix of the whole dataset. It is a reference which will not use additional memory.
+
+    kernel : {'linear', 'poly', 'rbf', callable}, optional (default='rbf')
+        Specifies the kernel type to be used in the algorithm.
+        It must be one of 'linear', 'poly', 'rbf', or a callable.
+        If a callable is given it is used to pre-compute the kernel matrix
+        from data matrices; that matrix should be an array of shape
+        ``(n_samples, n_samples)``.
+
+
+    References
+    ----------
+    [1] Du, B., Wang, Z., Zhang, L., Zhang, L., Liu, W., Shen, J., & Tao, D. (2015).
+        Exploring representativeness and informativeness for active learning.
+        IEEE transactions on cybernetics, 47(1), 14-26.
+    """
+
+    def __init__(self, X, y, **kwargs):
+        self.X = X
+        self.y = y
+
+        # calc kernel
+        self._kernel = kwargs.pop('kernel', 'rbf')
+        if self._kernel == 'rbf':
+            self._K = rbf_kernel(X=X, Y=X, gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'poly':
+            self._K = polynomial_kernel(X=X,
+                                        Y=X,
+                                        coef0=kwargs.pop('coef0', 1),
+                                        degree=kwargs.pop('degree', 3),
+                                        gamma=kwargs.pop('gamma_ker', 1.))
+        elif self._kernel == 'linear':
+            self._K = linear_kernel(X=X, Y=X)
+        elif hasattr(self._kernel, '__call__'):
+            self._K = self._kernel(X=np.array(X), Y=np.array(X))
+        else:
+            raise NotImplementedError
+
+        self._total_samples = X.shape[0]
+
+    def select(self, label_index, unlabel_index, batch_size=1, beta=1.,
+               model=None, proba_prediction_all=None, support_vectors=None, **kwargs):
+        """Select indexes from the unlabel_index for querying.
+
+        Parameters
+        ----------
+        label_index: {list, np.ndarray, IndexCollection}
+            The indexes of labeled samples.
+
+        unlabel_index: {list, np.ndarray, IndexCollection}
+            The indexes of unlabeled samples.
+
+        batch_size: int, optional (default=1)
+            Selection batch size.
+
+        beta: float, optional (default=1.)
+            The parameter balance the informative part and representative part in the optimization objective
+
+        model: sklearn model (default: SVM)
+
+        proba_prediction_all: {list, ndarray} (default=None)
+            Model.predict_proba of all samples(label+unlabel), If Model is None, must provide proba_prediction.
+
+        support_vectors: {list, ndarray} (default=None)
+            The index of support vectors in label data(model.support_) ,
+            If model is None, must provide support_.
+
+
+        Returns
+        -------
+        selected_idx: list
+            The selected indexes which is a subset of unlabel_index.
+        """
+        if model is None and proba_prediction_all is None:
+            raise ValueError("must provide one of model and proba_prediction_all.")
+        elif model is not None:
+            all_pv = model.predict_proba(self.X)
+        else:
+            if len(proba_prediction_all) != self._total_samples:
+                raise ValueError("len(proba_prediction_all) is not equal to the num of total_samples.")
+            all_pv = np.array(proba_prediction_all)
+
+        u_pv = all_pv[unlabel_index]
+
+        if model is None and support_vectors is None:
+            raise ValueError("must provide one of model and support_vectors index.")
+        elif model is not None:
+            # support_ is the index of label data
+            # _support_vectors is the index of all data
+            _support_vectors = np.array(label_index)[model.support_]
+        elif support_vectors is not None:
+            _support_vectors = np.array(label_index)[support_vectors]
+
+        l_len = len(label_index)
+        u_len = len(unlabel_index)
+
+        dis_post_proba = rbf_kernel(X=all_pv, Y=all_pv, gamma=kwargs.pop('gamma_ker', 1.))
+        # cal M1
+        weight_M1 = 0.5
+        # M1 = weight_M1 * self._K[unlabel_index][:, unlabel_index]
+        M1 = weight_M1 * dis_post_proba[unlabel_index][:, unlabel_index]
+        # cal M2
+        weight_M2 = (l_len + 1) / self._total_samples
+        M2 = weight_M2 * dis_post_proba[unlabel_index][:, label_index].sum(axis=1)
+        # cal M3
+        weight_M3 = (u_len - 1) / self._total_samples
+        M3 = weight_M3 * dis_post_proba[unlabel_index][:, unlabel_index].sum(axis=1)
+
+        # for each unlabel sample, calc. BvSB value
+        # _d_BvSB = np.sort(pv, axis=1)[1] - np.sort(pv, axis=1)[0]
+        _d_BvSB = np.sort(u_pv, axis=1)[:, -2:]
+        # _d_BvSB = max minus second
+
+        _d_BvSB = _d_BvSB[:, 1] - _d_BvSB[:, 0]
+
+        _dis_matrix = euclidean_distances(all_pv[unlabel_index],
+                                          all_pv[_support_vectors],
+                                          squared=True)
+        _dis_matrix = np.exp(_dis_matrix)
+
+        _min_svc = np.min(_dis_matrix, axis=1)
+        C = _d_BvSB * _min_svc
+
+        # use cvxopt to solve QP
+        P = cv_matrix(2 * M1)
+        q = cv_matrix((M2-M3+beta*C).T)
+        # q = cv_matrix((M2-M3+beta*C).T)
+
+        _g1 = np.identity(u_len)
+        _g2 = -1 * np.identity(u_len)
+        G = cv_matrix(np.concatenate((_g1, _g2), axis=0))
+        _h1 = np.ones(u_len)
+        _h2 = np.zeros(u_len)
+        h = cv_matrix(np.concatenate((_h1, _h2), axis=0))
+
+        A = np.ones(u_len).T.reshape(1,-1).astype('float')
+
+        A = cv_matrix(A)
+        # b = cv_matrix(np.ones(1))
+        b = cv_matrix([0.])
+
+        sol = solvers.qp(P, q, G, h, A, b)
+        # sol = solvers.qp(P, q, G, h)
+
+        select_id = []
+        _sel_u_index = np.argmax(np.array(sol['x']))
+        select_id.append(unlabel_index[_sel_u_index])
+        return select_id
+        # return unique_labels[_max_alpha_batch]
+

@@ -25,7 +25,7 @@ __all__ = ['ToolBox',
            ]
 
 
-class ToolBox:
+class ToolBox(object):
     """Tool box is a tool class which initializes the active learning
     elements according to the setting in order to reduce the error and improve
     the usability.
@@ -231,6 +231,7 @@ class ToolBox:
             return self.train_idx, self.test_idx, self.label_idx, self.unlabel_idx
 
         self.split_count = split_count
+        # todo (guo hongtao): _target_type always is not equal to Feature
         if self._target_type != 'Features':
             if self._target_type != 'multilabel':
                 self.train_idx, self.test_idx, self.label_idx, self.unlabel_idx = split(
