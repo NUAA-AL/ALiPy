@@ -380,7 +380,7 @@ class AlExperiment:
                 querfunction = QueryInstanceQUIRE(self._X, self._y, train_id, **self._query_function_kwargs)
 
         # performance calc
-        perf_result = self._performance_metric(pred, self._y[test_id])
+        perf_result = self._performance_metric(self._y[test_id], pred)
 
         # stopping-criterion 
         stopping_criterion = copy.deepcopy(self._stopping_criterion)
@@ -411,7 +411,7 @@ class AlExperiment:
             pred = self._model.predict(self._X[test_id, :])
 
             # performance calc
-            perf_result = self._performance_metric(pred, self._y[test_id])
+            perf_result = self._performance_metric(self._y[test_id], pred)
 
             # save intermediate results
             st = State(select_index=select_ind, performance=perf_result)
