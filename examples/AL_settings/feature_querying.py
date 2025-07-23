@@ -134,6 +134,3 @@ analyser.add_method(method_results=Stable_result, method_name='Stability')
 analyser.add_method(method_results=rand_result, method_name='Random')
 print(analyser)
 analyser.plot_learning_curves()
-
-
-

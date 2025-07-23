@@ -204,7 +204,7 @@ analyser.plot_learning_curves(title='Example of AL', std_area=True)
 Please cite our work:
 
 ```
-Tang, Y.-P.; Li, G.-X.; and Huang, S.-J. 2019. ALiPy: Active learning in python. 
+Tang, Y.-P.; Li, G.-X.; and Huang, S.-J. ALiPy: Active learning in python. 
 Technical report, Nanjing University of Aeronautics and Astronautics. 
 available as arXiv preprint https://arxiv.org/abs/1901.03802.
 ```
@@ -215,8 +215,6 @@ available as arXiv preprint https://arxiv.org/abs/1901.03802.
   title = {{ALiPy}: Active Learning in Python},
   institution = {Nanjing University of Aeronautics and Astronautics},
   url = {https://github.com/NUAA-AL/ALiPy},
-  note = {available as arXiv preprint \url{https://arxiv.org/abs/1901.03802}},
-  month = jan,
-  year = 2019
+  note = {available as arXiv preprint \url{https://arxiv.org/abs/1901.03802}}
 }
 ```

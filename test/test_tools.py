@@ -34,5 +34,3 @@ def test_nlargestarg_nsmallestarg():
     assert set(nsmallestarg(a, 2)) == {1,0}
     assert set(nsmallestarg(a, 3)) == {1,2, 0}
 
-
-    

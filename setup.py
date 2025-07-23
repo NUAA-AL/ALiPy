@@ -9,7 +9,7 @@ setup(
     long_description=open('README.md', encoding='UTF-8').read(),
 	long_description_content_type='text/markdown',
     author='Ying-Peng Tang, Guo-Xiang Li, Sheng-Jun Huang',
-    author_email='tangyp@nuaa.edu.cn, GuoXiangLi@nuaa.edu.cn, huangsj@nuaa.edu.cn',
+    author_email='tangyp@nuaa.edu.cn, guoxiangli@nuaa.edu.cn, huangsj@nuaa.edu.cn',
     url='https://github.com/NUAA-AL/ALiPy',
     setup_requires=[],
     install_requires=['numpy', 'scipy', 'scikit-learn', 'matplotlib', 'prettytable'],
