@@ -99,17 +99,17 @@ The tool classes provided by alipy cover as many components in active learning a
 
 ALiPy provide several commonly used strategies for now, and new algorithms will continue to be added in subsequent updates.
 
-* AL with Instance Selection: Uncertainty (SIGIR 1994), Graph Density (CVPR 2012), QUIRE (TPAMI 2014), SPAL (AAAI 2019), Query By Committee (ICML 1998), Random, BMDR (KDD 2013), LAL (NIPS 2017), Expected Error Reduction (ICML 2001)
+* AL with Instance Selection: Uncertainty, Graph Density, QUIRE, SPAL, Query By Committee, Random, BMDR, LAL, Expected Error Reduction
 
-* AL for Multi-Label Data: AUDI (ICDM 2013) , QUIRE (TPAMI 2014) , Random, MMC (KDD 2009), Adaptive (IJCAI 2013)
+* AL for Multi-Label Data: AUDI , QUIRE, Random, MMC, Adaptive
 
-* AL by Querying Features: AFASMC (KDD 2018) , Stability (ICDM 2013) , Random
+* AL by Querying Features: AFASMC, Stability, Random
 
-* AL with Different Costs: HALC (IJCAI 2018) , Random , Cost performance
+* AL with Different Costs: HALC, Random , Cost performance
 
-* AL with Noisy Oracles: CEAL (IJCAI 2017) , IEthresh (KDD 2009) , All, Random
+* AL with Noisy Oracles: CEAL, IEthresh, All, Random
 
-* AL with Novel Query Types: AURO (IJCAI 2015)
+* AL with Novel Query Types: AURO
 
 * AL for Large Scale Tasks: Subsampling
 
